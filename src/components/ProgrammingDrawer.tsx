@@ -305,7 +305,7 @@ export default function ProgrammingDrawer({
                   <Radio className="w-3.5 h-3.5 text-white" />
                   1. Choisissez votre station
                 </span>
-                <span className="text-[10px] font-mono text-zinc-500">
+                <span className="text-[11px] font-mono text-zinc-400">
                   {availableStations.length} station{availableStations.length > 1 ? 's' : ''}
                 </span>
               </div>
@@ -343,11 +343,11 @@ export default function ProgrammingDrawer({
                         <span className={`text-xs sm:text-sm font-futuristic font-bold uppercase tracking-wider truncate ${isSelected ? 'text-white' : 'text-zinc-300'}`}>
                           {st.name.replace(/^Radio Synapse\s*-\s*/i, '')}
                         </span>
-                        <span className="text-[10px] font-mono text-zinc-400 truncate mt-0.5">
+                        <span className="text-[11px] font-mono text-zinc-400 truncate mt-0.5">
                           {st.genre}
                         </span>
                         {isCurrentlyPlaying && (
-                          <span className="text-[9px] font-mono font-bold text-emerald-400 flex items-center gap-1 mt-0.5">
+                          <span className="text-[11px] font-mono font-bold text-emerald-400 flex items-center gap-1 mt-0.5">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                             À L'ÉCOUTE
                           </span>
@@ -366,7 +366,7 @@ export default function ProgrammingDrawer({
                   <Calendar className="w-3.5 h-3.5 text-white" />
                   2. Date de la programmation
                 </span>
-                <span className="text-[10px] font-mono text-zinc-300 font-bold">
+                <span className="text-[11px] font-mono text-zinc-300 font-bold">
                   {isSelectedDateToday ? 'AUJOURD’HUI EN DIRECT' : selectedDateKey}
                 </span>
               </div>
@@ -392,19 +392,19 @@ export default function ProgrammingDrawer({
                       }`}
                     >
                       {item.isToday && (
-                        <span className={`text-[8px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full mb-1 ${
+                        <span className={`text-[11px] font-mono font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full mb-1 ${
                           isSelected ? 'bg-black text-white' : 'bg-white/20 text-white'
                         }`}>
                           AUJ.
                         </span>
                       )}
-                      <span className={`text-[10px] font-mono font-bold tracking-wider ${isSelected ? 'text-black/80' : 'text-zinc-400'}`}>
+                      <span className={`text-[11px] font-mono font-bold tracking-wider ${isSelected ? 'text-black/80' : 'text-zinc-400'}`}>
                         {item.dayLabel}
                       </span>
                       <span className={`text-base sm:text-lg font-futuristic font-bold my-0.5 ${isSelected ? 'text-black' : 'text-white'}`}>
                         {item.dayNumber}
                       </span>
-                      <span className={`text-[9px] font-mono tracking-widest ${isSelected ? 'text-black/70' : 'text-zinc-500'}`}>
+                      <span className={`text-[11px] font-mono tracking-widest ${isSelected ? 'text-black/70' : 'text-zinc-400'}`}>
                         {item.monthLabel}
                       </span>
                     </button>
@@ -426,7 +426,7 @@ export default function ProgrammingDrawer({
                         {selectedStation.name}
                       </span>
                       {isSelectedDateToday && (
-                        <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-red-500/20 text-red-300 border border-red-500/30 animate-pulse flex-shrink-0">
+                        <span className="px-2 py-0.5 rounded-full text-[11px] font-mono font-bold bg-red-500/20 text-red-300 border border-red-500/30 animate-pulse flex-shrink-0">
                           DIRECT ACTIF
                         </span>
                       )}

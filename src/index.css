@@ -1,9 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;800;900&family=Jost:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Orbitron:wght@500;700;800;900&family=Syncopate:wght@400;700&family=Playfair+Display:ital,wght@0,500;0,700;0,900;1,500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Orbitron:wght@500;700;800;900&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Jost", "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-sans: "Jost", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Orbitron", ui-monospace, SFMono-Regular, monospace;
 }
 
 @layer base {
@@ -22,17 +22,46 @@
   }
 }
 
-/* Typographic Archetypes */
+/* Typographic Archetypes - Harmonized to 2 font families (Jost & Orbitron) */
 .font-serif-title {
-  font-family: "Cinzel", "Playfair Display", Georgia, serif;
+  font-family: "Orbitron", "Jost", sans-serif;
+  font-weight: 800;
+  transform: scaleY(0.85);
+  transform-origin: center;
+  display: inline-block;
 }
 
 .font-sans-elegant {
-  font-family: "Jost", "Plus Jakarta Sans", sans-serif;
+  font-family: "Jost", sans-serif;
 }
 
 .font-futuristic {
-  font-family: "Syncopate", "Orbitron", sans-serif;
+  font-family: "Orbitron", sans-serif;
+  font-weight: 800;
+  transform: scaleY(0.85);
+  transform-origin: center;
+  display: inline-block;
+}
+
+/* Ensure block-level titles in Orbitron scale cleanly without breaking text flow and stay bold */
+h1.font-futuristic,
+h2.font-futuristic,
+h3.font-futuristic,
+h4.font-futuristic,
+h5.font-futuristic,
+h6.font-futuristic {
+  display: inline-block;
+  font-weight: 900;
+  transform: scaleY(0.85);
+  transform-origin: left center;
+}
+
+.text-center.font-futuristic,
+.text-center > .font-futuristic,
+h1.font-futuristic.text-center,
+h2.font-futuristic.text-center,
+h3.font-futuristic.text-center {
+  transform-origin: center center;
 }
 
 /* Glass panel style from Elegant Dark */

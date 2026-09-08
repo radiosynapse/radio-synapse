@@ -946,7 +946,7 @@ function renderWidgetContent(
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <span className="text-[10px] font-mono font-bold text-zinc-500 w-4">
+                    <span className="text-[11px] font-mono font-bold text-zinc-400 w-4">
                       #{idx + 1}
                     </span>
 
@@ -967,13 +967,13 @@ function renderWidgetContent(
                         <span className="text-xs font-mono font-bold text-white truncate">
                           {st.name}
                         </span>
-                        <span className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-bold uppercase border ${
-                          isEnabled ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-zinc-800 text-zinc-500 border-zinc-700'
+                        <span className={`px-1.5 py-0.5 rounded text-[11px] font-mono font-bold uppercase border ${
+                          isEnabled ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-zinc-800 text-zinc-400 border-zinc-700'
                         }`}>
                           {isEnabled ? 'ON-AIR' : 'OFFLINE'}
                         </span>
                       </div>
-                      <span className="text-[10px] font-mono text-zinc-400 truncate">
+                      <span className="text-[11px] font-mono text-zinc-400 truncate">
                         {st.genre} {density === 'expanded' && st.streamUrl ? `• 320 kbps HD` : ''}
                       </span>
                     </div>

@@ -296,13 +296,13 @@ export default function LikedTracksDrawer({
 
               {likedTracks.length > 2 && (
                 <div className="relative flex-1 min-w-[180px]">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Filtrer par titre ou artiste..."
-                    className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-black/50 border border-white/10 text-xs font-mono text-white placeholder:text-zinc-600 focus:outline-none focus:border-cyan-400 transition-all"
+                    className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-black/50 border border-white/10 text-xs font-mono text-white placeholder:text-zinc-400 focus:outline-none focus:border-cyan-400 transition-all"
                   />
                 </div>
               )}
@@ -325,7 +325,7 @@ export default function LikedTracksDrawer({
               </p>
             </div>
           ) : filteredTracks.length === 0 ? (
-            <div className="text-center py-8 text-zinc-500 font-mono text-xs">
+            <div className="text-center py-8 text-zinc-300 font-mono text-xs">
               Aucun titre ne correspond aux filtres sélectionnés.
             </div>
           ) : (

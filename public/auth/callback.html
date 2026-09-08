@@ -101,10 +101,11 @@
         }));
       } catch (e) {}
 
-      // Send postMessage to Opener window
+      // Send postMessage to Opener window with strict targetOrigin
       if (window.opener && !window.opener.closed) {
         try {
-          window.opener.postMessage(payload, '*');
+          var targetOrigin = window.location.origin;
+          window.opener.postMessage(payload, targetOrigin);
         } catch (err) {
           console.error('Failed to postMessage to opener', err);
         }

@@ -127,6 +127,8 @@ export async function startRealSpotifyAuth(
 
     // Listener for postMessage from /auth/callback.html
     const handleMessage = async (event: MessageEvent) => {
+      // Validate origin for message security
+      if (event.origin !== window.location.origin) return;
       if (!event.data || event.data.type !== 'MUSIC_PLATFORM_AUTH_SUCCESS') return;
 
       const payload = event.data;

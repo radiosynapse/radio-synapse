@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Sliders, RotateCcw, Sparkles, Volume2, Activity } from 'lucide-react';
 import { EQUALIZER_PRESETS, EQ_FREQUENCIES } from '../data';
 
@@ -23,36 +23,54 @@ export default function Equalizer({
   accentColor,
   stationName,
 }: EqualizerProps) {
-  // Simulated spectrum bounce synchronized with the 10 bands
-  const [liveSpectrum, setLiveSpectrum] = useState<number[]>(bands.map(() => 15));
+  const barsRef = useRef<(HTMLDivElement | null)[]>([]);
   const animationRef = useRef<number | null>(null);
+  const currentLevelsRef = useRef<number[]>(bands.map(() => 15));
 
+  // High-performance requestAnimationFrame loop with direct DOM mutation (No React re-render)
   useEffect(() => {
-    if (!isPlaying) {
-      const interval = setInterval(() => {
-        setLiveSpectrum(prev => prev.map(val => Math.max(val - 3, 10)));
-      }, 100);
-      return () => clearInterval(interval);
-    }
+    let running = true;
 
     const animate = () => {
-      setLiveSpectrum(() => {
-        const time = Date.now() / 150;
-        return bands.map((gainDb, idx) => {
-          // Normalize gain from -12..+12 to 0.4..1.6 multiplier
+      if (!running) return;
+
+      const time = Date.now() / 150;
+      for (let idx = 0; idx < bands.length; idx++) {
+        const barElem = barsRef.current[idx];
+        if (!barElem) continue;
+
+        if (isPlaying) {
+          const gainDb = bands[idx] ?? 0;
           const gainMultiplier = Math.max(0.2, 1.0 + (gainDb / 12) * 0.6);
           const wave = Math.sin(time + idx * 0.7) * 20;
           const noise = Math.random() * 25;
-          const baseHeight = 35 * gainMultiplier + wave + noise;
-          return Math.max(8, Math.min(100, baseHeight));
-        });
-      });
+          const targetHeight = Math.max(8, Math.min(100, 35 * gainMultiplier + wave + noise));
+          currentLevelsRef.current[idx] = targetHeight;
+
+          const pxHeight = Math.max(4, (targetHeight / 100) * 22);
+          barElem.style.height = `${pxHeight}px`;
+          barElem.style.opacity = '0.9';
+        } else {
+          // Smooth decay when paused
+          const curr = currentLevelsRef.current[idx] || 10;
+          const decayed = Math.max(8, curr - 2.5);
+          currentLevelsRef.current[idx] = decayed;
+          const pxHeight = Math.max(4, (decayed / 100) * 22);
+          barElem.style.height = `${pxHeight}px`;
+          barElem.style.opacity = '0.25';
+        }
+      }
+
       animationRef.current = requestAnimationFrame(animate);
     };
 
     animationRef.current = requestAnimationFrame(animate);
+
     return () => {
-      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+      running = false;
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
     };
   }, [isPlaying, bands]);
 
@@ -99,14 +117,14 @@ export default function Equalizer({
                 Égaliseur Graphique 10 Bandes
               </h3>
               <span 
-                className="text-[9.5px] font-mono font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider bg-black/60 border border-white/15"
+                className="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider bg-black/60 border border-white/15"
                 style={{ color: accentColor }}
               >
                 {activePreset}
               </span>
             </div>
-            <p className="text-xs text-zinc-400 mt-0.5">
-              Profil actif calibré pour <strong className="text-zinc-200">{stationName}</strong>
+            <p className="text-xs text-zinc-300 mt-0.5">
+              Profil actif calibré pour <strong className="text-zinc-100">{stationName}</strong>
             </p>
           </div>
         </div>
@@ -114,9 +132,11 @@ export default function Equalizer({
         {/* Action Buttons */}
         <div className="flex items-center gap-2 self-end sm:self-auto">
           <button
+            type="button"
             onClick={onResetFlat}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 hover:text-white text-xs font-mono font-medium transition-all transform active:scale-95 cursor-pointer shadow-sm"
             title="Réinitialiser tous les curseurs à 0 dB"
+            aria-label="Réinitialiser tous les curseurs à 0 dB"
           >
             <RotateCcw className="w-3.5 h-3.5 text-zinc-400" />
             <span>Reset 0dB</span>
@@ -126,7 +146,7 @@ export default function Equalizer({
 
       {/* Preset Chips Selector Bar */}
       <div className="flex flex-col gap-2">
-        <span className="text-[10.5px] font-mono uppercase tracking-widest text-zinc-400 font-semibold flex items-center gap-1.5">
+        <span className="text-[11px] font-mono uppercase tracking-widest text-zinc-300 font-semibold flex items-center gap-1.5">
           <Activity className="w-3.5 h-3.5 text-cyan-400" />
           <span>Profils Sonores Préréglés & Genres</span>
         </span>
@@ -136,11 +156,13 @@ export default function Equalizer({
             return (
               <button
                 key={preset.name}
+                type="button"
                 onClick={() => onPresetChange(preset.name)}
+                aria-label={`Activer le préréglage ${preset.name}`}
                 className={`flex-shrink-0 text-xs font-mono font-semibold px-4 py-2.5 rounded-xl border transition-all duration-200 flex items-center gap-2 cursor-pointer ${
                   isSelected
                     ? 'bg-white border-white text-black font-bold shadow-[0_0_15px_rgba(255,255,255,0.25)]'
-                    : 'bg-black/40 border-white/10 text-zinc-400 hover:text-zinc-200 hover:border-white/20'
+                    : 'bg-black/40 border-white/10 text-zinc-300 hover:text-white hover:border-white/20'
                 }`}
               >
                 {isSelected && <span className="w-2 h-2 rounded-full bg-black" />}
@@ -151,11 +173,13 @@ export default function Equalizer({
 
           {/* Custom profile chip */}
           <button
+            type="button"
             onClick={() => onPresetChange('PERSONNALISÉ')}
+            aria-label="Activer le mode d'égalisation personnalisé"
             className={`flex-shrink-0 text-xs font-mono font-semibold px-4 py-2.5 rounded-xl border transition-all duration-200 flex items-center gap-2 cursor-pointer ${
               activePreset === 'PERSONNALISÉ'
                 ? 'bg-white border-white text-black font-bold shadow-[0_0_15px_rgba(255,255,255,0.25)]'
-                : 'bg-black/40 border-white/10 text-zinc-400 hover:text-zinc-200 hover:border-white/20'
+                : 'bg-black/40 border-white/10 text-zinc-300 hover:text-white hover:border-white/20'
             }`}
           >
             {activePreset === 'PERSONNALISÉ' && <span className="w-2 h-2 rounded-full bg-black" />}
@@ -172,15 +196,15 @@ export default function Equalizer({
       >
         {/* Subtle background grid lines for dB levels (+12dB, +6dB, 0dB, -6dB, -12dB) */}
         <div className="absolute inset-x-4 top-4 bottom-4 flex flex-col justify-between pointer-events-none opacity-20">
-          <div className="border-b border-dashed border-white flex justify-between text-[8px] font-mono text-zinc-400 px-1">
+          <div className="border-b border-dashed border-white flex justify-between text-[11px] font-mono text-zinc-300 px-1">
             <span>+12 dB</span>
             <span>BOOST MAXIMUM</span>
           </div>
-          <div className="border-b border-white/60 flex justify-between text-[8px] font-mono text-white/80 px-1">
+          <div className="border-b border-white/60 flex justify-between text-[11px] font-mono text-white/90 px-1">
             <span>0 dB</span>
             <span>RÉFÉRENCE STUDIO (FLAT)</span>
           </div>
-          <div className="border-b border-dashed border-white flex justify-between text-[8px] font-mono text-zinc-400 px-1">
+          <div className="border-b border-dashed border-white flex justify-between text-[11px] font-mono text-zinc-300 px-1">
             <span>-12 dB</span>
             <span>ATTÉNUATION MAXIMALE</span>
           </div>
@@ -232,15 +256,16 @@ export default function Equalizer({
           ))}
         </svg>
 
-        {/* Live Audio Energy Visualizer Spectrum Bars */}
-        <div className="absolute inset-x-6 bottom-3 flex justify-between items-end h-6 pointer-events-none opacity-45 z-20">
-          {liveSpectrum.map((level, i) => (
+        {/* Live Audio Energy Visualizer Spectrum Bars (Direct rAF DOM Render) */}
+        <div className="absolute inset-x-6 bottom-3 flex justify-between items-end h-6 pointer-events-none z-20">
+          {bands.map((_, i) => (
             <div 
               key={i} 
-              className="w-2 rounded-full bg-white transition-all duration-75"
+              ref={(el) => { barsRef.current[i] = el; }}
+              className="w-2 rounded-full bg-white transition-[opacity] duration-150"
               style={{
-                height: `${Math.max(4, (level / 100) * 22)}px`,
-                opacity: isPlaying ? 0.9 : 0.2
+                height: '4px',
+                opacity: isPlaying ? 0.9 : 0.25
               }}
             />
           ))}
@@ -264,12 +289,12 @@ export default function Equalizer({
               >
                 {/* Current dB Gain Badge */}
                 <span 
-                  className={`text-[10.5px] sm:text-xs font-mono font-bold tracking-tight transition-colors ${
+                  className={`text-[11px] sm:text-xs font-mono font-bold tracking-tight transition-colors ${
                     gain > 0 
                       ? 'text-white' 
                       : gain < 0 
                       ? 'text-rose-400' 
-                      : 'text-zinc-400'
+                      : 'text-zinc-300'
                   }`}
                 >
                   {gain > 0 ? `+${gain}` : gain}dB
@@ -284,6 +309,7 @@ export default function Equalizer({
                     max="12"
                     step="1"
                     value={gain}
+                    aria-label={`Bande ${freq}, gain actuel ${gain} dB`}
                     onChange={(e) => {
                       const val = parseInt(e.target.value, 10);
                       onBandChange(idx, val);
@@ -338,12 +364,12 @@ export default function Equalizer({
       </div>
 
       {/* Bottom Status / Advice */}
-      <div className="flex items-center justify-between text-xs font-mono text-zinc-400 px-2 py-1 bg-black/30 rounded-xl border border-white/5">
+      <div className="flex items-center justify-between text-xs font-mono text-zinc-300 px-2 py-1 bg-black/30 rounded-xl border border-white/5">
         <div className="flex items-center gap-2">
           <Volume2 className="w-4 h-4 text-white" />
           <span>Filtres DSP à phase linéaire active (10 bandes)</span>
         </div>
-        <span className="text-zinc-500">Plage : -12 dB / +12 dB</span>
+        <span className="text-zinc-400">Plage : -12 dB / +12 dB</span>
       </div>
 
     </div>

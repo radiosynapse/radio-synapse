@@ -1,6 +1,6 @@
 {
   "name": "Radio Synapse",
-  "description": "radio synapse streaming app",
+  "description": "Récepteur de webradio mobile haute fidélité avec design et mécanisme MiniDisc",
   "requestFramePermissions": [
     "microphone"
   ],

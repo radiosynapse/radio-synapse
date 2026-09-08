@@ -532,11 +532,11 @@ export default function AdminServicesTab({
                   <Radio className="w-4 h-4" />
                   <span>STATIONS RADIO</span>
                 </div>
-                <span className="px-2 py-0.5 rounded-full bg-zinc-900 text-cyan-300 text-[10px] font-mono border border-zinc-800">
+                <span className="px-2 py-0.5 rounded-full bg-zinc-900 text-cyan-300 text-[11px] font-mono border border-zinc-800">
                   {activeStationsCount}/{stations.length} actives
                 </span>
               </div>
-              <p className="text-[11px] font-mono text-zinc-500">Collection: <code className="text-zinc-300">synapse_stations</code></p>
+              <p className="text-[11px] font-mono text-zinc-400">Collection: <code className="text-zinc-300">synapse_stations</code></p>
             </div>
 
             <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800/80 flex flex-col justify-between gap-3">
@@ -545,11 +545,11 @@ export default function AdminServicesTab({
                   <ShieldCheck className="w-4 h-4" />
                   <span>UTILISATEURS & AUTH</span>
                 </div>
-                <span className="px-2 py-0.5 rounded-full bg-zinc-900 text-purple-300 text-[10px] font-mono border border-zinc-800">
+                <span className="px-2 py-0.5 rounded-full bg-zinc-900 text-purple-300 text-[11px] font-mono border border-zinc-800">
                   {usersCount} comptes
                 </span>
               </div>
-              <p className="text-[11px] font-mono text-zinc-500">Collection: <code className="text-zinc-300">users</code> (Auth)</p>
+              <p className="text-[11px] font-mono text-zinc-400">Collection: <code className="text-zinc-300">users</code> (Auth)</p>
             </div>
 
             <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800/80 flex flex-col justify-between gap-3">
@@ -558,11 +558,11 @@ export default function AdminServicesTab({
                   <Trophy className="w-4 h-4" />
                   <span>DÉFIS & QUÊTES</span>
                 </div>
-                <span className="px-2 py-0.5 rounded-full bg-zinc-900 text-amber-300 text-[10px] font-mono border border-zinc-800">
+                <span className="px-2 py-0.5 rounded-full bg-zinc-900 text-amber-300 text-[11px] font-mono border border-zinc-800">
                   {challengesCount} quêtes
                 </span>
               </div>
-              <p className="text-[11px] font-mono text-zinc-500">Collection: <code className="text-zinc-300">synapse_challenges</code></p>
+              <p className="text-[11px] font-mono text-zinc-400">Collection: <code className="text-zinc-300">synapse_challenges</code></p>
             </div>
 
             <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800/80 flex flex-col justify-between gap-3">
@@ -571,11 +571,11 @@ export default function AdminServicesTab({
                   <Tag className="w-4 h-4" />
                   <span>CODES PROMO</span>
                 </div>
-                <span className="px-2 py-0.5 rounded-full bg-zinc-900 text-pink-300 text-[10px] font-mono border border-zinc-800">
+                <span className="px-2 py-0.5 rounded-full bg-zinc-900 text-pink-300 text-[11px] font-mono border border-zinc-800">
                   {promotionsCount} promos
                 </span>
               </div>
-              <p className="text-[11px] font-mono text-zinc-500">Collection: <code className="text-zinc-300">synapse_promotions</code></p>
+              <p className="text-[11px] font-mono text-zinc-400">Collection: <code className="text-zinc-300">synapse_promotions</code></p>
             </div>
 
             <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800/80 flex flex-col justify-between gap-3">
@@ -584,11 +584,11 @@ export default function AdminServicesTab({
                   <CalendarDays className="w-4 h-4" />
                   <span>ÉVÉNEMENTS & LIVES</span>
                 </div>
-                <span className="px-2 py-0.5 rounded-full bg-zinc-900 text-emerald-300 text-[10px] font-mono border border-zinc-800">
+                <span className="px-2 py-0.5 rounded-full bg-zinc-900 text-emerald-300 text-[11px] font-mono border border-zinc-800">
                   {eventsCount} events
                 </span>
               </div>
-              <p className="text-[11px] font-mono text-zinc-500">Collection: <code className="text-zinc-300">synapse_events</code></p>
+              <p className="text-[11px] font-mono text-zinc-400">Collection: <code className="text-zinc-300">synapse_events</code></p>
             </div>
 
             <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800/80 flex flex-col justify-between gap-3">
@@ -597,11 +597,11 @@ export default function AdminServicesTab({
                   <MessageSquare className="w-4 h-4" />
                   <span>MESSAGES STUDIO</span>
                 </div>
-                <span className="px-2 py-0.5 rounded-full bg-zinc-900 text-zinc-300 text-[10px] font-mono border border-zinc-800">
+                <span className="px-2 py-0.5 rounded-full bg-zinc-900 text-zinc-300 text-[11px] font-mono border border-zinc-800">
                   Actif
                 </span>
               </div>
-              <p className="text-[11px] font-mono text-zinc-500">Collection: <code className="text-zinc-300">synapse_messages</code></p>
+              <p className="text-[11px] font-mono text-zinc-400">Collection: <code className="text-zinc-300">synapse_messages</code></p>
             </div>
           </div>
 

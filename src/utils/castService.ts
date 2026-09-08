@@ -132,13 +132,20 @@ class PureGoogleCastService {
       }
     };
 
-    (window as any).__onGCastApiAvailable = (isAvailable: boolean) => {
+    (window as any).__initRadioSynapseCast = (isAvailable: boolean) => {
       if (isAvailable) {
         setupFramework();
       }
     };
 
-    if ((window as any).cast?.framework) {
+    (window as any).__onGCastApiAvailable = (isAvailable: boolean) => {
+      (window as any).__isCastAvailable = isAvailable;
+      if (isAvailable) {
+        setupFramework();
+      }
+    };
+
+    if ((window as any).__isCastAvailable || (window as any).cast?.framework) {
       setupFramework();
     }
   }

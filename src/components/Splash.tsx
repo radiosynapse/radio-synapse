@@ -161,6 +161,8 @@ export default function Splash({ onTopBarAppear, onComplete }: SplashProps) {
                 id="splash-brand-logo-text"
                 className="font-futuristic font-black text-2xl sm:text-4xl md:text-5xl lg:text-6xl tracking-[0.22em] mr-[-0.22em] uppercase leading-none whitespace-nowrap relative z-10 text-white flex items-center justify-center"
                 style={{
+                  transform: 'scaleY(0.68)',
+                  transformOrigin: 'center center',
                   textShadow: '0 0 25px rgba(255,255,255,0.4), 0 4px 12px rgba(0,0,0,0.9)',
                 }}
               >

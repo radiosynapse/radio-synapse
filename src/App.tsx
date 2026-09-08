@@ -2241,7 +2241,7 @@ export default function App() {
             {/* Centered Section: Brand Logo (Positioned high up near top edge of screen) */}
             <div 
               id="topbar-brand-logo-target"
-              className={`absolute left-1/2 top-1 -translate-x-1/2 z-10 flex items-center justify-center pointer-events-auto transition-opacity duration-150 ${
+              className={`absolute left-1/2 top-0.5 -translate-x-1/2 z-10 flex items-center justify-center pointer-events-auto transition-opacity duration-150 ${
                 showSplash ? 'opacity-0 pointer-events-none' : 'opacity-100'
               }`}
             >
@@ -2253,10 +2253,10 @@ export default function App() {
               {rewindBadge && (
                 <button
                   onClick={handleReturnToDirect}
-                  className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/60 text-[9px] font-mono text-amber-300 hover:bg-amber-500/30 transition-all cursor-pointer shadow-[0_0_12px_rgba(245,158,11,0.25)] animate-pulse"
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-400/60 text-[11px] font-mono text-amber-300 hover:bg-amber-500/30 transition-all cursor-pointer shadow-[0_0_12px_rgba(245,158,11,0.25)] animate-pulse"
                   title="Cliquer pour revenir au direct"
                 >
-                  <RotateCcw className="w-2.5 h-2.5 text-amber-300 animate-spin" />
+                  <RotateCcw className="w-3 h-3 text-amber-300 animate-spin" />
                   <span className="font-bold uppercase tracking-wider">{rewindBadge} • DIRECT</span>
                 </button>
               )}
@@ -2290,7 +2290,7 @@ export default function App() {
             {/* MAIN SPACIOUS PLAYER INTERFACE (SLIDES UP WHEN STATIONS VIEW IS OPEN) */}
             <main 
               id="app-main-interface-casing" 
-              className={`w-full flex flex-col items-center justify-between flex-1 min-h-0 gap-2 py-0 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] relative z-30 ${
+              className={`w-full flex flex-col items-center justify-between flex-1 min-h-0 gap-1 py-0 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] relative z-30 ${
                 !playerVisible
                   ? 'opacity-0 pointer-events-none translate-y-8'
                   : showStationsView 
@@ -2303,7 +2303,7 @@ export default function App() {
                 initial={{ opacity: 0, y: 55 }}
                 animate={playerVisible ? { opacity: 1, y: 0 } : { opacity: 0, y: 55 }}
                 transition={{ duration: 0.85, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
-                className="w-full flex-1 min-h-0 flex items-center justify-center my-auto"
+                className="w-full flex-1 min-h-0 flex items-center justify-center -mb-5 sm:-mb-7"
               >
                 <MiniDiscPlayer
                   isPlaying={isPlaying}
@@ -2323,7 +2323,7 @@ export default function App() {
               {/* 2. PLAYBACK STATUS & NAVIGATION CONTROLS (SLIDES DOWN FROM BEHIND THE SEPARATION LINE) */}
               <div 
                 id="playback-status-deck" 
-                className="w-full px-3 py-1 select-none flex flex-col bg-transparent transition-all duration-300 relative overflow-hidden z-10 shrink-0"
+                className="w-full px-3 pt-2 pb-1 select-none flex flex-col bg-transparent transition-all duration-300 relative overflow-hidden z-10 shrink-0 -mt-2"
                 style={{
                   ['--primary-color' as any]: primaryColor,
                   ['--primary-color-glow' as any]: hexToRgba(primaryColor, 0.45),
@@ -2335,8 +2335,8 @@ export default function App() {
                   ['--secondary-color-border' as any]: hexToRgba(secondaryColor, 0.35),
                 }}
               >
-                {/* Glowing Separation Line (Existing line animated from left to right like a light beam) */}
-                <div className="absolute top-0 left-4 right-4 h-[1.5px] pointer-events-none z-20 overflow-hidden">
+                {/* Glowing Separation Line (Positioned snugly right under the MiniDisc case) */}
+                <div className="absolute top-0 left-2 right-2 h-[2px] pointer-events-none z-20 overflow-hidden">
                   <motion.div
                     initial={{ scaleX: 0, opacity: 0 }}
                     animate={playerVisible ? { scaleX: 1, opacity: 1 } : { scaleX: 0, opacity: 0 }}
@@ -2370,24 +2370,24 @@ export default function App() {
                     <div className="flex-1 min-w-0 pr-1">
                       <MarqueeText
                         text={currentTrack.title}
-                        className="font-futuristic text-sm font-bold text-white tracking-widest block leading-snug hover:opacity-80 transition-colors"
+                        className="font-futuristic text-base sm:text-lg md:text-xl font-black text-white tracking-wider block leading-tight hover:opacity-80 transition-colors"
                         style={{ textShadow: isPlaying ? '0 0 16px var(--primary-color-glow)' : undefined }}
                       />
                       
-                      <div className="flex items-center gap-2 mt-1.5 flex-wrap min-w-0">
+                      <div className="flex items-center gap-2 mt-1 flex-wrap min-w-0">
                         <div className="flex-1 min-w-0">
                           <MarqueeText
                             text={currentTrack.artist}
-                            className="text-xs font-bold uppercase tracking-widest block font-mono transition-colors duration-500"
+                            className="text-xs sm:text-sm font-bold uppercase tracking-widest block font-mono transition-colors duration-500"
                             style={{ color: 'var(--secondary-color)' }}
                           />
                         </div>
                         {rewindBadge && (
                           <button
                             onClick={handleReturnToDirect}
-                            className="px-2 py-0.5 rounded text-[8.5px] font-mono font-bold uppercase tracking-wider bg-amber-950/80 border border-amber-400/70 text-amber-300 flex items-center gap-1 shadow-md hover:bg-amber-900 transition-colors cursor-pointer animate-pulse shrink-0"
+                            className="px-2.5 py-0.5 rounded text-[11px] font-mono font-bold uppercase tracking-wider bg-amber-950/80 border border-amber-400/70 text-amber-300 flex items-center gap-1.5 shadow-md hover:bg-amber-900 transition-colors cursor-pointer animate-pulse shrink-0"
                           >
-                            <RotateCcw className="w-2.5 h-2.5 animate-spin" />
+                            <RotateCcw className="w-3 h-3 animate-spin" />
                             DIRECT
                           </button>
                         )}
@@ -2510,11 +2510,11 @@ export default function App() {
                     </div>
 
                     {/* Timestamps (Current / Total Duration) */}
-                    <div className="flex justify-between items-center text-[10px] font-mono text-zinc-400 select-none">
+                    <div className="flex justify-between items-center text-[11px] font-mono text-zinc-300 select-none">
                       <span className="font-semibold text-zinc-200 tracking-wider">
                         {formatTime(currentTime)}
                       </span>
-                      <span className="text-zinc-500 tracking-wider">
+                      <span className="text-zinc-400 tracking-wider">
                         {formatTime(currentTrack.duration || 240)}
                       </span>
                     </div>
@@ -2919,10 +2919,10 @@ export default function App() {
                     />
                     <MarqueeText
                       text={track.artist}
-                      className="text-[10px] sm:text-xs text-zinc-300 font-bold uppercase tracking-wider block mt-0.5 font-mono"
+                      className="text-[11px] sm:text-xs text-zinc-300 font-bold uppercase tracking-wider block mt-0.5 font-mono"
                     />
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] font-mono text-zinc-300 font-bold flex items-center gap-1 bg-white/10 px-2 py-0.5 rounded-md border border-white/15">
+                      <span className="text-[11px] font-mono text-zinc-300 font-bold flex items-center gap-1 bg-white/10 px-2 py-0.5 rounded-md border border-white/15">
                         <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                         {track.timeAgo} ({track.playedAt})
                       </span>
@@ -2934,7 +2934,7 @@ export default function App() {
                   <span className="text-xs font-mono text-zinc-400">
                     {Math.floor(track.duration / 60)}:{(track.duration % 60).toString().padStart(2, '0')}
                   </span>
-                  <span className="text-[9.5px] font-mono font-bold uppercase tracking-wider text-white px-2.5 py-1 rounded-lg bg-white/10 border border-white/20 group-hover:border-white/40 group-hover:bg-white/20 transition-all flex items-center gap-1.5 shadow-sm">
+                  <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-white px-2.5 py-1 rounded-lg bg-white/10 border border-white/20 group-hover:border-white/40 group-hover:bg-white/20 transition-all flex items-center gap-1.5 shadow-sm">
                     <RotateCcw className="w-3 h-3 text-white" />
                     Écouter (-{track.minutesAgo} min)
                   </span>

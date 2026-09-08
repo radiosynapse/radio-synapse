@@ -13,17 +13,17 @@ export default function BrandLogo({
   isAnimated = false,
   isChromaticText = false,
 }: BrandLogoProps) {
-  // Sizing scales matching font-futuristic hierarchy
+  // Sizing scales matching font-futuristic hierarchy with bold impact
   const sizeClasses = {
-    sm: 'text-[11px] sm:text-xs tracking-[0.2em] mr-[-0.2em]',
-    md: 'text-xs sm:text-sm md:text-base tracking-[0.22em] mr-[-0.22em]',
+    sm: 'text-xs sm:text-sm tracking-[0.2em] mr-[-0.2em]',
+    md: 'text-sm sm:text-base md:text-lg tracking-[0.22em] mr-[-0.22em]',
     lg: 'text-lg sm:text-xl md:text-2xl tracking-[0.25em] mr-[-0.25em]',
     xl: 'text-2xl sm:text-3xl md:text-4xl tracking-[0.28em] mr-[-0.28em]',
   };
 
   const starSizes = {
     sm: 'w-3.5 h-3.5 top-0 right-0 -translate-y-1/2 translate-x-1/2',
-    md: 'w-4 h-4 top-0 right-0 -translate-y-1/2 translate-x-1/2',
+    md: 'w-4.5 h-4.5 top-0 right-0 -translate-y-1/2 translate-x-1/2',
     lg: 'w-6 h-6 top-0 right-0 -translate-y-1/2 translate-x-1/2',
     xl: 'w-8 h-8 top-0 right-0 -translate-y-1/2 translate-x-1/2',
   };
@@ -36,9 +36,14 @@ export default function BrandLogo({
           className={`font-futuristic font-black uppercase whitespace-nowrap leading-none ${
             isChromaticText ? 'chromatic-text-sweep' : 'text-white'
           } ${sizeClasses[size]}`}
-          style={!isChromaticText ? {
-            textShadow: '0 0 16px rgba(255,255,255,0.4), 0 2px 4px rgba(0,0,0,0.8)',
-          } : undefined}
+          style={{
+            transform: 'scaleY(0.68)',
+            transformOrigin: 'center center',
+            display: 'inline-block',
+            ...(!isChromaticText ? {
+              textShadow: '0 0 16px rgba(255,255,255,0.4), 0 2px 4px rgba(0,0,0,0.8)',
+            } : {})
+          }}
         >
           <span>RADIO </span>
           <span>SYNAPS</span>

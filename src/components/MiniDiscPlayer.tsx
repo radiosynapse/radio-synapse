@@ -43,18 +43,30 @@ export default function MiniDiscPlayer({
   const [outgoingCover, setOutgoingCover] = useState<string | null>(null);
 
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let isMounted = true;
+
     if (currentTrack.coverUrl && currentTrack.coverUrl !== displayedCover) {
       preloadImage(currentTrack.coverUrl).then(() => {
+        if (!isMounted) return;
         setOutgoingCover(displayedCover);
         setDisplayedCover(currentTrack.coverUrl);
-        const timer = setTimeout(() => {
-          setOutgoingCover(null);
+        timer = setTimeout(() => {
+          if (isMounted) {
+            setOutgoingCover(null);
+          }
         }, 220);
-        return () => clearTimeout(timer);
       });
     } else if (currentTrack.coverUrl && !displayedCover) {
       setDisplayedCover(currentTrack.coverUrl);
     }
+
+    return () => {
+      isMounted = false;
+      if (timer) {
+        clearTimeout(timer);
+      }
+    };
   }, [currentTrack.coverUrl, displayedCover]);
 
   const activeDiscCover = displayedCover || currentTrack.coverUrl || '';
@@ -723,12 +735,14 @@ export default function MiniDiscPlayer({
               <div className="flex items-center gap-1.5">
                 {/* Étoile favoris dorée (icône 5 branches classique) */}
                 <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     onToggleFavoriteStation?.();
                   }}
                   className="p-1 transition-all duration-300 cursor-pointer flex items-center justify-center hover:scale-125 active:scale-90"
                   title={isFavoriteStation ? "Station favorite (Cliquer pour retirer)" : "Ajouter la station aux favoris"}
+                  aria-label={isFavoriteStation ? "Retirer la station des favoris" : "Ajouter la station aux favoris"}
                 >
                   <Star 
                     className={`w-3.5 h-3.5 transition-all ${

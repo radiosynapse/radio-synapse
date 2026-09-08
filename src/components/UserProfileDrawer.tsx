@@ -597,7 +597,7 @@ export default function UserProfileDrawer({
                           : 'Se connecter avec Spotify'}
                       </span>
                     </button>
-                    <span className="text-[10px] font-mono text-zinc-500 text-center">
+                    <span className="text-[11px] font-mono text-zinc-400 text-center">
                       {authMode === 'signup'
                         ? 'Crée directement votre compte avec votre adresse e-mail Spotify, aucun mot de passe requis.'
                         : 'Accès instantané via vos identifiants Spotify sans mot de passe requis.'}
@@ -607,7 +607,7 @@ export default function UserProfileDrawer({
                   {/* SEPARATOR */}
                   <div className="relative my-1 flex items-center justify-center">
                     <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/10" /></div>
-                    <span className="relative px-3 bg-zinc-950 text-[10px] font-mono uppercase text-zinc-500 font-bold">
+                    <span className="relative px-3 bg-zinc-950 text-[11px] font-mono uppercase text-zinc-400 font-bold">
                       OU PAR E-MAIL
                     </span>
                   </div>
@@ -723,7 +723,7 @@ export default function UserProfileDrawer({
                   <span className="text-sm font-mono font-bold text-white">{likedTracksCount}</span>
                 </div>
                 <span className="text-xs font-bold text-white mt-2">Coups de cœur</span>
-                <span className="text-[10px] font-mono text-zinc-500">Titres sauvegardés</span>
+                <span className="text-[11px] font-mono text-zinc-400">Titres sauvegardés</span>
               </button>
 
               {/* Favorite Stations Card */}
@@ -739,7 +739,7 @@ export default function UserProfileDrawer({
                   <span className="text-sm font-mono font-bold text-white">{favoriteStationsCount}</span>
                 </div>
                 <span className="text-xs font-bold text-white mt-2">Stations favorites</span>
-                <span className="text-[10px] font-mono text-zinc-500">Accès rapide</span>
+                <span className="text-[11px] font-mono text-zinc-400">Accès rapide</span>
               </button>
 
               {/* Audio Quality Selection Card - Replaces Studio Preset */}
@@ -749,7 +749,7 @@ export default function UserProfileDrawer({
                     <Sliders className="w-4 h-4 text-white" />
                     <span className="text-xs font-bold text-white">Qualité</span>
                   </div>
-                  <span className="text-[10px] font-mono font-bold uppercase text-zinc-300">
+                  <span className="text-[11px] font-mono font-bold uppercase text-zinc-300">
                     {quality === 'high' ? '320 kbps' : quality === 'medium' ? '192 kbps' : '128 kbps'}
                   </span>
                 </div>
@@ -764,7 +764,7 @@ export default function UserProfileDrawer({
                         key={q}
                         type="button"
                         onClick={() => onChangeQuality && onChangeQuality(q)}
-                        className={`flex-1 py-1 px-1 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer text-center ${
+                        className={`flex-1 py-1 px-1 rounded-lg text-[11px] font-mono font-bold uppercase transition-all cursor-pointer text-center ${
                           isSelected
                             ? 'bg-white text-black shadow-sm'
                             : 'text-zinc-400 hover:text-white'
@@ -776,7 +776,7 @@ export default function UserProfileDrawer({
                     );
                   })}
                 </div>
-                <span className="text-[9.5px] font-mono text-zinc-500 mt-1.5 truncate">
+                <span className="text-[11px] font-mono text-zinc-400 mt-1.5 truncate">
                   {quality === 'high' ? '320 kbps Master FLAC' : quality === 'medium' ? '192 kbps AAC Standard' : '128 kbps Flux Éco'}
                 </span>
               </div>
