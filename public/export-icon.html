@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Téléchargement Logo Radio Synapse 512x512 PNG</title>
+  <style>
+    body {
+      background: #121215;
+      color: #fff;
+      font-family: system-ui, -apple-system, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .card {
+      background: #1a1a22;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 20px;
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+      max-width: 540px;
+    }
+    .preview-box {
+      width: 256px;
+      height: 256px;
+      background-image: linear-gradient(45deg, #222 25%, transparent 25%), linear-gradient(-45deg, #222 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #222 75%), linear-gradient(-45deg, transparent 75%, #222 75%);
+      background-size: 20px 20px;
+      background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+      background-color: #111;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+      position: relative;
+    }
+    canvas {
+      width: 256px;
+      height: 256px;
+    }
+    button {
+      background: linear-gradient(135deg, #00f2ff, #ff00a0);
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 9999px;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(255, 0, 160, 0.4);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 25px rgba(0, 242, 255, 0.6);
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2 style="margin-top:0; margin-bottom: 8px;">Logo Radio Synapse (512x512 PNG)</h2>
+    <p style="color: #aaa; margin-bottom: 20px; text-align:center; font-size:14px;">
+      Fond transparent certifié pour la Google Cast SDK Console
+    </p>
+
+    <div class="preview-box">
+      <canvas id="canvas" width="512" height="512"></canvas>
+    </div>
+
+    <button id="downloadBtn">⬇️ Télécharger le logo (512x512 PNG)</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    const svgString = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+      <defs>
+        <linearGradient id="synapseStarGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#00f2ff" />
+          <stop offset="25%" stop-color="#ffffff" />
+          <stop offset="50%" stop-color="#3b82f6" />
+          <stop offset="75%" stop-color="#ff00a0" />
+          <stop offset="100%" stop-color="#ffd700" />
+        </linearGradient>
+        <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="8" result="blur" />
+          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+        </filter>
+      </defs>
+      <g filter="url(#glow)">
+        <path
+          d="M 256 24 
+             C 264 168 316 220 488 248 
+             C 316 274 264 324 252 488 
+             C 242 326 194 274 24 256 
+             C 194 242 248 168 256 24 Z"
+          fill="url(#synapseStarGrad)"
+        />
+      </g>
+    </svg>`;
+
+    const img = new Image();
+    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    const URL = window.URL || window.webkitURL || window;
+    const blobURL = URL.createObjectURL(svgBlob);
+
+    img.onload = function() {
+      ctx.clearRect(0, 0, 512, 512);
+      ctx.drawImage(img, 0, 0, 512, 512);
+      URL.revokeObjectURL(blobURL);
+    };
+    img.src = blobURL;
+
+    document.getElementById('downloadBtn').addEventListener('click', () => {
+      const pngUrl = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.download = 'radio-synapse-cast-icon-512x512.png';
+      a.href = pngUrl;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    });
+  </script>
+</body>
+</html>

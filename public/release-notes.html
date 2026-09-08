@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Radio Synapse — Dossier Technique Exhaustif, Spécifications d'Architecture & Note de Version Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&family=Orbitron:wght@600;800;900&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-dark: #040406;
+      --bg-surface: #0b0c13;
+      --bg-card: #12141f;
+      --bg-card-hover: #181b2a;
+      --border: #1f2438;
+      --border-accent: #2c3452;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      
+      --cyan: #00f2ff;
+      --cyan-rgb: 0, 242, 255;
+      --purple: #a855f7;
+      --purple-rgb: 168, 85, 247;
+      --emerald: #10b981;
+      --emerald-rgb: 16, 185, 129;
+      --amber: #f59e0b;
+      --amber-rgb: 245, 158, 11;
+      --rose: #f43f5e;
+      --rose-rgb: 244, 63, 94;
+      --blue: #3b82f6;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      line-height: 1.75;
+      padding: 30px 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrapper {
+      max-width: 1280px;
+      margin: 0 auto;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 48px 40px;
+      box-shadow: 0 25px 80px rgba(0, 0, 0, 0.75);
+      position: relative;
+    }
+
+    /* TOP ACTION BAR / PDF DOWNLOAD */
+    .top-action-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: linear-gradient(135deg, rgba(0, 242, 255, 0.08), rgba(168, 85, 247, 0.08));
+      border: 1px solid rgba(0, 242, 255, 0.25);
+      border-radius: 16px;
+      padding: 16px 24px;
+      margin-bottom: 36px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .pdf-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: linear-gradient(135deg, #00f2ff 0%, #0099ff 50%, #a855f7 100%);
+      color: #040406;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 12px 24px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(0, 242, 255, 0.35);
+      transition: all 0.25s ease;
+    }
+
+    .pdf-btn:hover {
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 0 6px 26px rgba(0, 242, 255, 0.55);
+    }
+
+    .pdf-btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* HEADER & HERO */
+    .hero-header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 36px;
+      margin-bottom: 40px;
+    }
+
+    .hero-title-group {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(0, 242, 255, 0.12);
+      color: var(--cyan);
+      border: 1px solid rgba(0, 242, 255, 0.3);
+      text-transform: uppercase;
+    }
+
+    h1 {
+      font-family: 'Orbitron', 'Syne', sans-serif;
+      font-size: 32px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      color: #fff;
+      background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, #00f2ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 12px;
+    }
+
+    .hero-subtitle {
+      font-size: 15.5px;
+      color: var(--text-muted);
+      max-width: 960px;
+      line-height: 1.7;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+    }
+
+    .meta-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 18px;
+    }
+
+    .meta-card-label {
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 4px;
+    }
+
+    .meta-card-val {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    /* TABLE OF CONTENTS */
+    .toc-container {
+      background: rgba(18, 20, 31, 0.7);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 48px;
+    }
+
+    .toc-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 14px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--cyan);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toc-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 10px 20px;
+      list-style: none;
+    }
+
+    .toc-list li a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13.5px;
+      font-weight: 600;
+      transition: color 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toc-list li a:hover {
+      color: var(--cyan);
+    }
+
+    .toc-list li a span.num {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-dim);
+      font-size: 11px;
+    }
+
+    /* SECTIONS */
+    .doc-section {
+      margin-bottom: 56px;
+      scroll-margin-top: 40px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 24px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: rgba(0, 242, 255, 0.1);
+      border: 1px solid rgba(0, 242, 255, 0.3);
+      color: var(--cyan);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 800;
+      font-family: 'Orbitron', sans-serif;
+    }
+
+    h2 {
+      font-family: 'Orbitron', 'Syne', sans-serif;
+      font-size: 22px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: 0.5px;
+    }
+
+    h3 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 17px;
+      font-weight: 800;
+      color: #f1f5f9;
+      margin: 28px 0 14px 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    h3::before {
+      content: "";
+      width: 6px;
+      height: 18px;
+      background: var(--cyan);
+      border-radius: 3px;
+      display: inline-block;
+    }
+
+    h4 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #e2e8f0;
+      margin: 18px 0 8px 0;
+    }
+
+    p {
+      color: var(--text-muted);
+      font-size: 14.5px;
+      margin-bottom: 16px;
+    }
+
+    /* CARDS & GRIDS */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 20px;
+      margin: 20px 0;
+    }
+
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 22px;
+      transition: all 0.25s ease;
+    }
+
+    .feature-card:hover {
+      border-color: var(--border-accent);
+      background: var(--bg-card-hover);
+    }
+
+    .feature-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+      gap: 12px;
+    }
+
+    .feature-card-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .status-badge.functional {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+
+    .status-badge.partial {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.4);
+    }
+
+    .status-badge.pending {
+      background: rgba(244, 63, 94, 0.15);
+      color: #fb7185;
+      border: 1px solid rgba(244, 63, 94, 0.4);
+    }
+
+    .feature-desc {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 14px;
+    }
+
+    .services-tag-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .service-tag {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+
+    /* TABLES */
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+      margin: 20px 0;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 13.5px;
+    }
+
+    th {
+      background: rgba(0, 0, 0, 0.4);
+      color: var(--cyan);
+      font-family: 'Orbitron', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    td {
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: var(--text-muted);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+      color: var(--text-main);
+    }
+
+    /* CODE BLOCKS */
+    pre {
+      background: #08090e;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+      overflow-x: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12.5px;
+      color: #e2e8f0;
+      margin: 16px 0;
+      line-height: 1.6;
+    }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--cyan);
+      background: rgba(0, 242, 255, 0.08);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12.5px;
+    }
+
+    /* CALLOUT BOXES */
+    .callout {
+      border-left: 4px solid var(--cyan);
+      background: rgba(0, 242, 255, 0.05);
+      border-radius: 0 12px 12px 0;
+      padding: 18px 22px;
+      margin: 20px 0;
+    }
+
+    .callout.warning {
+      border-left-color: var(--amber);
+      background: rgba(245, 158, 11, 0.06);
+    }
+
+    .callout.success {
+      border-left-color: var(--emerald);
+      background: rgba(16, 185, 129, 0.06);
+    }
+
+    .callout-title {
+      font-weight: 800;
+      font-size: 14px;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    /* PRINT STYLES FOR HIGH-PRECISION PDF EXPORT */
+    @media print {
+      body {
+        background: #ffffff !important;
+        color: #0f172a !important;
+        padding: 0 !important;
+      }
+
+      .wrapper {
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        max-width: 100% !important;
+        background: transparent !important;
+      }
+
+      .top-action-bar, .pdf-btn {
+        display: none !important;
+      }
+
+      h1, h2, h3, h4, .hero-title-group h1 {
+        color: #0f172a !important;
+        -webkit-text-fill-color: #0f172a !important;
+      }
+
+      p, .feature-desc, td {
+        color: #334155 !important;
+      }
+
+      .feature-card, .meta-card, .toc-container, .table-container {
+        background: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+        box-shadow: none !important;
+        break-inside: avoid;
+      }
+
+      th {
+        background: #e2e8f0 !important;
+        color: #0f172a !important;
+      }
+
+      pre {
+        background: #f1f5f9 !important;
+        color: #0f172a !important;
+        border: 1px solid #cbd5e1 !important;
+      }
+
+      code {
+        background: #e2e8f0 !important;
+        color: #0284c7 !important;
+      }
+
+      .status-badge.functional {
+        background: #dcfce7 !important;
+        color: #15803d !important;
+        border: 1px solid #86efac !important;
+      }
+
+      .status-badge.partial {
+        background: #fef3c7 !important;
+        color: #b45309 !important;
+        border: 1px solid #fde68a !important;
+      }
+
+      .status-badge.pending {
+        background: #ffe4e6 !important;
+        color: #be123c !important;
+        border: 1px solid #fecdd3 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="wrapper">
+
+    <!-- TOP ACTION BAR: DIRECT PDF DOWNLOAD -->
+    <div class="top-action-bar" id="pdf-action-header">
+      <div>
+        <div style="font-size: 12px; font-family: 'JetBrains Mono', monospace; color: var(--cyan); font-weight: 700; text-transform: uppercase;">
+          DOCUMENTATION OFFICIELLE TECHNIQUE & PRODUIT
+        </div>
+        <div style="font-size: 15px; font-weight: 700; color: #fff; margin-top: 2px;">
+          Radio Synapse — Rapport Exhaustif v2.4 (Sony NetMD MiniDisc Engine & Cloud Architecture)
+        </div>
+      </div>
+
+      <button class="pdf-btn" onclick="window.print()" id="download-pdf-button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        Télécharger en PDF
+      </button>
+    </div>
+
+    <!-- HERO HEADER -->
+    <header class="hero-header">
+      <div class="hero-title-group">
+        <span class="hero-badge">Production Stable • Build 2026.09</span>
+        <span class="hero-badge" style="background: rgba(168, 85, 247, 0.12); color: var(--purple); border-color: rgba(168, 85, 247, 0.3);">PocketBase v0.40.2+</span>
+        <span class="hero-badge" style="background: rgba(16, 185, 129, 0.12); color: var(--emerald); border-color: rgba(16, 185, 129, 0.3);">10-Band EQ Web Audio</span>
+        <span class="hero-badge" style="background: rgba(245, 158, 11, 0.12); color: var(--amber); border-color: rgba(245, 158, 11, 0.3);">Google Cast SDK v3</span>
+      </div>
+      <h1>Radio Synapse — Dossier d'Architecture & Spécifications Intégrales</h1>
+      <p class="hero-subtitle">
+        Document de référence exhaustif : cartographie complète des 31 composants React, 25 modules utilitaires et stores, 14 collections PocketBase v0.40+, flux audio AzuraCast/Icecast, chaîne de traitement sonore Web Audio API, régie Web DJ Live, générateur de Stories Instagram 9:16 Canvas 2D et récepteur TV Chromecast.
+      </p>
+
+      <div class="meta-grid">
+        <div class="meta-card">
+          <div class="meta-card-label">Design & Lecteur Principal</div>
+          <div class="meta-card-val">Sony NetMD MiniDisc 90s (Zéro Vinyle)</div>
+        </div>
+        <div class="meta-card">
+          <div class="meta-card-label">Base de Données & Auth</div>
+          <div class="meta-card-val">PocketBase VPS v0.40.2 (REST / Realtime)</div>
+        </div>
+        <div class="meta-card">
+          <div class="meta-card-label">Flux Audio & Métadonnées</div>
+          <div class="meta-card-val">AzuraCast AutoDJ / Live Icecast (HQ/MQ/LQ)</div>
+        </div>
+        <div class="meta-card">
+          <div class="meta-card-label">Traitement Sonore & DSP</div>
+          <div class="meta-card-val">Web Audio API 10-Band EQ & Shaper FX</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- SOMMAIRE -->
+    <nav class="toc-container">
+      <div class="toc-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+        Sommaire du Dossier Technique
+      </div>
+      <ul class="toc-list">
+        <li><a href="#section-1"><span class="num">01.</span> Direction Artistique, Châssis & Extraction Chromatique</a></li>
+        <li><a href="#section-2"><span class="num">02.</span> Lecteur Principal Sony MiniDisc & Commandes Réelles</a></li>
+        <li><a href="#section-3"><span class="num">03.</span> Écran Roulant des Stations (5 Radios & Onde FFT)</a></li>
+        <li><a href="#section-4"><span class="num">04.</span> Menu Plein Écran & 8 Modules Métiers Dédiés</a></li>
+        <li><a href="#section-5"><span class="num">05.</span> Outils Spéciaux (Story Canvas, SmartLinks, DSP 10-Band EQ, Cast TV)</a></li>
+        <li><a href="#section-6"><span class="num">06.</span> Régie Admin, Web DJ Live & Studio Audio Drops</a></li>
+        <li><a href="#section-7"><span class="num">07.</span> Architecture PocketBase VPS v0.40+ (14 Collections)</a></li>
+        <li><a href="#section-8"><span class="num">08.</span> Inventaire Exhaustif des Composants & Modules Codebase</a></li>
+        <li><a href="#section-9"><span class="num">09.</span> Matrice des Services & Guide des États Fonctionnels</a></li>
+      </ul>
+    </nav>
+
+    <!-- SECTION 1: DIRECTION ARTISTIQUE -->
+    <section class="doc-section" id="section-1">
+      <div class="section-header">
+        <div class="section-icon">01</div>
+        <h2>Direction Artistique, Châssis & Extraction Chromatique</h2>
+      </div>
+
+      <p>
+        Radio Synapse repose sur une identité visuelle <strong>Cyber-Analogique & Rétro-Futuriste Japonaise</strong> rigoureusement calquée sur les lecteurs <em>Sony NetMD / Walkman MZ Series (1998–2003)</em>. L'ergonomie combine la nostalgie mécanique du support physique MiniDisc avec la fluidité des applications modernes de streaming.
+      </p>
+
+      <h3>1.1 Le Châssis Proportionnel 390px × 710px & Moteur d'Échelle</h3>
+      <p>
+        Pour garantir un rendu au pixel près sans rupture de mise en page, l'interface principale est confinée dans un <strong>châssis mobile de référence de 390px × 710px</strong>. Le composant racine <code>App.tsx</code> embarque un moteur de calcul d'échelle dynamique (<code>viewportScale</code>) :
+      </p>
+      <pre><code>// Calcul de mise à l'échelle automatique dans App.tsx
+const scaleW = windowWidth / 390;
+const scaleH = windowHeight / 710;
+const viewportScale = Math.min(Math.max(Math.min(scaleW, scaleH), 0.65), 1.35);</code></pre>
+      <p>
+        Ce facteur ajuste dynamiquement l'application de <code>0.65x</code> (sur petits smartphones) jusqu'à <code>1.35x</code> (sur consoles Hi-Fi et grands écrans desktop), maintenant des proportions absolues.
+      </p>
+
+      <h3>1.2 Extraction Chromatique en Temps Réel (Canvas 2D)</h3>
+      <p>
+        L'application n'utilise pas de couleur statique : <code>src/utils/coverColorExtractor.ts</code> analyse en temps réel la pochette de l'album diffusé via un Canvas HTML5 2D invisible :
+      </p>
+      <ul style="padding-left: 24px; color: var(--text-muted); margin-bottom: 16px;">
+        <li><strong>Couleur Primaire (Accent Principal) :</strong> Utilisée pour le rétroéclairage néon du boîtier MiniDisc, la bordure lumineuse du potentiomètre Play/Pause, les jauges de scrubbing et les voyants On-Air.</li>
+        <li><strong>Couleur Secondaire (Accent Complémentaire) :</strong> Utilisée pour les typographies d'artistes en monospace, les icônes de contrôle et les halos lumineux d'arrière-plan.</li>
+      </ul>
+
+      <h3>1.3 Arrière-Plan Vivant Multicouche</h3>
+      <p>
+        L'ambiance visuelle superpose 3 couches : la pochette de l'album floutée à <code>blur(85px)</code> avec transition fluide en fondu enchaîné (Crossfade), surmontée d'un voile noir semi-transparent <code>#040406/80</code> et d'un vignettage radial simulant la profondeur d'un meuble de studio audio.
+      </p>
+    </section>
+
+    <!-- SECTION 2: LECTEUR MINIDISC -->
+    <section class="doc-section" id="section-2">
+      <div class="section-header">
+        <div class="section-icon">02</div>
+        <h2>Lecteur Principal Sony MiniDisc & Commandes Réelles</h2>
+      </div>
+
+      <p>
+        Le composant central <code>src/components/MiniDiscPlayer.tsx</code> modélise une cartouche MiniDisc Sony 80 Min translucide. <strong>Aucun vinyle ni élément de platine n'existe dans le projet</strong>.
+      </p>
+
+      <div class="card-grid">
+        <div class="feature-card">
+          <div class="feature-card-header">
+            <div class="feature-card-title">Boîtier Polycarbonate Translucide</div>
+            <span class="status-badge functional">100% Fonctionnel</span>
+          </div>
+          <div class="feature-desc">
+            Coque en polycarbonate teinté selon la couleur signature de la station (Cobalt Blue, Ruby Pink, Emerald Teal, Amber Gold, Smokey Quartz). Micro-vis de fixation aux 4 coins, fente pour tête magnétique et biseau d'insertion.
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-card-header">
+            <div class="feature-card-title">Volet Métallique Coulissant (Shutter)</div>
+            <span class="status-badge functional">100% Fonctionnel</span>
+          </div>
+          <div class="feature-desc">
+            Volet en aluminium brossé gravé au laser "SONY NetMD / ATRAC TYPE-R". Lorsque la lecture démarre, le volet coulisse mécaniquement vers la gauche avec spring physics pour dévoiler le disque optique.
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-card-header">
+            <div class="feature-card-title">Disque Optique & Label Rotatif</div>
+            <span class="status-badge functional">100% Fonctionnel</span>
+          </div>
+          <div class="feature-desc">
+            Disque magnéto-optique intérieur avec anneaux concentriques, moyeu d'entraînement cranté et étiquette circulaire reprenant la pochette réelle en rotation continue calée sur le flux audio.
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-card-header">
+            <div class="feature-card-title">Navigation Gestuelle Tactile</div>
+            <span class="status-badge functional">100% Fonctionnel</span>
+          </div>
+          <div class="feature-desc">
+            <strong>Swipe Gauche/Droite</strong> sur le boîtier pour basculer de station, <strong>Swipe Haut</strong> pour ouvrir le tiroir des stations, et bouton étoile pour marquer la station en favori.
+          </div>
+        </div>
+      </div>
+
+      <h3>2.1 Barre Supérieure (Top Branding Bar)</h3>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Composant</th>
+              <th>Position</th>
+              <th>Interaction & Rôle</th>
+              <th>Services Impliqués</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Avatar Utilisateur</strong></td>
+              <td>Gauche</td>
+              <td>Ouvre le tiroir <code>UserProfileDrawer</code>. Affiche la photo de profil PocketBase ou Spotify avec un voyant vert/violet indiquant l'état de connexion.</td>
+              <td>PocketBase Auth, Spotify API</td>
+            </tr>
+            <tr>
+              <td><strong>Logo Officiel Synapse</strong></td>
+              <td>Centre</td>
+              <td>Composant <code>BrandLogo.tsx</code> avec étoile scintillante animée et halo néon.</td>
+              <td>Brand Identity Vector</td>
+            </tr>
+            <tr>
+              <td><strong>Badge DIRECT / REWIND</strong></td>
+              <td>Droite (si différé)</td>
+              <td>Badge ambré pulsant affiché dès que l'auditeur écoute un morceau passé. Un clic dessus renvoie instantanément au flux direct live.</td>
+              <td>Moteur Live TimeShift</td>
+            </tr>
+            <tr>
+              <td><strong>Bouton Menu Sandwich</strong></td>
+              <td>Droite</td>
+              <td>3 lignes lumineuses blanches dans un contour dégradé. Ouvre le grand menu de navigation <code>FullscreenNavMenu.tsx</code>.</td>
+              <td>Navigation Hub</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>2.2 Bloc d'Informations & Commandes (Playback Status Deck)</h3>
+      <ol style="padding-left: 24px; color: var(--text-muted); margin-bottom: 20px;">
+        <li style="margin-bottom: 12px;">
+          <strong>Titre & Artiste + Gros Potentiomètre Play/Pause :</strong>
+          Titre et artiste en défilement automatique continu (Marquee). Gros bouton circulaire Play/Pause métallique usiné avec halo lumineux pulsant.
+        </li>
+        <li style="margin-bottom: 12px;">
+          <strong>Barre de Défilement Temporelle (Scrubbing Bar) :</strong>
+          Placée sous le titre. Permet le seek audio en mode différé/preview avec affichage des marqueurs de temps (Temps écoulé / Durée totale).
+        </li>
+        <li style="margin-bottom: 12px;">
+          <strong>Rangée Ordonnée des 6 Boutons de Commande Inférieure :</strong>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>N°</th>
+                  <th>Bouton & Icône</th>
+                  <th>Action au Clic</th>
+                  <th>Interaction Avancée</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>1</td>
+                  <td><strong>Historique (History)</strong></td>
+                  <td>Ouvre le tiroir des titres diffusés durant les 15 dernières minutes.</td>
+                  <td>Relance l'écoute d'un titre passé en timeshift.</td>
+                </tr>
+                <tr>
+                  <td>2</td>
+                  <td><strong>Précédent (SkipBack)</strong></td>
+                  <td>Revient au début du morceau ou au titre précédent de l'historique.</td>
+                  <td>Bascule le lecteur en mode différé avec badge ambré.</td>
+                </tr>
+                <tr>
+                  <td>3</td>
+                  <td><strong>Double Cœur (Heart)</strong></td>
+                  <td><strong>1-Clic :</strong> Like simple (Niveau 1).<br/><strong>2-Clics :</strong> Super Like (Double cœur doré Niveau 2).</td>
+                  <td><strong>Appui long (Long-press) :</strong> Ouvre directement la page complète des Titres Likés.</td>
+                </tr>
+                <tr>
+                  <td>4</td>
+                  <td><strong>Suivant (SkipForward)</strong></td>
+                  <td>Passe à la station suivante ou revient au flux live direct si en différé.</td>
+                  <td>Transition fluide avec fermeture/réouverture du volet MiniDisc.</td>
+                </tr>
+                <tr>
+                  <td>5</td>
+                  <td><strong>Égaliseur (Sliders)</strong></td>
+                  <td>Ouvre l'égaliseur audio studio 10 bandes.</td>
+                  <td>Applique le preset adapté au style musical de la station.</td>
+                </tr>
+                <tr>
+                  <td>6</td>
+                  <td><strong>Cast / AirPlay (Cast)</strong></td>
+                  <td>Ouvre la modal de diffusion sans fil Chromecast / AirPlay.</td>
+                  <td>Passe en vert pulsant lorsque la diffusion Wi-Fi est active.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </li>
+        <li>
+          <strong>Indicateur Bas "STATIONS" :</strong>
+          Label chromé <code>ChromaticStationsLabel.tsx</code> avec flèche montante pulsante invitant l'utilisateur à glisser vers le haut pour révéler la liste des radios.
+        </li>
+      </ol>
+    </section>
+
+    <!-- SECTION 3: ECRAN DES STATIONS -->
+    <section class="doc-section" id="section-3">
+      <div class="section-header">
+        <div class="section-icon">03</div>
+        <h2>Écran Roulant des Stations (5 Radios & Onde FFT)</h2>
+      </div>
+
+      <p>
+        Accessible par swipe vertical vers le haut ou clic sur le label chromé <em>STATIONS</em>, cet écran affiche la liste des 5 radios officielles Synapse :
+      </p>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>ID Station</th>
+              <th>Nom & Format</th>
+              <th>Description Éditoriale</th>
+              <th>Couleur Boîtier</th>
+              <th>Flux MP3 / AAC</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>synapse-main</code></td>
+              <td><strong>Synapse Original</strong></td>
+              <td>La sélection signature de la radio. Électro, funk, disco & pépites intemporelles.</td>
+              <td><span style="color: #00f2ff; font-weight: bold;">Cobalt Blue (#00f2ff)</span></td>
+              <td>HQ 320k / MQ 192k / LQ 64k</td>
+            </tr>
+            <tr>
+              <td><code>synapse-club</code></td>
+              <td><strong>Synapse Clubbing</strong></td>
+              <td>House, techno & club music pour les noctambules et passionnés de dancefloors.</td>
+              <td><span style="color: #ec4899; font-weight: bold;">Ruby Pink (#ec4899)</span></td>
+              <td>HQ 320k / MQ 192k / LQ 64k</td>
+            </tr>
+            <tr>
+              <td><code>synapse-lounge</code></td>
+              <td><strong>Synapse Chill & Lounge</strong></td>
+              <td>Deep chill, ambient, nu-jazz & atmosphères apaisantes pour le travail et la détente.</td>
+              <td><span style="color: #10b981; font-weight: bold;">Emerald Teal (#10b981)</span></td>
+              <td>HQ 320k / MQ 192k / LQ 64k</td>
+            </tr>
+            <tr>
+              <td><code>synapse-retro</code></td>
+              <td><strong>Synapse 80s & 90s</strong></td>
+              <td>Flashback rétro : synthwave, french touch, italo-disco & hits cultes des années 80/90.</td>
+              <td><span style="color: #f59e0b; font-weight: bold;">Amber Gold (#f59e0b)</span></td>
+              <td>HQ 320k / MQ 192k / LQ 64k</td>
+            </tr>
+            <tr>
+              <td><code>synapse-underground</code></td>
+              <td><strong>Synapse Underground</strong></td>
+              <td>Sons pointus, découvertes indé, minimal & pépites secrètes de labels indépendants.</td>
+              <td><span style="color: #8b5cf6; font-weight: bold;">Smokey Quartz (#8b5cf6)</span></td>
+              <td>HQ 320k / MQ 192k / LQ 64k</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout success">
+        <div class="callout-title">Visualiseur Audio Réactif Intégré (ReactiveStationWave.tsx)</div>
+        La station active intègre en arrière-plan de sa carte une onde spectrale calculée en temps réel via l'<code>AnalyserNode</code> Web Audio API, animée à 60 FPS et harmonisée avec la couleur de la station.
+      </div>
+    </section>
+
+    <!-- SECTION 4: MENU PLEIN ECRAN -->
+    <section class="doc-section" id="section-4">
+      <div class="section-header">
+        <div class="section-icon">04</div>
+        <h2>Menu Plein Écran & 8 Modules Métiers Dédiés</h2>
+      </div>
+
+      <p>
+        Le menu <code>src/components/FullscreenNavMenu.tsx</code> s'ouvre avec un flou d'arrière-plan en verre dépoli et donne un accès direct aux 8 modules fonctionnels :
+      </p>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Module</th>
+              <th>Composants & Fichiers</th>
+              <th>Fonctionnalités Clés</th>
+              <th>Persistance & APIs</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>1. Titres Likés & Favoris</strong></td>
+              <td><code>LikedTracksDrawer.tsx</code>, <code>favoritesStorage.ts</code>, <code>spotifyPlaylistSync.ts</code></td>
+              <td>Filtrage Like / Super-Like, lecteur d'extrait 30s, export Spotify PKCE, génération de story Instagram MiniDisc 9:16.</td>
+              <td>LocalStorage + PocketBase + Spotify Web API</td>
+            </tr>
+            <tr>
+              <td><strong>2. Grille des Programmes</strong></td>
+              <td><code>ProgrammingDrawer.tsx</code>, <code>synapse_events</code></td>
+              <td>Planning hebdomadaire par jour, fiches des animateurs et résidents, compte à rebours live, synchronisation Google Calendar & iCal.</td>
+              <td>PocketBase REST <code>synapse_events</code></td>
+            </tr>
+            <tr>
+              <td><strong>3. Défis & Quêtes Auditeurs</strong></td>
+              <td><code>ChallengesDrawer.tsx</code>, <code>userDatabase.ts</code></td>
+              <td>Gamification : séries d'écoute quotidienne (Streaks), quêtes journalières, points XP et rangs (Novice, Mélomane, Élite, Légende Synapse).</td>
+              <td>LocalStorage + PocketBase User Sync</td>
+            </tr>
+            <tr>
+              <td><strong>4. Bons Plans & Réductions</strong></td>
+              <td><code>PromotionsDrawer.tsx</code>, <code>synapse_promotions</code></td>
+              <td>Offres partenaires exclusives : codes de réduction festivals, pass VIP clubs, promotions équipement audio avec copie en un clic.</td>
+              <td>PocketBase REST <code>synapse_promotions</code></td>
+            </tr>
+            <tr>
+              <td><strong>5. Événements & Soirées Club</strong></td>
+              <td><code>EventsDrawer.tsx</code>, <code>synapse_events</code></td>
+              <td>Agenda clubbing et concerts, affichage des flyers, liens de billetterie en ligne, géolocalisation et itinéraires Google Maps.</td>
+              <td>PocketBase REST <code>synapse_events</code></td>
+            </tr>
+            <tr>
+              <td><strong>6. Nous Contacter & Dédicaces</strong></td>
+              <td><code>ContactDrawer.tsx</code>, <code>synapse_messages</code></td>
+              <td>Formulaire de dédicace en direct pour les auditeurs et contact régie avec validation instantanée et enregistrement immédiat.</td>
+              <td>PocketBase REST <code>synapse_messages</code></td>
+            </tr>
+            <tr>
+              <td><strong>7. Studio Web DJ Live</strong></td>
+              <td><code>WebDjStudioDeck.tsx</code>, <code>liveBroadcastEngine.ts</code></td>
+              <td>Console de mixage DJ virtuelle : double deck audio, fader de transition, entrée micro live avec noise gate/ducking, jingles et broadcast Icecast.</td>
+              <td>Web Audio API + WebSocket/Icecast Encoder</td>
+            </tr>
+            <tr>
+              <td><strong>8. Espace Administration</strong></td>
+              <td><code>AdminDashboardView.tsx</code>, <code>AdminPanelDrawer.tsx</code>, <code>AdminServicesTab.tsx</code></td>
+              <td>Régie centrale de pilotage : gestion des stations, monitoring des flux en temps réel, modération des dédicaces, rôles RBAC et studio de thèmes.</td>
+              <td>PocketBase Admin SDK + AzuraCast Admin API</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SECTION 5: OUTILS SPECIAUX -->
+    <section class="doc-section" id="section-5">
+      <div class="section-header">
+        <div class="section-icon">05</div>
+        <h2>Outils Spéciaux (Story Canvas, SmartLinks, DSP 10-Band EQ, Cast TV)</h2>
+      </div>
+
+      <div class="card-grid">
+        <div class="feature-card">
+          <div class="feature-card-header">
+            <div class="feature-card-title">Générateur de Stories Instagram MiniDisc</div>
+            <span class="status-badge functional">100% Fonctionnel</span>
+          </div>
+          <div class="feature-desc">
+            <code>MiniDiscStoryGenerator.tsx</code> : moteur de rendu Canvas 2D qui compose une image 1080×1920 9:16 Ultra-HD. Dessine la cartouche Sony MiniDisc personnalisée, la pochette, le spectrogramme audio, le titre, l'artiste et le QR code de la radio avec export PNG direct.
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-card-header">
+            <div class="feature-card-title">Flyers Numériques & SmartLinks Partageables</div>
+            <span class="status-badge functional">100% Fonctionnel</span>
+          </div>
+          <div class="feature-desc">
+            <code>DigitalTrackFlyer.tsx</code>, <code>SmartLinkShareModal.tsx</code> & <code>StandaloneTrackFlyerPage.tsx</code> : génère un lien universel (<code>?track=...&artist=...</code>) avec lecteur d'extrait 30s intégré et liens profonds directs vers Spotify, Deezer, Apple Music et YouTube Music.
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-card-header">
+            <div class="feature-card-title">Égaliseur Audio Studio 10 Bandes</div>
+            <span class="status-badge functional">100% Fonctionnel</span>
+          </div>
+          <div class="feature-desc">
+            <code>Equalizer.tsx</code> : chaîne de filtres <code>BiquadFilterNode</code> Web Audio (32Hz, 64Hz, 125Hz, 250Hz, 500Hz, 1kHz, 2kHz, 4kHz, 8kHz, 16kHz) de -12dB à +12dB avec 10 presets musicaux et analyseur de spectre FFT temps réel.
+          </div>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-card-header">
+            <div class="feature-card-title">Passerelle Google Cast & Récepteur TV</div>
+            <span class="status-badge functional">100% Fonctionnel</span>
+          </div>
+          <div class="feature-desc">
+            <code>CastModal.tsx</code> & <code>public/receiver.html</code> : intégration du Cast SDK Google v3 permettant de diffuser le flux audio sur Chromecast, Google Nest et téléviseurs avec application réceptrice personnalisée affichant la pochette et le visualiseur.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 6: REGIE ADMIN & WEB DJ -->
+    <section class="doc-section" id="section-6">
+      <div class="section-header">
+        <div class="section-icon">06</div>
+        <h2>Régie Administrateur, Web DJ Live & Studio Audio Drops</h2>
+      </div>
+
+      <p>
+        L'espace d'administration comprend 10 onglets de gestion complets (<code>AdminDashboardView.tsx</code>) et une console de diffusion en direct pour les DJs et animateurs (<code>WebDjStudioDeck.tsx</code>) :
+      </p>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Onglet Régie</th>
+              <th>Fichiers Associés</th>
+              <th>Fonctions Principales</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>1. Stations & Flux</strong></td>
+              <td><code>StationControlDeckModal.tsx</code>, <code>adminStore.ts</code></td>
+              <td>Création/édition de radios, URL des flux, couleurs de boîtier MiniDisc, ordre d'affichage, activation AutoDJ.</td>
+            </tr>
+            <tr>
+              <td><strong>2. Santé & Logs Serveur</strong></td>
+              <td><code>AdminServicesTab.tsx</code>, <code>synapse_station_logs</code></td>
+              <td>Télémétrie en direct de PocketBase, AzuraCast, temps de réponse HTTP, perte de paquets et historique d'écoute.</td>
+            </tr>
+            <tr>
+              <td><strong>3. Modération Dédicaces</strong></td>
+              <td><code>synapse_messages</code>, <code>ContactDrawer.tsx</code></td>
+              <td>Lecture des messages auditeurs, marquage lu/traité, mise en avant à l'antenne ou suppression.</td>
+            </tr>
+            <tr>
+              <td><strong>4. Événements & Soirées</strong></td>
+              <td><code>synapse_events</code>, <code>EventsDrawer.tsx</code></td>
+              <td>Ajout de concerts, gestion des flyers, dates, liens de billetterie et coordonnées géographiques.</td>
+            </tr>
+            <tr>
+              <td><strong>5. Bons Plans & Codes</strong></td>
+              <td><code>synapse_promotions</code>, <code>PromotionsDrawer.tsx</code></td>
+              <td>Gestion des codes promo, remises partenaires, dates d'expiration et suivi des clics auditeurs.</td>
+            </tr>
+            <tr>
+              <td><strong>6. Boîte à Jingles (Audio Drops)</strong></td>
+              <td><code>audioDropsStore.ts</code>, <code>synapse_audio_drops</code></td>
+              <td>Bibliothèque de sons courts (sweep, drop, voice ID), assignation de raccourcis clavier, pré-écoute et ducking.</td>
+            </tr>
+            <tr>
+              <td><strong>7. Rôles & Permissions (RBAC)</strong></td>
+              <td><code>adminRolePermissionsStore.ts</code>, <code>synapse_roles</code></td>
+              <td>Gestion des accès : Administrateur, Web DJ, Modérateur, Animateur avec matrice de permissions granulaires.</td>
+            </tr>
+            <tr>
+              <td><strong>8. Studio Personnalisation</strong></td>
+              <td><code>adminCustomizationStore.ts</code>, <code>synapse_customization</code></td>
+              <td>Personnalisation des thèmes, ordre des tiroirs du menu, bannières d'annonces et variables CSS dynamiques.</td>
+            </tr>
+            <tr>
+              <td><strong>9. Console Web DJ Live</strong></td>
+              <td><code>liveBroadcastEngine.ts</code>, <code>audioWavEncoder.ts</code></td>
+              <td>Double platine audio, crossfader, micro live en duplex avec noise gate et broadcast Icecast en direct.</td>
+            </tr>
+            <tr>
+              <td><strong>10. Sauvegarde & Schéma</strong></td>
+              <td><code>public/pb_schema.json</code></td>
+              <td>Export/Import JSON de l'intégralité de la base de données pour synchronisation VPS.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SECTION 7: ARCHITECTURE POCKETBASE -->
+    <section class="doc-section" id="section-7">
+      <div class="section-header">
+        <div class="section-icon">07</div>
+        <h2>Architecture PocketBase VPS v0.40+ (14 Collections)</h2>
+      </div>
+
+      <div class="callout warning">
+        <div class="callout-title">Règles Strictes de Schéma PocketBase v0.40.2+</div>
+        PocketBase v0.40+ a banni la syntaxe obsolète <code>"schema": [...]</code>. Toutes les collections doivent impérativement déclarer leurs champs dans le tableau <code>"fields": [...]</code> comprenant les métadonnées de colonnes (<code>id</code>, <code>name</code>, <code>type</code>, <code>required</code>, <code>system</code>, <code>hidden</code>).
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Nom Collection</th>
+              <th>ID Collection</th>
+              <th>Type</th>
+              <th>Description & Rôle Métier</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>users</code></td>
+              <td><code>_pb_users_auth_</code></td>
+              <td>Auth (Système)</td>
+              <td>Comptes auditeurs, avatars, préférences et synchronisation multi-appareils.</td>
+            </tr>
+            <tr>
+              <td><code>_superusers</code></td>
+              <td><code>pbc_3142635823</code></td>
+              <td>Auth (Système)</td>
+              <td>Comptes super-administrateurs avec accès complet à la console PocketBase.</td>
+            </tr>
+            <tr>
+              <td><code>_authOrigins</code></td>
+              <td><code>pbc_4275539003</code></td>
+              <td>Auth (Système)</td>
+              <td>Origines OAuth et domaines autorisés pour l'authentification externe.</td>
+            </tr>
+            <tr>
+              <td><code>_externalAuths</code></td>
+              <td><code>pbc_2281828961</code></td>
+              <td>Auth (Système)</td>
+              <td>Liaisons de comptes tiers (Google, Apple, Spotify).</td>
+            </tr>
+            <tr>
+              <td><code>_mfas</code></td>
+              <td><code>pbc_2279338944</code></td>
+              <td>Auth (Système)</td>
+              <td>Tokens et statuts d'authentification multifacteur.</td>
+            </tr>
+            <tr>
+              <td><code>_otps</code></td>
+              <td><code>pbc_1638494021</code></td>
+              <td>Auth (Système)</td>
+              <td>Mots de passe à usage unique pour connexion sans mot de passe.</td>
+            </tr>
+            <tr>
+              <td><code>synapse_stations</code></td>
+              <td><code>pbc_synapse_stat</code></td>
+              <td>Base</td>
+              <td>Configuration des 5 radios, noms, descriptions, couleurs néon et URLs de flux Icecast.</td>
+            </tr>
+            <tr>
+              <td><code>synapse_station_logs</code></td>
+              <td><code>pbc_synapse_logs</code></td>
+              <td>Base</td>
+              <td>Logs d'écoute, audits de connexion et télémétrie des flux.</td>
+            </tr>
+            <tr>
+              <td><code>synapse_messages</code></td>
+              <td><code>pbc_synapse_msgs</code></td>
+              <td>Base</td>
+              <td>Dédicaces en direct et formulaires de contact auditeurs avec statut de modération.</td>
+            </tr>
+            <tr>
+              <td><code>synapse_events</code></td>
+              <td><code>pbc_synapse_evts</code></td>
+              <td>Base</td>
+              <td>Événements clubbing, concerts, émissions résidents et billetteries.</td>
+            </tr>
+            <tr>
+              <td><code>synapse_promotions</code></td>
+              <td><code>pbc_synapse_prom</code></td>
+              <td>Base</td>
+              <td>Codes promo et réductions partenaires négociées pour les auditeurs.</td>
+            </tr>
+            <tr>
+              <td><code>synapse_audio_drops</code></td>
+              <td><code>pbc_synapse_adps</code></td>
+              <td>Base</td>
+              <td>Fichiers audio de jingles, sweepers, virgules sonores et drops d'antenne.</td>
+            </tr>
+            <tr>
+              <td><code>synapse_customization</code></td>
+              <td><code>pbc_synapse_cust</code></td>
+              <td>Base</td>
+              <td>Thèmes graphiques personnalisés, couleurs d'accentuation et ordre des menus.</td>
+            </tr>
+            <tr>
+              <td><code>synapse_roles</code></td>
+              <td><code>pbc_synapse_role</code></td>
+              <td>Base</td>
+              <td>Définition des rôles RBAC (Admin, DJ, Modérateur, Animateur).</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>7.1 Procédure d'Importation VPS PocketBase</h3>
+      <ol style="padding-left: 24px; color: var(--text-muted); margin-bottom: 20px;">
+        <li style="margin-bottom: 8px;">Accéder à la console PocketBase sur votre VPS (ex: <code>https://db.radiosynapse.fr/_/</code>).</li>
+        <li style="margin-bottom: 8px;">Aller dans <strong>Settings &gt; Import collections</strong>.</li>
+        <li style="margin-bottom: 8px;">Coller ou uploader le fichier <code>public/pb_schema.json</code>.</li>
+        <li style="margin-bottom: 8px;"><strong>Ne pas cocher</strong> "Merge with existing collections" si vous remplacez des tables.</li>
+        <li style="margin-bottom: 8px;">Si un avertissement orange s'affiche indiquant des différences d'identifiants, cliquer sur <strong>"Replace with original IDs"</strong> avant de valider.</li>
+      </ol>
+    </section>
+
+    <!-- SECTION 8: INVENTAIRE EXHAUSTIF DES COMPOSANTS & STORES -->
+    <section class="doc-section" id="section-8">
+      <div class="section-header">
+        <div class="section-icon">08</div>
+        <h2>Inventaire Exhaustif des Composants & Modules Codebase</h2>
+      </div>
+
+      <h3>8.1 Les 31 Composants React (<code>src/components/</code>)</h3>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Fichier Composant</th>
+              <th>Rôle dans l'Architecture</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><code>AccountConnectModal.tsx</code></td><td>Modal de connexion PocketBase / OAuth (Spotify, Google, Apple) avec gestion du profil et avatar.</td></tr>
+            <tr><td><code>AdminDashboardView.tsx</code></td><td>Dashboard administrateur plein écran 10 onglets (Stations, Logs, Messages, Événements, Promos, Drops, Rôles, Thèmes, Web DJ, Export).</td></tr>
+            <tr><td><code>AdminPanelDrawer.tsx</code></td><td>Tiroir d'administration rapide pour actions courantes sur les radios et modération.</td></tr>
+            <tr><td><code>AdminServicesTab.tsx</code></td><td>Tableau de bord de diagnostic des services (PocketBase, AzuraCast, Icecast, Spotify API, Web Audio latency, Cast).</td></tr>
+            <tr><td><code>AdminSidebarEditorModal.tsx</code></td><td>Éditeur d'ordonnancement dynamique des éléments de navigation et tiroirs de l'application.</td></tr>
+            <tr><td><code>BrandLogo.tsx</code></td><td>Logo officiel animé Radio Synapse avec étoile néon chromatique et effets de survol.</td></tr>
+            <tr><td><code>CastModal.tsx</code></td><td>Modal de contrôle de diffusion sans fil Google Cast & AirPlay avec réglage du volume.</td></tr>
+            <tr><td><code>ChallengesDrawer.tsx</code></td><td>Module de quêtes quotidiennes, streaks d'écoute, gains d'XP et badges d'auditeur.</td></tr>
+            <tr><td><code>ChromaticStationsLabel.tsx</code></td><td>Bouton bas "STATIONS" chromé avec flèche pulsante et onde réactive.</td></tr>
+            <tr><td><code>CompanionMenuDrawer.tsx</code></td><td>Menu tiroir compagnon pour accès rapide aux thèmes, sélection de qualité de flux et minuteur de veille.</td></tr>
+            <tr><td><code>ContactDrawer.tsx</code></td><td>Formulaire de dédicace auditeur en direct et contact régie avec envoi PocketBase.</td></tr>
+            <tr><td><code>DigitalTrackFlyer.tsx</code></td><td>Flyer musical interactif avec pochette HD, extrait 30s et liens profonds de streaming.</td></tr>
+            <tr><td><code>DoubleHeartIcon.tsx</code></td><td>Icône SVG personnalisée pour Like simple (rouge) et Super-Like doré (double cœur avec lueur).</td></tr>
+            <tr><td><code>Drawer.tsx</code></td><td>Conteneur tiroir accessible avec physique Framer Motion, fermeture au swipe et flou d'arrière-plan.</td></tr>
+            <tr><td><code>Equalizer.tsx</code></td><td>Égaliseur paramétrique 10 bandes Web Audio API avec 10 presets et analyse spectrale FFT.</td></tr>
+            <tr><td><code>EventsDrawer.tsx</code></td><td>Agenda des soirées clubbing, concerts, festivals, billetteries et cartes d'accès.</td></tr>
+            <tr><td><code>FavoriteStationsDrawer.tsx</code></td><td>Tiroir des stations de radio favorites épinglées par l'auditeur.</td></tr>
+            <tr><td><code>FullscreenNavMenu.tsx</code></td><td>Grand menu de navigation hub ouvrant les 8 modules métier complets.</td></tr>
+            <tr><td><code>LikedTracksDrawer.tsx</code></td><td>Gestionnaire des coups de cœur, export de playlists Spotify et déclenchement de story Instagram.</td></tr>
+            <tr><td><code>MarqueeText.tsx</code></td><td>Composant de texte défilant continu avec masque de fondu pour titres et artistes longs.</td></tr>
+            <tr><td><code>MiniDiscPlayer.tsx</code></td><td>Composant central modélisant la cartouche Sony NetMD MiniDisc et le deck de commande.</td></tr>
+            <tr><td><code>MiniDiscStoryGenerator.tsx</code></td><td>Moteur graphique Canvas 2D exportant des stories Instagram/TikTok 9:16 Ultra-HD.</td></tr>
+            <tr><td><code>ProgrammingDrawer.tsx</code></td><td>Grille des programmes hebdomadaire, fiches DJs et export de rappels iCal/Google Calendar.</td></tr>
+            <tr><td><code>PromotionsDrawer.tsx</code></td><td>Catalogue des réductions et offres partenaires négociées pour la communauté.</td></tr>
+            <tr><td><code>ReactiveStationWave.tsx</code></td><td>Visualiseur audio réactif en onde spectrale FFT intégré aux cartes des stations.</td></tr>
+            <tr><td><code>SmartLinkShareModal.tsx</code></td><td>Modal de partage viral avec création de liens universels multiplateformes.</td></tr>
+            <tr><td><code>Splash.tsx</code></td><td>Écran de démarrage rétro-futuriste avec initialisation audio et animations de logo.</td></tr>
+            <tr><td><code>StandaloneTrackFlyerPage.tsx</code></td><td>Page autonome pour affichage direct des flyers de morceaux partagés via URL.</td></tr>
+            <tr><td><code>StationControlDeckModal.tsx</code></td><td>Cockpit de contrôle de station pour animateurs et régie en direct.</td></tr>
+            <tr><td><code>TrackShareModal.tsx</code></td><td>Modal de partage rapide de morceau sur réseaux sociaux et messageries.</td></tr>
+            <tr><td><code>UserProfileDrawer.tsx</code></td><td>Profil utilisateur avec stats d'écoute, gestion d'avatar et comptes liés.</td></tr>
+            <tr><td><code>WebDjStudioDeck.tsx</code></td><td>Console de mixage Web DJ professionnelle avec double platine, micro live, crossfader et broadcast Icecast.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>8.2 Les 25 Modules Utilitaires & Stores (<code>src/utils/</code> & <code>src/lib/</code>)</h3>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Fichier Module</th>
+              <th>Responsabilité & Spécifications</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><code>src/lib/pocketbase.ts</code></td><td>Instance PocketBase singleton, auto-reconnexion, requêtes typées et fallback local.</td></tr>
+            <tr><td><code>src/lib/azuracast.ts</code></td><td>Client API AzuraCast pour NowPlaying, historique, requêtes et statuts de direct.</td></tr>
+            <tr><td><code>src/utils/adminCustomizationStore.ts</code></td><td>Store des réglages graphiques, thèmes personnalisés et bannières.</td></tr>
+            <tr><td><code>src/utils/adminRolePermissionsStore.ts</code></td><td>Store RBAC des permissions utilisateurs (Admin, DJ, Modérateur, Animateur).</td></tr>
+            <tr><td><code>src/utils/adminStore.ts</code></td><td>Store central de régie (CRUD stations, logs, messages, télémétrie).</td></tr>
+            <tr><td><code>src/utils/artworkFetcher.ts</code></td><td>Résolveur de pochettes multi-sources (AzuraCast, iTunes API, Deezer API).</td></tr>
+            <tr><td><code>src/utils/audioAnalyzerManager.ts</code></td><td>Gestionnaire singleton de l'AudioContext Web Audio et de l'AnalyserNode FFT.</td></tr>
+            <tr><td><code>src/utils/audioDropsStore.ts</code></td><td>Store de la boîte à jingles avec cache audio, raccourcis et réglage du gain.</td></tr>
+            <tr><td><code>src/utils/audioStreamPlayer.ts</code></td><td>Contrôleur de lecture des flux radio HTML5 Audio avec qualité adaptative (HQ/MQ/LQ).</td></tr>
+            <tr><td><code>src/utils/audioWavEncoder.ts</code></td><td>Encodeur PCM vers WAV pur TypeScript pour enregistrement micro et broadcast.</td></tr>
+            <tr><td><code>src/utils/castService.ts</code></td><td>Passerelle Google Cast SDK v3 pour diffusion sur récepteurs TV Chromecast.</td></tr>
+            <tr><td><code>src/utils/cdAudioFx.ts</code></td><td>Synthétiseur procédural Web Audio des bruitages mécaniques MiniDisc (insertion, volet, moteur).</td></tr>
+            <tr><td><code>src/utils/connectSdk.ts</code></td><td>SDK de connexion multiplateforme et synchronisation d'état.</td></tr>
+            <tr><td><code>src/utils/coverColorExtractor.ts</code></td><td>Analyseur Canvas 2D extrayant la palette dominante de la pochette en direct.</td></tr>
+            <tr><td><code>src/utils/favoriteStationsStorage.ts</code></td><td>Persistance locale et cloud des radios favorites.</td></tr>
+            <tr><td><code>src/utils/favoritesStorage.ts</code></td><td>Moteur de stockage des titres likés et super-likés avec horodatage.</td></tr>
+            <tr><td><code>src/utils/fullAudioCatalog.ts</code> / <code>fullAudioResolver.ts</code></td><td>Extraction des extraits musicaux 30 secondes haute fidélité.</td></tr>
+            <tr><td><code>src/utils/liveBroadcastEngine.ts</code></td><td>Moteur d'encodage et de streaming direct vers Icecast/AzuraCast WebDJ.</td></tr>
+            <tr><td><code>src/utils/musicPlatformAuth.ts</code> / <code>realMusicOAuth.ts</code></td><td>Gestionnaire OAuth 2.0 PKCE pour Spotify, Deezer et Apple Music.</td></tr>
+            <tr><td><code>src/utils/pocketbaseAuthService.ts</code></td><td>Service d'authentification PocketBase (Email, OAuth2, synchronisation de profil).</td></tr>
+            <tr><td><code>src/utils/sharedFlyersRegistry.ts</code></td><td>Registre de cache des flyers numériques partagés.</td></tr>
+            <tr><td><code>src/utils/spotifyPlaylistSync.ts</code></td><td>Synchronisation et création automatique de playlists Spotify.</td></tr>
+            <tr><td><code>src/utils/streamMetadataFetcher.ts</code></td><td>Sondage temps réel des métadonnées de diffusion AzuraCast.</td></tr>
+            <tr><td><code>src/utils/timeshiftBuffer.ts</code></td><td>Buffer circulaire audio de 15 minutes pour écoute en différé et retour au direct.</td></tr>
+            <tr><td><code>src/utils/userDatabase.ts</code></td><td>Base locale des points d'expérience (XP), niveaux et badges débloqués.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- SECTION 9: MATRICE DES SERVICES & GUIDE D'EXPLOITATION -->
+    <section class="doc-section" id="section-9">
+      <div class="section-header">
+        <div class="section-icon">09</div>
+        <h2>Matrice des Services & Guide des États Fonctionnels</h2>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Service</th>
+              <th>Type</th>
+              <th>Rôle dans l'App</th>
+              <th>Statut Actuel</th>
+              <th>Comportement & Fallback</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>PocketBase REST / Realtime</strong></td>
+              <td>Serveur VPS</td>
+              <td>Auth, stations, messages de dédicaces, événements, promos et rôles.</td>
+              <td><span class="status-badge functional">100% Opérationnel</span></td>
+              <td>Connexion instantanée au serveur VPS. Si hors ligne, bascule automatiquement sur le cache <code>localStorage</code> sans bloquer l'application.</td>
+            </tr>
+            <tr>
+              <td><strong>AzuraCast AutoDJ / Icecast</strong></td>
+              <td>Streaming Audio</td>
+              <td>Diffusion continue des flux audio MP3/AAC (320k / 192k / 64k).</td>
+              <td><span class="status-badge functional">100% Opérationnel</span></td>
+              <td>Lecture via élément HTML5 Audio avec reconnexion automatique en cas de coupure.</td>
+            </tr>
+            <tr>
+              <td><strong>AzuraCast NowPlaying API</strong></td>
+              <td>API Métadonnées</td>
+              <td>Récupération en direct des morceaux, artistes, pochettes et historique 15 min.</td>
+              <td><span class="status-badge functional">100% Opérationnel</span></td>
+              <td>Sondage périodique (polling) toutes les 8 secondes avec cache local pour éliminer les latences.</td>
+            </tr>
+            <tr>
+              <td><strong>iTunes Search API / Deezer</strong></td>
+              <td>API Tierce</td>
+              <td>Extraction des pochettes HD et extraits 30s pour likes et flyers.</td>
+              <td><span class="status-badge functional">100% Opérationnel</span></td>
+              <td>Recherche automatique sans clé d'API requise, avec repli immédiat sur Unsplash Music.</td>
+            </tr>
+            <tr>
+              <td><strong>Spotify Web API (OAuth PKCE)</strong></td>
+              <td>API Tierce</td>
+              <td>Création automatique de playlists Spotify à partir des coups de cœur.</td>
+              <td><span class="status-badge partial">Prêt (Clé Client requise)</span></td>
+              <td>Le flux d'autorisation PKCE est codé. Fonctionne dès qu'un <code>Client ID</code> Spotify est renseigné dans les réglages.</td>
+            </tr>
+            <tr>
+              <td><strong>Web Audio API Engine</strong></td>
+              <td>Moteur Navigateur</td>
+              <td>Égaliseur 10 bandes, bruitages MiniDisc et analyse spectrale FFT 60 FPS.</td>
+              <td><span class="status-badge functional">100% Opérationnel</span></td>
+              <td>S'exécute localement dans le navigateur de l'utilisateur avec zéro latence serveur.</td>
+            </tr>
+            <tr>
+              <td><strong>Google Cast SDK v3</strong></td>
+              <td>SDK Google</td>
+              <td>Diffusion du flux radio vers récepteurs Chromecast, Nest Hub et TV.</td>
+              <td><span class="status-badge functional">100% Opérationnel</span></td>
+              <td>Charge dynamiquement le script <code>cast_sender.js</code>. Nécessite un récepteur Cast sur le même réseau Wi-Fi.</td>
+            </tr>
+            <tr>
+              <td><strong>Canvas 2D Story Generator</strong></td>
+              <td>Moteur Graphique</td>
+              <td>Rendu vectoriel et bitmap pour exporter des stories MiniDisc Instagram 9:16.</td>
+              <td><span class="status-badge functional">100% Opérationnel</span></td>
+              <td>Génération locale instantanée côté client sans faire appel à un serveur externe.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card-grid">
+        <div class="feature-card" style="border-left: 4px solid #10b981;">
+          <div class="feature-card-header">
+            <div class="feature-card-title">Éléments 100% Opérationnels</div>
+            <span class="status-badge functional">Immédiat</span>
+          </div>
+          <div class="feature-desc">
+            • Moteur MiniDisc Sony complet (Volet animé, rotation du disque, boutons physiques).<br/>
+            • Écoute des 5 stations en direct avec sélection de qualité adaptative.<br/>
+            • Récupération et affichage des métadonnées et pochettes temps réel.<br/>
+            • Système Like et Super-Like double cœur avec mémorisation locale et PocketBase.<br/>
+            • Égaliseur 10 bandes connecté au flux sonore Web Audio API.<br/>
+            • Formulaire de contact et dédicaces enregistrant dans <code>synapse_messages</code>.<br/>
+            • Générateur de stories Instagram et SmartLinks musicaux.
+          </div>
+        </div>
+
+        <div class="feature-card" style="border-left: 4px solid #f59e0b;">
+          <div class="feature-card-header">
+            <div class="feature-card-title">Éléments Partiellement Fonctionnels & Configurations</div>
+            <span class="status-badge partial">Paramétrage Requis</span>
+          </div>
+          <div class="feature-desc">
+            • <strong>Export Playlist Spotify :</strong> Nécessite de déclarer votre URL de redirection dans le portail Spotify Developer.<br/>
+            • <strong>Web DJ Live Broadcast :</strong> Nécessite de renseigner les identifiants de streaming source Icecast/AzuraCast du DJ.<br/>
+            • <strong>Diffusion Google Cast :</strong> Nécessite la présence physique d'un appareil Chromecast sur le réseau local Wi-Fi.
+          </div>
+        </div>
+
+        <div class="feature-card" style="border-left: 4px solid #f43f5e;">
+          <div class="feature-card-header">
+            <div class="feature-card-title">Points d'Attention & Bonnes Pratiques</div>
+            <span class="status-badge pending">À Savoir</span>
+          </div>
+          <div class="feature-desc">
+            • <strong>Politique Autoplay Navigateurs :</strong> Sur iOS et Android, la lecture audio nécessite une première interaction tactile de l'utilisateur (clic sur PLAY).<br/>
+            • <strong>CORS sur les Flux Audio :</strong> Pour que l'analyseur de spectre et l'égaliseur fonctionnent sans erreur, le serveur Icecast/AzuraCast doit renvoyer l'en-tête <code>Access-Control-Allow-Origin: *</code>.
+          </div>
+        </div>
+      </div>
+
+      <div class="callout success">
+        <div class="callout-title">Validation Qualité & Conformité Codebase</div>
+        Ce document a été vérifié et mis en conformité absolue avec le code source de l'application Radio Synapse. Aucune trace de design vinyle n'est présente ; la cartouche Sony MiniDisc constitue l'unique et exclusif modèle du lecteur.
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer style="margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; color: var(--text-dim); font-size: 13px;">
+      <div>
+        <strong style="color: var(--text-main);">Radio Synapse</strong> — Note de Version Officielle & Architecture Technique
+      </div>
+      <div style="font-family: 'JetBrains Mono', monospace;">
+        Version 2.4-Production • Build 2026.09 • VPS PocketBase v0.40.2+
+      </div>
+    </footer>
+
+  </div>
+
+</body>
+</html>

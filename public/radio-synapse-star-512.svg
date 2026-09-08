@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Liquid chromatic neon gradient -->
+    <linearGradient id="synapseStarGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f2ff" />
+      <stop offset="25%" stop-color="#ffffff" />
+      <stop offset="50%" stop-color="#3b82f6" />
+      <stop offset="75%" stop-color="#ff00a0" />
+      <stop offset="100%" stop-color="#ffd700" />
+    </linearGradient>
+
+    <!-- Glowing luminous filters -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Chromatic 4-point star for Radio Synapse -->
+  <g filter="url(#glow)">
+    <path
+      d="M 256 24 
+         C 264 168 316 220 488 248 
+         C 316 274 264 324 252 488 
+         C 242 326 194 274 24 256 
+         C 194 242 248 168 256 24 Z"
+      fill="url(#synapseStarGrad)"
+    />
+  </g>
+</svg>

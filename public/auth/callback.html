@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Radio Synapse • Authentification Musique</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #05060b;
+      color: #ffffff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      text-align: center;
+    }
+    .card {
+      background: rgba(18, 20, 30, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 24px;
+      padding: 32px;
+      max-width: 420px;
+      margin: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(0, 242, 255, 0.2);
+    }
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid rgba(0, 242, 255, 0.2);
+      border-top-color: #00f2ff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    h2 {
+      margin: 0 0 10px;
+      font-size: 1.25rem;
+      letter-spacing: 0.05em;
+    }
+    p {
+      color: #a1a1aa;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="spinner"></div>
+    <h2 id="title">Authentification en cours...</h2>
+    <p id="msg">Connexion à votre compte de streaming validée. Fermeture de cette fenêtre...</p>
+  </div>
+
+  <script>
+    (function () {
+      // 1. Extract params from Hash (#access_token=... for Spotify Implicit) or Search (?code=...)
+      var hash = window.location.hash.substring(1);
+      var search = window.location.search.substring(1);
+      var params = {};
+
+      if (hash) {
+        hash.split('&').forEach(function (part) {
+          var item = part.split('=');
+          if (item.length === 2) {
+            params[decodeURIComponent(item[0])] = decodeURIComponent(item[1]);
+          }
+        });
+      }
+
+      if (search) {
+        search.split('&').forEach(function (part) {
+          var item = part.split('=');
+          if (item.length === 2) {
+            params[decodeURIComponent(item[0])] = decodeURIComponent(item[1]);
+          }
+        });
+      }
+
+      var payload = {
+        type: 'MUSIC_PLATFORM_AUTH_SUCCESS',
+        params: params,
+        accessToken: params.access_token || params.token || null,
+        code: params.code || null,
+        state: params.state || null,
+        error: params.error || null,
+        expiresIn: params.expires_in || null
+      };
+
+      // Store in localStorage as backup
+      try {
+        localStorage.setItem('synapse_latest_oauth_result', JSON.stringify({
+          payload: payload,
+          timestamp: Date.now()
+        }));
+      } catch (e) {}
+
+      // Send postMessage to Opener window
+      if (window.opener && !window.opener.closed) {
+        try {
+          window.opener.postMessage(payload, '*');
+        } catch (err) {
+          console.error('Failed to postMessage to opener', err);
+        }
+        setTimeout(function () {
+          window.close();
+        }, 600);
+      } else {
+        // Opener not found (e.g. user refreshed or direct redirect)
+        document.getElementById('title').innerText = "Connexion validée !";
+        document.getElementById('msg').innerText = "Vous pouvez fermer cette fenêtre et retourner sur Radio Synapse.";
+        setTimeout(function () {
+          window.location.href = '/';
+        }, 1200);
+      }
+    })();
+  </script>
+</body>
+</html>
