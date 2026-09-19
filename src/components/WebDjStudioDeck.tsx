@@ -240,7 +240,7 @@ export const WebDjStudioDeck: React.FC<WebDjStudioDeckProps> = ({
         isOnAir
           ? 'bg-gradient-to-r from-red-950/90 via-red-900/80 to-rose-950/90 border-red-500 text-red-100 shadow-red-950/80 ring-2 ring-red-500/50'
           : isCue
-            ? 'bg-gradient-to-r from-sky-950/90 via-blue-900/80 to-cyan-950/90 border-sky-400 text-sky-100 shadow-sky-950/70 ring-1 ring-sky-400/40'
+            ? 'bg-gradient-to-r from-zinc-900 via-zinc-850 to-zinc-900 border-white/30 text-white shadow-black/70 ring-1 ring-white/20'
             : isStreamerLive
               ? 'bg-amber-950/60 border-amber-500 text-amber-200'
               : 'bg-zinc-900/95 border-zinc-800 text-zinc-300'
@@ -285,8 +285,8 @@ export const WebDjStudioDeck: React.FC<WebDjStudioDeckProps> = ({
               </span>
 
               {streamStats.handshakeOk && (
-                <span className="px-2 py-0.5 rounded-full text-[9px] font-mono bg-cyan-950 text-cyan-300 border border-cyan-800 flex items-center gap-1">
-                  <Activity className="w-3 h-3 text-cyan-400" />
+                <span className="px-2 py-0.5 rounded-full text-[9px] font-mono bg-zinc-900 text-zinc-200 border border-zinc-700 flex items-center gap-1">
+                  <Activity className="w-3 h-3 text-white" />
                   <span>Handshake Liquidsoap Validé</span>
                 </span>
               )}
@@ -327,11 +327,11 @@ export const WebDjStudioDeck: React.FC<WebDjStudioDeckProps> = ({
             onClick={() => setShowConfig(!showConfig)}
             className={`px-3 py-1.5 rounded-xl font-mono text-xs font-bold flex items-center gap-1.5 transition-all border cursor-pointer ${
               showConfig 
-                ? 'bg-cyan-600 text-white border-cyan-400 shadow-md shadow-cyan-900/50' 
+                ? 'bg-white text-black border-white shadow-md'  
                 : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border-zinc-700'
             }`}
           >
-            <Settings className="w-3.5 h-3.5 text-cyan-400" />
+            <Settings className="w-3.5 h-3.5 text-zinc-300" />
             <span>Paramètres WebSocket DJ</span>
           </button>
 
@@ -342,7 +342,7 @@ export const WebDjStudioDeck: React.FC<WebDjStudioDeckProps> = ({
             className="px-3 py-1.5 rounded-xl bg-zinc-800/80 hover:bg-zinc-750 text-zinc-300 border border-zinc-700 hover:text-white font-mono text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
             title={`Lien direct AzuraCast : ${webDjUrl}`}
           >
-            <ExternalLink className="w-3.5 h-3.5 text-cyan-400" />
+            <ExternalLink className="w-3.5 h-3.5 text-zinc-300" />
             <span>WebDJ AzuraCast ({currentShortcode})</span>
           </a>
         </div>
@@ -350,9 +350,9 @@ export const WebDjStudioDeck: React.FC<WebDjStudioDeckProps> = ({
 
       {/* 2. WEBSOCKET & ICECAST STREAMER CONFIGURATION DRAWER */}
       {showConfig && (
-        <div className="p-4 rounded-2xl bg-zinc-900/95 border border-cyan-900/60 animate-in fade-in slide-in-from-top-2 duration-150 space-y-4 font-mono text-xs shadow-2xl">
+        <div className="p-4 rounded-2xl bg-zinc-900/95 border border-zinc-800 animate-in fade-in slide-in-from-top-2 duration-150 space-y-4 font-mono text-xs shadow-2xl">
           <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
-            <span className="font-bold text-cyan-400 flex items-center gap-2">
+            <span className="font-bold text-white flex items-center gap-2">
               <ShieldCheck className="w-4 h-4" />
               Configuration du Flux WebSocket & Serveur DJ AzuraCast
             </span>
@@ -367,7 +367,7 @@ export const WebDjStudioDeck: React.FC<WebDjStudioDeckProps> = ({
                 <button
                   type="button"
                   onClick={() => onCopyText(wsUrl, 'wsUrl')}
-                  className="text-[9px] text-cyan-400 hover:underline cursor-pointer"
+                  className="text-[9px] text-zinc-300 hover:underline cursor-pointer"
                 >
                   {copiedField === 'wsUrl' ? '✓ Copié' : 'Copier'}
                 </button>
@@ -377,13 +377,13 @@ export const WebDjStudioDeck: React.FC<WebDjStudioDeckProps> = ({
                 value={wsUrl}
                 onChange={(e) => setWsUrl(e.target.value)}
                 placeholder="wss://cast.radiosynapse.fr/webdj/pop-variete/"
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-2.5 py-1.5 text-cyan-300 text-[11px] font-mono focus:border-cyan-500 outline-none"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-2.5 py-1.5 text-zinc-200 text-[11px] font-mono focus:border-white outline-none"
               />
               <div className="flex flex-wrap gap-1 pt-1">
                 <button
                   type="button"
                   onClick={() => setWsUrl('wss://cast.radiosynapse.fr/webdj/pop-variete/')}
-                  className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-950 hover:bg-cyan-900 text-cyan-300 border border-cyan-800/60 cursor-pointer"
+                  className="text-[9px] px-1.5 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 cursor-pointer"
                 >
                   ⭐ Web DJ (/webdj/pop-variete/)
                 </button>
@@ -412,7 +412,7 @@ export const WebDjStudioDeck: React.FC<WebDjStudioDeckProps> = ({
                 value={mount}
                 onChange={(e) => setMount(e.target.value)}
                 placeholder="/"
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-2.5 py-1.5 text-white text-[11px] font-mono focus:border-cyan-500 outline-none"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-2.5 py-1.5 text-white text-[11px] font-mono focus:border-white outline-none"
               />
               <span className="text-[9px] text-zinc-500 block">Défaut Icecast DJ : /</span>
             </div>
@@ -425,7 +425,7 @@ export const WebDjStudioDeck: React.FC<WebDjStudioDeckProps> = ({
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="theocourant"
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-2.5 py-1.5 text-cyan-300 text-[11px] font-mono focus:border-cyan-500 outline-none"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-2.5 py-1.5 text-zinc-200 text-[11px] font-mono focus:border-white outline-none"
               />
               <span className="text-[9px] text-zinc-500 block">Compte DJ AzuraCast</span>
             </div>
@@ -439,7 +439,7 @@ export const WebDjStudioDeck: React.FC<WebDjStudioDeckProps> = ({
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Mot de passe du streamer"
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-2.5 py-1.5 pr-8 text-white text-[11px] font-mono focus:border-cyan-500 outline-none"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-2.5 py-1.5 pr-8 text-white text-[11px] font-mono focus:border-white outline-none"
                 />
                 <button
                   type="button"
@@ -457,7 +457,7 @@ export const WebDjStudioDeck: React.FC<WebDjStudioDeckProps> = ({
             <div className="flex items-center gap-2">
               <button
                 onClick={handleSaveCredentials}
-                className="px-3.5 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
+                className="px-3.5 py-1.5 rounded-xl bg-white hover:bg-zinc-200 text-black font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
               >
                 <Check className="w-3.5 h-3.5" />
                 <span>Enregistrer les Identifiants</span>
@@ -468,7 +468,7 @@ export const WebDjStudioDeck: React.FC<WebDjStudioDeckProps> = ({
                 disabled={isTestingSocket}
                 className="px-3.5 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold text-xs flex items-center gap-1.5 transition-all border border-zinc-700 cursor-pointer"
               >
-                <RefreshCw className={`w-3.5 h-3.5 ${isTestingSocket ? 'animate-spin text-cyan-400' : 'text-zinc-400'}`} />
+                <RefreshCw className={`w-3.5 h-3.5 ${isTestingSocket ? 'animate-spin text-white' : 'text-zinc-400'}`} />
                 <span>{isTestingSocket ? 'Test de Connexion...' : 'Tester Handshake Icecast'}</span>
               </button>
             </div>
@@ -573,12 +573,12 @@ export const WebDjStudioDeck: React.FC<WebDjStudioDeckProps> = ({
                   }}
                   className={`w-32 h-32 rounded-full flex flex-col items-center justify-center gap-2 transition-all cursor-pointer shadow-2xl border-4 ${
                     isCue
-                      ? 'bg-gradient-to-b from-sky-600 to-blue-700 border-sky-300 text-white shadow-sky-600/60 scale-105 ring-2 ring-sky-400/40'
-                      : 'bg-zinc-800 hover:bg-zinc-750 border-zinc-700 text-zinc-300 hover:border-sky-500/60 hover:text-white'
+                      ? 'bg-white border-zinc-200 text-black shadow-white/20 scale-105 ring-2 ring-white/40'
+                      : 'bg-zinc-800 hover:bg-zinc-750 border-zinc-700 text-zinc-300 hover:border-zinc-500 hover:text-white'
                   }`}
                   title="Pré-écoute locale dans le casque sans diffuser à l'antenne"
                 >
-                  <Headphones className={`w-9 h-9 ${isCue ? 'text-white animate-pulse' : 'text-sky-400'}`} />
+                  <Headphones className={`w-9 h-9 ${isCue ? 'text-black animate-pulse' : 'text-zinc-200'}`} />
                   <div className="text-center">
                     <span className="text-xs font-black font-mono tracking-widest uppercase block">
                       {isCue ? 'CUE ACTIF' : 'ACTIVER CUE'}
@@ -596,7 +596,7 @@ export const WebDjStudioDeck: React.FC<WebDjStudioDeckProps> = ({
             <div className="text-center max-w-sm">
               <p className="text-xs text-zinc-400 leading-relaxed">
                 {micMode === 'ptt' ? (
-                  <span className="text-cyan-300 font-mono">
+                  <span className="text-zinc-200 font-mono">
                     💡 Mode PTT : Maintenez le bouton ou la barre d'<strong>ESPACE</strong> pour basculer ON AIR en direct !
                   </span>
                 ) : (
@@ -615,7 +615,7 @@ export const WebDjStudioDeck: React.FC<WebDjStudioDeckProps> = ({
                 }`} />
                 <span>Heartbeat Liquidsoap Keepalive :</span>
               </div>
-              <span className="text-cyan-400 font-bold">
+              <span className="text-white font-bold">
                 {isConnected ? 'Actif (toutes les 3s)' : 'En attente'}
               </span>
             </div>
@@ -644,7 +644,7 @@ export const WebDjStudioDeck: React.FC<WebDjStudioDeckProps> = ({
                     }}
                     className="px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[10px] flex items-center gap-1 cursor-pointer"
                   >
-                    {interventionAudioPlaying ? <Pause className="w-3 h-3 text-amber-400" /> : <Play className="w-3 h-3 text-cyan-400" />}
+                    {interventionAudioPlaying ? <Pause className="w-3 h-3 text-amber-400" /> : <Play className="w-3 h-3 text-zinc-300" />}
                     <span>{interventionAudioPlaying ? 'Stop' : 'Écouter'}</span>
                   </button>
                 )}
@@ -672,7 +672,7 @@ export const WebDjStudioDeck: React.FC<WebDjStudioDeckProps> = ({
                 <button
                   onClick={() => onInjectIntervention('next')}
                   disabled={isInjectingIntervention}
-                  className="w-full py-2 px-3 rounded-xl bg-zinc-800 hover:bg-zinc-750 text-cyan-300 font-bold text-xs flex items-center justify-center gap-2 border border-zinc-700 cursor-pointer transition-all"
+                  className="w-full py-2 px-3 rounded-xl bg-zinc-800 hover:bg-zinc-750 text-zinc-200 font-bold text-xs flex items-center justify-center gap-2 border border-zinc-700 cursor-pointer transition-all"
                 >
                   <FastForward className="w-3.5 h-3.5" />
                   <span>Insérer en Prochain Titre</span>
@@ -686,7 +686,7 @@ export const WebDjStudioDeck: React.FC<WebDjStudioDeckProps> = ({
         <div className="lg:col-span-6 p-5 rounded-2xl bg-zinc-900/90 border border-zinc-800 flex flex-col justify-between gap-4 font-mono text-xs">
           <div className="border-b border-zinc-800 pb-3 flex items-center justify-between">
             <span className="text-zinc-300 font-bold uppercase tracking-wider flex items-center gap-2">
-              <Sliders className="w-4 h-4 text-cyan-400" />
+              <Sliders className="w-4 h-4 text-zinc-300" />
               Traitement Audio & Modulation Stéréo (48 kHz)
             </span>
             <span className="text-[10px] text-zinc-500">VU-Mètre dBFS</span>
@@ -702,7 +702,7 @@ export const WebDjStudioDeck: React.FC<WebDjStudioDeckProps> = ({
                 }`}>
                   CLIP
                 </span>
-                <span className="text-cyan-400 font-bold">{vuReading.db > -60 ? `${vuReading.db} dBFS` : '-INF'}</span>
+                <span className="text-white font-bold">{vuReading.db > -60 ? `${vuReading.db} dBFS` : '-INF'}</span>
               </div>
             </div>
 
@@ -757,7 +757,7 @@ export const WebDjStudioDeck: React.FC<WebDjStudioDeckProps> = ({
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <span className="text-zinc-400">Master Gain Microphone :</span>
-              <span className="text-cyan-400 font-bold">{Math.round(micGain * 100)}%</span>
+              <span className="text-white font-bold">{Math.round(micGain * 100)}%</span>
             </div>
             <input
               type="range"
@@ -770,7 +770,7 @@ export const WebDjStudioDeck: React.FC<WebDjStudioDeckProps> = ({
                 setMicGain(val);
                 liveBroadcastEngine.setMicGain(val);
               }}
-              className="w-full accent-cyan-400 cursor-pointer"
+              className="w-full accent-white cursor-pointer"
             />
           </div>
 
@@ -785,7 +785,7 @@ export const WebDjStudioDeck: React.FC<WebDjStudioDeckProps> = ({
               }}
               className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between ${
                 lowCutEnabled
-                  ? 'bg-cyan-950/40 border-cyan-500/50 text-cyan-200'
+                  ? 'bg-zinc-800 border-zinc-600 text-white'
                   : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-white'
               }`}
             >
@@ -793,7 +793,7 @@ export const WebDjStudioDeck: React.FC<WebDjStudioDeckProps> = ({
                 <span className="font-bold block">Coupe-Bas 80Hz</span>
                 <span className="text-[9px] text-zinc-500">Anti-plosives & rumble</span>
               </div>
-              <span className={`w-2 h-2 rounded-full ${lowCutEnabled ? 'bg-cyan-400' : 'bg-zinc-700'}`} />
+              <span className={`w-2 h-2 rounded-full ${lowCutEnabled ? 'bg-white' : 'bg-zinc-700'}`} />
             </button>
 
             <button
@@ -873,7 +873,7 @@ export const WebDjStudioDeck: React.FC<WebDjStudioDeckProps> = ({
         <div className="lg:col-span-5 p-4 rounded-2xl bg-zinc-900/90 border border-zinc-800 flex flex-col justify-between gap-3">
           <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
             <span className="text-zinc-300 font-bold uppercase tracking-wider flex items-center gap-2">
-              <Music2 className="w-3.5 h-3.5 text-cyan-400" />
+              <Music2 className="w-3.5 h-3.5 text-zinc-300" />
               Tapis Sonore d'Ambiance (Auto-Ducking)
             </span>
             <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
@@ -894,7 +894,7 @@ export const WebDjStudioDeck: React.FC<WebDjStudioDeckProps> = ({
               onClick={() => setMusicBedActive(!musicBedActive)}
               className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
                 musicBedActive 
-                  ? 'bg-cyan-500 text-black shadow-lg shadow-cyan-500/30 font-black' 
+                  ? 'bg-white text-black shadow-md font-black' 
                   : 'bg-zinc-800 hover:bg-zinc-750 text-zinc-300'
               }`}
             >
@@ -911,7 +911,7 @@ export const WebDjStudioDeck: React.FC<WebDjStudioDeckProps> = ({
                 step="0.05"
                 value={musicBedVolume}
                 onChange={(e) => setMusicBedVolume(parseFloat(e.target.value))}
-                className="w-full accent-cyan-400 cursor-pointer"
+                className="w-full accent-white cursor-pointer"
               />
             </div>
           </div>
@@ -939,12 +939,12 @@ export const WebDjStudioDeck: React.FC<WebDjStudioDeckProps> = ({
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
             {[
-              { name: 'Top Horaire', type: 'chime' as const, color: 'border-cyan-500/40 hover:border-cyan-400 text-cyan-300' },
+              { name: 'Top Horaire', type: 'chime' as const, color: 'border-zinc-700 hover:border-zinc-500 text-zinc-200' },
               { name: 'Gong Flash', type: 'gong' as const, color: 'border-amber-500/40 hover:border-amber-400 text-amber-300' },
               { name: 'Stinger Pop', type: 'stinger' as const, color: 'border-purple-500/40 hover:border-purple-400 text-purple-300' },
               { name: 'Applaudissements', type: 'applause' as const, color: 'border-emerald-500/40 hover:border-emerald-400 text-emerald-300' },
               { name: 'Klaxon Airhorn', type: 'horn' as const, color: 'border-rose-500/40 hover:border-rose-400 text-rose-300' },
-              { name: 'Laser FX', type: 'laser' as const, color: 'border-blue-500/40 hover:border-blue-400 text-blue-300' },
+              { name: 'Laser FX', type: 'laser' as const, color: 'border-white/20 hover:border-white/40 text-white' },
             ].map((pad, idx) => (
               <div
                 key={idx}

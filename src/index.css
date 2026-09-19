@@ -73,29 +73,66 @@ h3.font-futuristic.text-center {
   border-radius: 16px;
 }
 
-/* Glowing element style from Elegant Dark */
-.cyan-glow {
-  text-shadow: 0 0 10px rgba(0, 242, 255, 0.6), 0 0 20px rgba(0, 242, 255, 0.3);
+/* Glowing element style - Refined Monochrome & Subtle Chromatic */
+.white-glow {
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.8), 0 0 20px rgba(255, 255, 255, 0.4);
 }
 
-.cyan-border-glow {
-  box-shadow: 0 0 15px rgba(0, 242, 255, 0.4);
-  border-color: rgba(0, 242, 255, 0.8);
+.white-border-glow {
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
 }
 
-/* Scrollbar behaviors */
+/* Radio Synapse Star Chromatic Accents (Touches très légères) */
+.synapse-star-dot {
+  background: linear-gradient(135deg, #00f2ff, #ffffff 30%, #ff00a0 70%, #ffd700 100%);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.8), 0 0 12px rgba(255, 0, 160, 0.35);
+}
+
+.synapse-star-border {
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.chromatic-line {
+  background: linear-gradient(90deg, transparent 0%, rgba(0, 242, 255, 0.6) 20%, rgba(168, 85, 247, 0.7) 50%, rgba(255, 0, 160, 0.6) 80%, transparent 100%);
+}
+
+.chromatic-glow-sm {
+  box-shadow: 0 0 10px rgba(0, 242, 255, 0.2), 0 0 20px rgba(168, 85, 247, 0.15);
+}
+
+.chromatic-badge {
+  background: linear-gradient(135deg, rgba(0, 242, 255, 0.1), rgba(168, 85, 247, 0.1), rgba(255, 0, 160, 0.1));
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Scrollbar behaviors - Masquage complet sur les consoles et panneaux */
+.no-scrollbar,
+.admin-no-scrollbar,
+.admin-main-scroll,
+.admin-scroll-container,
+[data-no-scrollbar] {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+.no-scrollbar::-webkit-scrollbar,
+.admin-no-scrollbar::-webkit-scrollbar,
+.admin-main-scroll::-webkit-scrollbar,
+.admin-scroll-container::-webkit-scrollbar,
+[data-no-scrollbar]::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
 ::-webkit-scrollbar {
-  width: 4px;
+  width: 0px;
+  height: 0px;
+  display: none;
 }
-::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 242, 255, 0.4);
+
+* {
+  scrollbar-width: none;
 }
 
 /* Responsive height pulse helper keys */

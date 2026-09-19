@@ -1,6 +1,7 @@
 import { AdminPermissions, AdminProfileTemplate, SynapseUser } from '../types';
 import { AdminTab } from '../types/adminCustomization';
-import { pb } from '../lib/pocketbase';
+import { supabase } from '../lib/supabase';
+import { getStoredSynapseUser } from './supabaseAuthService';
 
 const PROFILES_STORAGE_KEY = 'synapse_admin_profiles_templates_v1';
 const PB_KEY_PROFILES = 'admin_profiles_templates_v1';
@@ -206,19 +207,12 @@ export function saveAdminProfileTemplates(templates: AdminProfileTemplate[]): vo
   try {
     localStorage.setItem(PROFILES_STORAGE_KEY, JSON.stringify(templates));
     
-    // Persist to PocketBase in background
-    if (pb.authStore.isValid) {
-      pb.collection('synapse_admin_data').getFirstListItem(`key = "${PB_KEY_PROFILES}"`)
-        .then((existing) => {
-          pb.collection('synapse_admin_data').update(existing.id, { payload: templates }).catch(() => {});
-        })
-        .catch(() => {
-          pb.collection('synapse_admin_data').create({
-            key: PB_KEY_PROFILES,
-            payload: templates,
-          }).catch(() => {});
-        });
-    }
+    // Persist to Supabase in background
+    supabase.from('synapse_admin_data').upsert({
+      key: PB_KEY_PROFILES,
+      payload: templates,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'key' }).then(() => {});
   } catch (err) {
     console.error('Error saving profile templates:', err);
   }
@@ -238,36 +232,18 @@ export function resetAdminProfileTemplates(): AdminProfileTemplate[] {
  * Check if the active user is a Super Administrator
  */
 export function isSuperAdmin(user: SynapseUser | null): boolean {
-  if (!user) {
-    if (pb.authStore.isValid && pb.authStore.record) {
-      const rec: any = pb.authStore.record;
-      const em = (rec.email || '').toLowerCase().trim();
-      if (rec.role === 'super-admin' || em === 'adminradiosynapse@gmail.com' || em === 'admin@radiosynapse.fr') {
-        return true;
-      }
-      if (rec.role === 'admin') return true;
-    }
-    // Check localStorage fallback
-    try {
-      const raw = localStorage.getItem('radio_synapse_auth_user_v1');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        const em = (parsed.email || '').toLowerCase().trim();
-        if (parsed.role === 'super-admin' || em === 'adminradiosynapse@gmail.com' || em === 'admin@radiosynapse.fr') {
-          return true;
-        }
-      }
-    } catch {}
+  const active = user || getStoredSynapseUser();
+  if (!active) {
     return true; // Standalone admin panel session fallback
   }
 
-  const cleanEmail = (user.email || '').toLowerCase().trim();
+  const cleanEmail = (active.email || '').toLowerCase().trim();
   // If user role is 'super-admin' or email is admin master
-  if (user.role === 'super-admin') return true;
-  if (user.adminProfileId === 'profile_super_admin') return true;
+  if (active.role === 'super-admin') return true;
+  if (active.adminProfileId === 'profile_super_admin') return true;
   if (cleanEmail === 'adminradiosynapse@gmail.com' || cleanEmail === 'admin@radiosynapse.fr') return true;
   // If user is admin with no restrictive profile set, treat as super admin by default
-  if (user.role === 'admin' && (!user.adminProfileId || user.adminProfileId === 'profile_super_admin' || user.adminProfileId === 'profile_general_admin')) return true;
+  if (active.role === 'admin' && (!active.adminProfileId || active.adminProfileId === 'profile_super_admin' || active.adminProfileId === 'profile_general_admin')) return true;
   return false;
 }
 
@@ -347,6 +323,9 @@ export function getUserEffectivePermissions(user: SynapseUser | null): AdminPerm
  * Check if a user has access to a specific admin tab
  */
 export function canUserAccessTab(user: SynapseUser | null, tab: AdminTab): boolean {
+  if (tab === 'features') {
+    return isSuperAdmin(user);
+  }
   if (isSuperAdmin(user)) return true;
   if (!isAdminOrAbove(user)) return false;
 

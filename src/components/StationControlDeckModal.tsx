@@ -35,7 +35,7 @@ import {
   VuMeterReading, 
   AudioInputDevice 
 } from '../utils/liveBroadcastEngine';
-import { getLinkedAdminDjAccount } from '../utils/pocketbaseAuthService';
+import { getLinkedAdminDjAccount } from '../utils/supabaseAuthService';
 import { WebDjStudioDeck } from './WebDjStudioDeck';
 import { convertBlobToWav } from '../utils/audioWavEncoder';
 
@@ -54,8 +54,6 @@ export default function StationControlDeckModal({
   station,
   onRefreshData,
 }: StationControlDeckModalProps) {
-  if (!isOpen || !station) return null;
-
   const [activeTab, setActiveTab] = useState<ControlTab>('monitoring');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -114,13 +112,13 @@ export default function StationControlDeckModal({
   const musicBedSynthRef = useRef<{ stop: () => void; setGain: (g: number) => void } | null>(null);
 
   const azuraConfig = getAzuraCastConfig();
-  const stationMapping = azuraConfig.stationMappings[station.id] || 
+  const stationMapping = station ? (azuraConfig.stationMappings[station.id] || 
     azuraConfig.stationMappings[station.name] || {
       azuraStationId: station.stationNumber ? parseInt(station.stationNumber, 10) || 1 : 1,
       azuraShortcode: slugifyStationName(station.name),
-    };
+    }) : { azuraStationId: 1, azuraShortcode: '' };
   const targetAzuraId = Number(stationMapping.azuraStationId) || 1;
-  const currentShortcode = nowPlaying?.station?.shortcode || stationMapping.azuraShortcode || slugifyStationName(station.name);
+  const currentShortcode = nowPlaying?.station?.shortcode || stationMapping.azuraShortcode || (station ? slugifyStationName(station.name) : '');
   const webDjUrl = getStationWebDjUrl(currentShortcode);
 
   // Show Toast
@@ -133,6 +131,7 @@ export default function StationControlDeckModal({
 
   // 1. Initial Load & Metadata Polling
   useEffect(() => {
+    if (!isOpen || !station) return;
     let isMounted = true;
     setAudioDrops(getAudioDrops());
 
@@ -168,7 +167,7 @@ export default function StationControlDeckModal({
       isMounted = false;
       clearInterval(pollInterval);
     };
-  }, [station.id, targetAzuraId]);
+  }, [station?.id, targetAzuraId]);
 
   // 2. WebRTC Live Broadcast Engine Subscriptions
   useEffect(() => {
@@ -585,7 +584,7 @@ export default function StationControlDeckModal({
       await createAudioDrop({
         name: title,
         category: mode === 'immediate' ? 'emergency' : 'voice_drop',
-        stationId: station.id,
+        stationId: station?.id || 'all',
         audioUrl: recordedAudioUrl,
         duration: recordedDuration || 4,
         createdBy: 'Régie Direct',
@@ -652,7 +651,7 @@ export default function StationControlDeckModal({
       const newDrop = await createAudioDrop({
         name: file.name.replace(/\.[^/.]+$/, ''),
         category: 'jingle',
-        stationId: station.id,
+        stationId: station?.id || 'all',
         audioUrl: dataUrl,
         duration: 5,
         createdBy: 'Admin Upload',
@@ -672,6 +671,8 @@ export default function StationControlDeckModal({
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
+  if (!isOpen || !station) return null;
+
   const isStreamerLive = Boolean(nowPlaying?.live?.is_live);
   const liveStreamerName = nowPlaying?.live?.streamer_name || 'theocourant';
   const isOnAir = isStreamerLive || broadcastState === 'on_air';
@@ -682,12 +683,12 @@ export default function StationControlDeckModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-5xl h-[92vh] max-h-[850px] bg-zinc-950 border border-cyan-500/30 rounded-3xl shadow-2xl shadow-cyan-950/50 flex flex-col overflow-hidden text-zinc-100 font-sans">
+      <div className="relative w-full max-w-5xl h-[92vh] max-h-[850px] bg-zinc-950 border border-zinc-800 rounded-3xl shadow-2xl shadow-black/80 flex flex-col overflow-hidden text-zinc-100 font-sans">
         
         {/* TOAST NOTIFICATION */}
         {toastMessage && (
-          <div className="absolute top-4 right-4 z-50 px-4 py-2.5 rounded-xl bg-cyan-950/95 border border-cyan-400 text-cyan-200 text-xs font-mono font-bold shadow-xl flex items-center gap-2 animate-in slide-in-from-top duration-200">
-            <Sparkles className="w-4 h-4 text-cyan-400 animate-spin" />
+          <div className="absolute top-4 right-4 z-50 px-4 py-2.5 rounded-xl bg-zinc-900/95 border border-zinc-700 text-zinc-100 text-xs font-mono font-bold shadow-xl flex items-center gap-2 animate-in slide-in-from-top duration-200">
+            <Sparkles className="w-4 h-4 text-white animate-spin" />
             <span>{toastMessage}</span>
           </div>
         )}
@@ -729,7 +730,7 @@ export default function StationControlDeckModal({
               <p className="text-xs text-zinc-400 flex items-center gap-2 font-mono">
                 <span>Azura ID: #{targetAzuraId}</span>
                 <span>•</span>
-                <span className="text-cyan-400">{station.genre}</span>
+                <span className="text-zinc-400">{station.genre}</span>
                 <span>•</span>
                 <span className="text-zinc-500 truncate max-w-[200px] sm:max-w-xs">{station.streamUrl || 'cast.radiosynapse.fr'}</span>
               </p>
@@ -761,11 +762,11 @@ export default function StationControlDeckModal({
             onClick={() => setActiveTab('monitoring')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-mono font-bold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
               activeTab === 'monitoring'
-                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 shadow-sm'
+                ? 'bg-zinc-800 text-white border border-zinc-600 shadow-sm'
                 : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
             }`}
           >
-            <Radio className="w-3.5 h-3.5 text-cyan-400" />
+            <Radio className="w-3.5 h-3.5 text-white" />
             <span>1. Monitoring Direct</span>
           </button>
 
@@ -773,11 +774,11 @@ export default function StationControlDeckModal({
             onClick={() => setActiveTab('controls')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-mono font-bold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
               activeTab === 'controls'
-                ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 shadow-sm'
+                ? 'bg-zinc-800 text-white border border-zinc-600 shadow-sm'
                 : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
             }`}
           >
-            <FastForward className="w-3.5 h-3.5 text-cyan-400" />
+            <FastForward className="w-3.5 h-3.5 text-white" />
             <span>2. Télécommande & File</span>
           </button>
 
@@ -822,7 +823,7 @@ export default function StationControlDeckModal({
               <div className="lg:col-span-2 p-5 rounded-2xl bg-zinc-900/80 border border-zinc-800/90 flex flex-col gap-4">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-mono text-zinc-400 font-bold uppercase tracking-wider flex items-center gap-2">
-                    <Music2 className="w-4 h-4 text-cyan-400" />
+                    <Music2 className="w-4 h-4 text-zinc-300" />
                     Titre en cours de diffusion
                   </span>
                   <button
@@ -855,7 +856,7 @@ export default function StationControlDeckModal({
                   </div>
 
                   <div className="flex-1 min-w-0 text-center sm:text-left flex flex-col justify-center">
-                    <span className="text-xs font-mono text-cyan-400 font-bold tracking-wide">
+                    <span className="text-xs font-mono text-white font-bold tracking-wide">
                       {songArtist}
                     </span>
                     <h3 className="text-lg sm:text-xl font-black text-white truncate mt-0.5">
@@ -888,14 +889,14 @@ export default function StationControlDeckModal({
                             : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700'
                         }`}
                       >
-                        {isPreviewPlaying ? <VolumeX className="w-3.5 h-3.5" /> : <Headphones className="w-3.5 h-3.5 text-cyan-400" />}
+                        {isPreviewPlaying ? <VolumeX className="w-3.5 h-3.5" /> : <Headphones className="w-3.5 h-3.5 text-zinc-300" />}
                         <span>{isPreviewPlaying ? 'Couper Pré-Écoute Studio' : 'Pré-Écoute Régie'}</span>
                       </button>
 
                       <button
                         onClick={handleSkipTrack}
                         disabled={isSkipping}
-                        className="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                        className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
                       >
                         <SkipForward className={`w-3.5 h-3.5 ${isSkipping ? 'animate-spin' : ''}`} />
                         <span>{isSkipping ? 'Saut en cours...' : 'Passer le morceau (Skip)'}</span>
@@ -943,7 +944,7 @@ export default function StationControlDeckModal({
 
                   <div className="flex items-center justify-between p-2.5 rounded-lg bg-zinc-950 border border-zinc-800">
                     <span className="text-zinc-400">Qualité Débit :</span>
-                    <span className="text-cyan-400 font-bold">320 kbps MP3 HD</span>
+                    <span className="text-zinc-300 font-bold">320 kbps MP3 HD</span>
                   </div>
 
                   <div className="flex items-center justify-between p-2.5 rounded-lg bg-zinc-950 border border-zinc-800">
@@ -980,13 +981,13 @@ export default function StationControlDeckModal({
               <div className="p-5 rounded-2xl bg-zinc-900/80 border border-zinc-800/90 flex flex-col gap-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-mono text-zinc-300 font-bold uppercase tracking-wider flex items-center gap-2">
-                    <ListMusic className="w-4 h-4 text-cyan-400" />
+                    <ListMusic className="w-4 h-4 text-zinc-300" />
                     File d'Attente Programmée ({queue.length || station.tracks.length})
                   </span>
                   <button
                     onClick={handleSkipTrack}
                     disabled={isSkipping}
-                    className="px-3 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                    className="px-3 py-1 rounded-lg bg-zinc-800 text-zinc-200 hover:bg-zinc-700 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
                   >
                     <SkipForward className="w-3.5 h-3.5" />
                     <span>Passer Titre</span>
@@ -1206,7 +1207,7 @@ export default function StationControlDeckModal({
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <div>
                     <span className="text-xs font-mono text-zinc-300 font-bold uppercase tracking-wider flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-cyan-400" />
+                      <Sparkles className="w-4 h-4 text-zinc-300" />
                       Cartoucheur Radio (Diffusion Directe)
                     </span>
                     <p className="text-[11px] text-zinc-500 font-mono mt-0.5">
@@ -1214,7 +1215,7 @@ export default function StationControlDeckModal({
                     </p>
                   </div>
 
-                  <label className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-cyan-300 border border-zinc-700 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer">
+                  <label className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer">
                     <Upload className="w-3.5 h-3.5" />
                     <span>Importer Audio (.mp3/.wav)</span>
                     <input 
@@ -1240,7 +1241,7 @@ export default function StationControlDeckModal({
                           isInjecting
                             ? 'bg-purple-950/50 border-purple-500 ring-2 ring-purple-500/50'
                             : isPlaying 
-                            ? 'bg-cyan-500/20 border-cyan-400 ring-2 ring-cyan-400/50' 
+                            ? 'bg-white/10 border-white/40 ring-2 ring-white/20' 
                             : isUrgent 
                             ? 'bg-red-950/40 border-red-800/80 hover:border-red-500' 
                             : 'bg-zinc-950/90 border-zinc-800 hover:border-zinc-700'
@@ -1277,8 +1278,8 @@ export default function StationControlDeckModal({
                           onClick={() => handlePlayDrop(drop)}
                           title="Cliquer pour pré-écouter au casque régie"
                         >
-                          <h5 className="text-xs font-bold text-white truncate group-hover:text-cyan-300 transition-colors flex items-center gap-1">
-                            {isPlaying ? <Volume2 className="w-3 h-3 text-cyan-400 animate-pulse" /> : <Play className="w-3 h-3 text-zinc-500" />}
+                          <h5 className="text-xs font-bold text-white truncate group-hover:text-zinc-200 transition-colors flex items-center gap-1">
+                            {isPlaying ? <Volume2 className="w-3 h-3 text-white animate-pulse" /> : <Play className="w-3 h-3 text-zinc-500" />}
                             <span className="truncate">{drop.name}</span>
                           </h5>
                           <p className="text-[10px] text-zinc-500 font-mono mt-0.5">
@@ -1332,7 +1333,7 @@ export default function StationControlDeckModal({
         {/* FOOTER BAR */}
         <div className="px-5 py-3 bg-zinc-900/90 border-t border-zinc-800 flex items-center justify-between text-xs font-mono text-zinc-500 flex-wrap gap-2">
           <div className="flex items-center gap-3">
-            <span>Serveur AzuraCast : <span className="text-cyan-400">{azuraConfig.baseUrl}</span></span>
+            <span>Serveur AzuraCast : <span className="text-zinc-300">{azuraConfig.baseUrl}</span></span>
             <span>•</span>
             <span>PocketBase DB : <span className="text-emerald-400">db.radiosynapse.fr</span></span>
           </div>

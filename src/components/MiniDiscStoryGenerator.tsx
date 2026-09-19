@@ -362,7 +362,7 @@ export default function MiniDiscStoryGenerator({
               <span className="text-xs font-futuristic font-bold uppercase tracking-wider text-white">
                 GÉNÉRATEUR DE STORY MINI-DISC
               </span>
-              <span className="text-[10px] font-mono text-cyan-400">
+              <span className="text-[10px] font-mono text-zinc-400">
                 Format 9:16 pour Instagram, Snapchat & TikTok
               </span>
             </div>
@@ -397,7 +397,7 @@ export default function MiniDiscStoryGenerator({
 
             {/* Story Top Bar */}
             <div className="relative z-10 flex items-center justify-between">
-              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/60 border border-cyan-400/40 text-cyan-300 text-[9px] font-mono font-bold">
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-black/60 border border-white/20 text-white text-[9px] font-mono font-bold">
                 <Radio className="w-2.5 h-2.5 animate-pulse" />
                 <span>RADIO SYNAPSE</span>
               </div>
@@ -426,7 +426,7 @@ export default function MiniDiscStoryGenerator({
                 </div>
 
                 <div className="flex-1 flex items-center justify-center">
-                  <div className={`w-16 h-16 rounded-full bg-gradient-to-tr from-zinc-900 via-pink-500/40 to-cyan-400/60 border border-white/40 shadow-inner flex items-center justify-center ${isPlaying ? 'animate-spin' : ''}`}>
+                  <div className={`w-16 h-16 rounded-full bg-gradient-to-tr from-zinc-900 via-zinc-700 to-zinc-900 border border-white/40 shadow-inner flex items-center justify-center ${isPlaying ? 'animate-spin' : ''}`}>
                     <div className="w-5 h-5 rounded-full bg-zinc-950 border border-zinc-700 flex items-center justify-center">
                       <div className="w-1.5 h-1.5 rounded-full bg-white" />
                     </div>
@@ -465,7 +465,7 @@ export default function MiniDiscStoryGenerator({
               </button>
 
               {/* Simulated Story Sticker */}
-              <div className="w-full py-1.5 px-2 rounded-xl bg-cyan-400 text-black font-futuristic font-bold text-[9px] uppercase tracking-wider text-center shadow-lg">
+              <div className="w-full py-1.5 px-2 rounded-xl bg-white text-black font-futuristic font-bold text-[9px] uppercase tracking-wider text-center shadow-lg">
                 🔗 Lien Sticker : Écouter le titre
               </div>
             </div>
@@ -473,7 +473,7 @@ export default function MiniDiscStoryGenerator({
 
           {/* Status notification */}
           {statusMessage && (
-            <div className="w-full p-2.5 rounded-xl bg-cyan-950/60 border border-cyan-500/40 text-cyan-300 font-mono text-xs text-center animate-pulse">
+            <div className="w-full p-2.5 rounded-xl bg-zinc-900 border border-zinc-700 text-white font-mono text-xs text-center animate-pulse">
               {statusMessage}
             </div>
           )}
@@ -485,7 +485,7 @@ export default function MiniDiscStoryGenerator({
             <button
               disabled={isGeneratingImage}
               onClick={handleShareStoryToSocial}
-              className="w-full py-3 rounded-2xl bg-gradient-to-r from-pink-500 to-cyan-400 text-white font-mono text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 shadow-lg hover:opacity-95 active:scale-98 disabled:opacity-50"
+              className="w-full py-3 rounded-2xl bg-white hover:bg-zinc-200 text-black font-mono text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 shadow-lg hover:opacity-95 active:scale-98 disabled:opacity-50"
             >
               <Share2 className="w-4 h-4" />
               <span>{isGeneratingImage ? 'Création...' : 'Partager en Story (Instagram / Snap)'}</span>
@@ -498,7 +498,7 @@ export default function MiniDiscStoryGenerator({
                 onClick={handleDownloadStory}
                 className="py-2.5 px-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/15 text-zinc-200 font-mono text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
               >
-                <Download className="w-3.5 h-3.5 text-cyan-400" />
+                <Download className="w-3.5 h-3.5 text-zinc-300" />
                 <span>Télécharger 9:16</span>
               </button>
 

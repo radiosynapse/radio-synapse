@@ -46,7 +46,7 @@ export default function EventsDrawer({
       title={
         <div className="flex items-center gap-2.5">
           <div 
-            className="p-1.5 rounded-lg bg-cyan-500/20 border border-cyan-400/40 text-cyan-300"
+            className="p-1.5 rounded-lg bg-white/10 border border-white/20 text-white"
             style={{ borderColor: `${accentColor}60` }}
           >
             <CalendarDays className="w-4 h-4" />
@@ -62,8 +62,8 @@ export default function EventsDrawer({
       <div className="flex flex-col gap-3 py-1">
 
         <div className="flex items-center justify-between px-1">
-          <span className="text-xs font-mono text-cyan-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5" />
+          <span className="text-xs font-mono text-white font-bold uppercase tracking-wider flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-zinc-300" />
             Agenda des Soirées & Festivals ({events.length})
           </span>
           <button
@@ -78,7 +78,7 @@ export default function EventsDrawer({
 
         {isLoading && events.length === 0 && (
           <div className="py-12 flex flex-col items-center justify-center gap-3 text-zinc-400 font-mono text-xs">
-            <Loader2 className="w-6 h-6 animate-spin text-cyan-400" />
+            <Loader2 className="w-6 h-6 animate-spin text-white" />
             <span>Chargement des événements depuis Supabase...</span>
           </div>
         )}
@@ -92,7 +92,7 @@ export default function EventsDrawer({
 
         {!isLoading && events.length === 0 && (
           <div className="py-10 px-4 rounded-2xl bg-zinc-950/60 border border-dashed border-white/15 flex flex-col items-center justify-center text-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 text-white flex items-center justify-center">
               <CalendarDays className="w-6 h-6" />
             </div>
             <div className="flex flex-col gap-1">
@@ -109,7 +109,7 @@ export default function EventsDrawer({
                   onClose();
                   onOpenAdminPanel();
                 }}
-                className="mt-2 px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 shadow-lg shadow-cyan-500/20"
+                className="mt-2 px-4 py-2 rounded-xl bg-white hover:bg-zinc-200 text-black text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 shadow-lg"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Programmer un évènement dans l'Admin</span>
@@ -122,10 +122,10 @@ export default function EventsDrawer({
           {events.map((ev, index) => (
             <div
               key={`event-card-${ev.id || 'ev'}-${index}`}
-              className="p-4 rounded-2xl bg-black/50 border border-white/10 hover:border-cyan-500/40 transition-all text-left flex flex-col gap-2.5 shadow-md"
+              className="p-4 rounded-2xl bg-black/50 border border-white/10 hover:border-white/30 transition-all text-left flex flex-col gap-2.5 shadow-md"
             >
               <div className="flex items-start justify-between gap-2">
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-white/10 text-cyan-300 border border-white/10">
+                <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-white/10 text-white border border-white/20">
                   {ev.type}
                 </span>
 
@@ -143,7 +143,7 @@ export default function EventsDrawer({
 
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-mono text-zinc-300">
                 <div className="flex items-center gap-1.5">
-                  <CalendarDays className="w-3.5 h-3.5 text-cyan-400" />
+                  <CalendarDays className="w-3.5 h-3.5 text-zinc-300" />
                   <span>{ev.date}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -164,10 +164,10 @@ export default function EventsDrawer({
 
                 <button
                   onClick={() => alert(`Informations et alertes pour l'évènement "${ev.title}" activées !`)}
-                  className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-cyan-500/20 border border-white/15 text-white text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5"
+                  className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-white text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5"
                 >
                   <span>M'alerter</span>
-                  <ExternalLink className="w-3 h-3 text-cyan-400" />
+                  <ExternalLink className="w-3 h-3 text-white" />
                 </button>
               </div>
             </div>

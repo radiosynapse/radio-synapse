@@ -8,6 +8,7 @@ export type AdminTab =
   | 'programming' 
   | 'events' 
   | 'messages' 
+  | 'features'
   | 'azuracast' 
   | 'database';
 
@@ -17,7 +18,8 @@ export interface SidebarItemConfig {
   order: number;
 }
 
-export type WidgetSize = 'full' | 'half' | 'third';
+export type WidgetSize = 'full' | 'wide' | 'half' | 'third';
+export type WidgetHeight = 'normal' | 'tall';
 export type WidgetDensity = 'compact' | 'normal' | 'expanded';
 
 export type DashboardWidgetId =
@@ -32,13 +34,19 @@ export type DashboardWidgetId =
   | 'active_challenges'
   | 'upcoming_events'
   | 'promotions_partners'
-  | 'community_users';
+  | 'community_users'
+  | 'station_playlist_history'
+  | 'station_live_controls'
+  | 'station_stats_listeners'
+  | 'station_song_requests';
 
 export interface DashboardWidgetConfig {
   id: DashboardWidgetId;
+  stationId?: string; // Specific station ID for station-specific widgets
   title: string;
   description: string;
   size: WidgetSize;
+  height?: WidgetHeight;
   density: WidgetDensity;
   visible: boolean;
   order: number;

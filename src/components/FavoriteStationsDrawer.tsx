@@ -99,7 +99,7 @@ export default function FavoriteStationsDrawer({
                 : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
-            <Radio className="w-3.5 h-3.5 text-cyan-400" />
+            <Radio className="w-3.5 h-3.5 text-zinc-300" />
             <span>Toutes les Stations ({stationsToUse.length})</span>
           </button>
         </div>

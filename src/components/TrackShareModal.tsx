@@ -186,7 +186,7 @@ export default function TrackShareModal({
                 <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-zinc-200">
                   PARTAGER LE TITRE
                 </span>
-                <span className="text-[9px] font-mono text-cyan-400">
+                <span className="text-[9px] font-mono text-zinc-400">
                   Flyer permanent universel & Générateur Story
                 </span>
               </div>
@@ -222,7 +222,7 @@ export default function TrackShareModal({
                   {track.artist}
                 </span>
                 {track.stationName && (
-                  <span className="text-[10px] font-mono text-cyan-400 truncate mt-0.5 flex items-center gap-1">
+                  <span className="text-[10px] font-mono text-zinc-400 truncate mt-0.5 flex items-center gap-1">
                     <Radio className="w-2.5 h-2.5" />
                     {track.stationName}
                   </span>
@@ -234,7 +234,7 @@ export default function TrackShareModal({
             <div className="p-3.5 rounded-2xl bg-zinc-950/90 border border-white/10 flex flex-col gap-2 shadow-inner">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-zinc-300 text-left flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                  <Sparkles className="w-3.5 h-3.5 text-white" />
                   Lien permanent du flyer :
                 </span>
                 <span className="text-[10px] font-mono text-emerald-400 font-bold">
@@ -248,7 +248,7 @@ export default function TrackShareModal({
                     type="text"
                     readOnly
                     value={shareUrl}
-                    className="w-full px-3 py-2 rounded-xl bg-black/90 border border-white/15 text-xs font-mono text-zinc-300 select-all focus:outline-none focus:border-cyan-400 truncate"
+                    className="w-full px-3 py-2 rounded-xl bg-black/90 border border-white/15 text-xs font-mono text-zinc-300 select-all focus:outline-none focus:border-white truncate"
                   />
                 </div>
 
@@ -258,7 +258,7 @@ export default function TrackShareModal({
                   className={`px-3.5 py-2 rounded-xl border text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 flex-shrink-0 active:scale-95 ${
                     copied
                       ? 'bg-emerald-500/25 border-emerald-400 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.4)]'
-                      : 'bg-white/10 hover:bg-cyan-500/20 border-white/15 hover:border-cyan-400/50 text-white'
+                      : 'bg-white/10 hover:bg-white/20 border-white/15 hover:border-white/30 text-white'
                   }`}
                   title="Copier le lien"
                 >
@@ -269,7 +269,7 @@ export default function TrackShareModal({
                     </>
                   ) : (
                     <>
-                      <Copy className="w-3.5 h-3.5 text-cyan-400" />
+                      <Copy className="w-3.5 h-3.5 text-white" />
                       <span>Copier</span>
                     </>
                   )}
@@ -289,13 +289,13 @@ export default function TrackShareModal({
             </div>
 
             {/* Special Section: Social Story Generator (Instagram / Snap / TikTok) */}
-            <div className="p-4 rounded-2xl bg-gradient-to-r from-pink-950/40 via-purple-950/40 to-cyan-950/40 border border-pink-500/40 flex flex-col gap-2.5 text-left shadow-lg relative overflow-hidden">
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-zinc-900 via-zinc-850 to-zinc-900 border border-pink-500/40 flex flex-col gap-2.5 text-left shadow-lg relative overflow-hidden">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-xs font-futuristic font-bold text-pink-300 uppercase">
                   <Instagram className="w-4 h-4 text-pink-400" />
                   <span>Partager en Story Réseaux Sociaux</span>
                 </div>
-                <span className="text-[9px] font-mono text-cyan-300 font-bold bg-cyan-500/20 px-2 py-0.5 rounded-full border border-cyan-400/30">
+                <span className="text-[9px] font-mono text-zinc-200 font-bold bg-white/10 px-2 py-0.5 rounded-full border border-white/20">
                   Format 9:16
                 </span>
               </div>
@@ -306,7 +306,7 @@ export default function TrackShareModal({
 
               <button
                 onClick={() => setShowStoryGenerator(true)}
-                className="mt-1 w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-pink-500 to-cyan-400 text-white font-mono text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 shadow-md hover:scale-[1.01] active:scale-95"
+                className="mt-1 w-full py-2.5 px-4 rounded-xl bg-white hover:bg-zinc-200 text-black font-mono text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 shadow-md hover:scale-[1.01] active:scale-95"
               >
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Créer le Visuel Story Mini-Disc</span>

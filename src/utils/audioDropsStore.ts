@@ -3,7 +3,7 @@
  * Manages jingles, station drops, emergency announcements, and live soundboard pads.
  */
 
-import { pb } from '../lib/pocketbase';
+import { supabase } from '../lib/supabase';
 
 export type AudioDropCategory = 'jingle' | 'voice_drop' | 'announcement' | 'emergency' | 'intro';
 
@@ -238,61 +238,22 @@ export function saveAudioDrops(drops: AudioDrop[]): void {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(drops));
   } catch {}
 
-  // Sync to PocketBase Key-Value mirror
+  // Sync to Supabase synapse_admin_data
   try {
-    pb.collection('synapse_admin_data').getFirstListItem('key = "audio_drops_list"')
-      .then((existing) => {
-        pb.collection('synapse_admin_data').update(existing.id, { payload: drops }).catch(() => {});
-      })
-      .catch(() => {
-        pb.collection('synapse_admin_data').create({
-          key: 'audio_drops_list',
-          payload: drops,
-        }).catch(() => {});
-      });
+    supabase.from('synapse_admin_data').upsert({
+      key: 'audio_drops_list',
+      payload: drops,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'key' }).then(() => {});
   } catch {}
 }
 
 /**
- * Fetch drops from PocketBase collection `synapse_audio_drops` with fallback
+ * Fetch drops from Supabase with fallback
  */
 export async function loadAudioDropsFromPocketBase(): Promise<AudioDrop[]> {
   try {
-    // 1. Try dedicated collection if imported
-    const records = await pb.collection('synapse_audio_drops').getFullList({ sort: '-created' }).catch(() => []);
-    if (records && records.length > 0) {
-      const mapped: AudioDrop[] = records.map((r: any) => {
-        let fileUrl = r.audio_url || '';
-        if (r.audio_file) {
-          fileUrl = pb.files.getUrl(r, r.audio_file);
-        }
-        return {
-          id: r.id,
-          name: r.name,
-          category: r.category || 'jingle',
-          stationId: r.station_id || 'all',
-          audioUrl: fileUrl || generateRadioJingleAudio('station_sweep'),
-          duration: Number(r.duration) || 3,
-          createdAt: new Date(r.created || Date.now()).getTime(),
-          createdBy: r.created_by || 'Studio',
-          notes: r.notes || '',
-          priority: Boolean(r.priority),
-          padColor: r.category === 'emergency' ? '#ff0055' : (r.category === 'jingle' ? '#00f2ff' : '#bd00ff'),
-        };
-      });
-
-      // Merge with default procedurals if missing
-      const seen = new Set(mapped.map((d) => d.id));
-      for (const def of DEFAULT_AUDIO_DROPS) {
-        if (!seen.has(def.id)) mapped.push(def);
-      }
-
-      saveAudioDrops(mapped);
-      return mapped;
-    }
-
-    // 2. Try Key-Value store fallback
-    const kv = await pb.collection('synapse_admin_data').getFirstListItem('key = "audio_drops_list"').catch(() => null);
+    const { data: kv } = await supabase.from('synapse_admin_data').select('payload').eq('key', 'audio_drops_list').maybeSingle();
     if (kv?.payload && Array.isArray(kv.payload) && kv.payload.length > 0) {
       saveAudioDrops(kv.payload);
       return kv.payload;
@@ -317,21 +278,6 @@ export async function createAudioDrop(drop: Omit<AudioDrop, 'id' | 'createdAt'>)
   const updated = [newDrop, ...current];
   saveAudioDrops(updated);
 
-  // Also push to PocketBase collection if exists
-  try {
-    const payload = {
-      name: newDrop.name,
-      category: newDrop.category,
-      station_id: newDrop.stationId || 'all',
-      audio_url: newDrop.audioUrl.length < 500000 ? newDrop.audioUrl : '',
-      duration: newDrop.duration,
-      created_by: newDrop.createdBy || 'Direct',
-      notes: newDrop.notes || '',
-      priority: Boolean(newDrop.priority),
-    };
-    await pb.collection('synapse_audio_drops').create(payload).catch(() => {});
-  } catch {}
-
   return newDrop;
 }
 
@@ -342,8 +288,4 @@ export async function deleteAudioDrop(id: string): Promise<void> {
   const current = getAudioDrops();
   const filtered = current.filter((d) => d.id !== id);
   saveAudioDrops(filtered);
-
-  try {
-    await pb.collection('synapse_audio_drops').delete(id).catch(() => {});
-  } catch {}
 }

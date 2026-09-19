@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { SidebarItemConfig, AdminTab } from '../types/adminCustomization';
 import { resetSidebarOrder } from '../utils/adminCustomizationStore';
+import { TAB_COLOR_CONFIGS } from './AdminPanelDrawer';
 
 interface AdminSidebarEditorModalProps {
   isOpen: boolean;
@@ -65,10 +66,12 @@ export default function AdminSidebarEditorModal({
         className="w-full max-w-lg bg-zinc-950 border border-zinc-800/90 rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh]"
       >
         {/* HEADER */}
-        <div className="p-5 border-b border-zinc-850 flex items-center justify-between bg-zinc-900/60">
+        <div className="p-5 border-b border-zinc-850 flex items-center justify-between bg-zinc-900/60 relative">
+          <div className="absolute bottom-0 left-0 right-0 h-[1.5px] chromatic-line opacity-75 pointer-events-none" />
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+            <div className="p-2 rounded-xl bg-white/10 border border-white/20 text-white relative">
               <MoveVertical className="w-5 h-5" />
+              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full synapse-star-dot" />
             </div>
             <div className="flex flex-col text-left">
               <h3 className="text-base font-futuristic font-black text-white tracking-wide">
@@ -91,7 +94,7 @@ export default function AdminSidebarEditorModal({
         {/* ITEMS LIST */}
         <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
           <div className="p-2.5 rounded-xl bg-zinc-900/40 border border-white/5 text-[11px] font-mono text-zinc-400 flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0" />
+            <ShieldCheck className="w-4 h-4 text-zinc-300 shrink-0" />
             <span>Utilisez les flèches pour déplacer les éléments vers le haut ou le bas. L'icône œil permet de masquer une section.</span>
           </div>
 
@@ -116,11 +119,22 @@ export default function AdminSidebarEditorModal({
                   <div className="flex items-center justify-center w-6 text-xs font-mono font-bold text-zinc-500">
                     #{index + 1}
                   </div>
-                  <div className={`p-2 rounded-lg border ${
-                    item.visible ? 'bg-zinc-800 border-zinc-700 text-cyan-300' : 'bg-zinc-900 border-zinc-850 text-zinc-600'
-                  }`}>
-                    <Icon className="w-4 h-4" />
-                  </div>
+                  {(() => {
+                    const colorScheme = TAB_COLOR_CONFIGS[item.id as AdminTab] || {
+                      text: 'text-zinc-200',
+                      bg: 'bg-zinc-800',
+                      border: 'border-zinc-700',
+                    };
+                    return (
+                      <div className={`p-2 rounded-lg border transition-colors ${
+                        item.visible
+                          ? `${colorScheme.bg} ${colorScheme.border} ${colorScheme.text}`
+                          : 'bg-zinc-900 border-zinc-850 text-zinc-600'
+                      }`}>
+                        <Icon className="w-4 h-4" />
+                      </div>
+                    );
+                  })()}
                   <div className="flex flex-col text-left min-w-0">
                     <span className="text-xs font-mono font-bold truncate">
                       {meta.label}
@@ -195,7 +209,7 @@ export default function AdminSidebarEditorModal({
             </button>
             <button
               onClick={handleSave}
-              className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-mono font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-lg shadow-cyan-500/10"
+              className="px-4 py-2 rounded-xl bg-white hover:bg-zinc-200 text-black font-mono font-bold text-xs flex items-center gap-2 transition-all cursor-pointer shadow-lg"
             >
               <Check className="w-4 h-4" />
               <span>Enregistrer l'ordre</span>

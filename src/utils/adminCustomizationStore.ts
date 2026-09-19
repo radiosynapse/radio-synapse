@@ -1,11 +1,11 @@
 import { SidebarItemConfig, DashboardWidgetConfig } from '../types/adminCustomization';
-import { pb } from '../lib/pocketbase';
+import { supabase } from '../lib/supabase';
 
 const SIDEBAR_STORAGE_KEY = 'synapse_admin_sidebar_config_v3';
-const DASHBOARD_STORAGE_KEY = 'synapse_admin_dashboard_widgets_v3';
+const DASHBOARD_STORAGE_KEY = 'synapse_admin_dashboard_widgets_v4';
 
 const PB_KEY_SIDEBAR = 'admin_sidebar_layout_v3';
-const PB_KEY_DASHBOARD = 'admin_dashboard_widgets_v3';
+const PB_KEY_DASHBOARD = 'admin_dashboard_widgets_v4';
 
 export const DEFAULT_SIDEBAR_ITEMS: SidebarItemConfig[] = [
   { id: 'dashboard', visible: true, order: 0 },
@@ -17,116 +17,169 @@ export const DEFAULT_SIDEBAR_ITEMS: SidebarItemConfig[] = [
   { id: 'promotions', visible: true, order: 6 },
   { id: 'users', visible: true, order: 7 },
   { id: 'services', visible: true, order: 8 },
+  { id: 'features', visible: true, order: 9 },
 ];
 
 export const DEFAULT_DASHBOARD_WIDGETS: DashboardWidgetConfig[] = [
   {
     id: 'kpi_overview',
-    title: 'Indicateurs Clés & KPIs',
-    description: 'Statistiques en direct des stations, auditeurs, messages et quêtes XP',
+    title: 'Monitoring',
+    description: 'Statistiques direct des flux, auditeurs, messages et défis',
     size: 'full',
+    height: 'normal',
     density: 'normal',
     visible: true,
     order: 0,
   },
   {
     id: 'stations_monitor',
-    title: 'Moniteur des Stations Radio & Écoute Rapide',
-    description: 'État des flux, voyants d\'activité, écoute rapide au clic / appui maintenu et régie',
-    size: 'half',
+    title: 'Moniteur Stations',
+    description: 'État des flux et écoute rapide en direct',
+    size: 'wide',
+    height: 'normal',
     density: 'normal',
     visible: true,
     order: 1,
   },
   {
-    id: 'station_focus',
-    title: 'Cockpit Station Dédiée (Animateur / DJ)',
-    description: 'Accès rapide, jingles prioritaires, statut On-Air et raccourcis pour une radio choisie',
-    size: 'half',
+    id: 'services_status',
+    title: 'État Services',
+    description: 'Connectivité, latence et synchronisation BDD',
+    size: 'third',
+    height: 'normal',
     density: 'normal',
     visible: true,
     order: 2,
   },
   {
-    id: 'quick_actions',
-    title: 'Raccourcis & Actions Rapides',
-    description: 'Accès direct pour créer une station, lancer un direct, poster un défi ou un événement',
-    size: 'full',
-    density: 'compact',
+    id: 'station_focus',
+    title: 'Cockpit Animateur',
+    description: 'Régie, jingles et raccourcis pour la radio sélectionnée',
+    size: 'half',
+    height: 'tall',
+    density: 'normal',
     visible: true,
     order: 3,
   },
   {
-    id: 'next_up_schedule',
-    title: 'Grille On-Air & Prochaines Émissions',
-    description: 'Émission actuellement à l\'antenne et programme suivant par station',
-    size: 'third',
+    id: 'station_playlist_history',
+    title: 'Titres À Venir & Passés',
+    description: 'Queue d\'attente et historique de diffusion pour une radio choisie',
+    size: 'half',
+    height: 'tall',
     density: 'normal',
     visible: true,
     order: 4,
   },
   {
-    id: 'broadcast_quick_status',
-    title: 'Direct Antenne & Liaison DJ',
-    description: 'État de connexion du compte streamer AzuraCast et signal micro',
+    id: 'recent_messages',
+    title: 'Messages & Dédicaces',
+    description: 'Derniers messages reçus des auditeurs',
     size: 'third',
+    height: 'tall',
     density: 'normal',
     visible: true,
     order: 5,
   },
   {
-    id: 'services_status',
-    title: 'État des Services (AzuraCast & PocketBase)',
-    description: 'Connectivité, latence, statut des bases et synchronisation',
+    id: 'station_song_requests',
+    title: 'Dédicaces & Demandes Station',
+    description: 'Propositions de titres et dédicaces ciblées par radio',
     size: 'third',
+    height: 'tall',
     density: 'normal',
     visible: true,
     order: 6,
   },
   {
-    id: 'recent_messages',
-    title: 'Dédicaces & Messagerie Directe',
-    description: 'Aperçu des derniers messages reçus au studio',
-    size: 'half',
+    id: 'next_up_schedule',
+    title: 'Grille On-Air',
+    description: 'Émission en cours et programme suivant par station',
+    size: 'third',
+    height: 'tall',
     density: 'normal',
     visible: true,
     order: 7,
   },
   {
-    id: 'active_challenges',
-    title: 'Défis & Quêtes Auditeurs',
-    description: 'Défis communautaires en cours et récompenses XP',
+    id: 'station_live_controls',
+    title: 'Régie & Jingles Station',
+    description: 'Jingles prioritaires, contrôle direct et régie pour la station',
     size: 'half',
+    height: 'normal',
     density: 'normal',
     visible: true,
     order: 8,
   },
   {
-    id: 'community_users',
-    title: 'Activité Communauté & Membres',
-    description: 'Derniers auditeurs inscrits et profils administrateurs',
+    id: 'station_stats_listeners',
+    title: 'Audience & Métriques Station',
+    description: 'Auditeurs live, pics d\'écoute et débit spécifique à la station',
     size: 'third',
+    height: 'normal',
     density: 'normal',
     visible: true,
     order: 9,
   },
   {
-    id: 'upcoming_events',
-    title: 'Événements & Concerts en Direct',
-    description: 'Prochaines dates programmées et billetterie',
+    id: 'broadcast_quick_status',
+    title: 'Direct Antenne',
+    description: 'Connexion streamer AzuraCast et signal micro',
     size: 'third',
+    height: 'normal',
     density: 'normal',
     visible: true,
     order: 10,
   },
   {
-    id: 'promotions_partners',
-    title: 'Offres & Codes Promo',
-    description: 'Codes de réduction partenaires actifs',
+    id: 'quick_actions',
+    title: 'Raccourcis Rapides',
+    description: 'Création rapide de station, direct, défi ou événement',
+    size: 'full',
+    height: 'normal',
+    density: 'compact',
+    visible: true,
+    order: 11,
+  },
+  {
+    id: 'active_challenges',
+    title: 'Défis Auditeurs',
+    description: 'Défis en cours, propositions de musique et quêtes',
+    size: 'half',
+    height: 'tall',
+    density: 'normal',
+    visible: true,
+    order: 12,
+  },
+  {
+    id: 'community_users',
+    title: 'Membres & Communauté',
+    description: 'Derniers inscrits et profils administrateurs',
     size: 'third',
+    height: 'normal',
+    density: 'normal',
+    visible: true,
+    order: 13,
+  },
+  {
+    id: 'upcoming_events',
+    title: 'Événements',
+    description: 'Prochains concerts et rendez-vous d\'antenne',
+    size: 'third',
+    height: 'normal',
+    density: 'normal',
+    visible: true,
+    order: 14,
+  },
+  {
+    id: 'promotions_partners',
+    title: 'Codes Promo',
+    description: 'Offres et codes promo à débloquer avec les points',
+    size: 'third',
+    height: 'normal',
     density: 'compact',
     visible: false,
-    order: 11,
+    order: 15,
   },
 ];
 
@@ -162,15 +215,8 @@ export function saveSidebarOrder(items: SidebarItemConfig[]): void {
     const normalized = items.map((item, idx) => ({ ...item, order: idx }));
     localStorage.setItem(SIDEBAR_STORAGE_KEY, JSON.stringify(normalized));
 
-    // Persist to PocketBase synapse_admin_data in background
-    persistCustomizationToPocketBase(PB_KEY_SIDEBAR, normalized);
-
-    // If user is authenticated, also persist to their record
-    if (pb.authStore.isValid && pb.authStore.record?.id) {
-      pb.collection('users').update(pb.authStore.record.id, {
-        sidebar_layout: normalized,
-      }).catch(() => {});
-    }
+    // Persist to Supabase admin_customizations in background
+    persistCustomizationToSupabase(PB_KEY_SIDEBAR, normalized);
   } catch (err) {
     console.error('Error saving sidebar order:', err);
   }
@@ -179,7 +225,7 @@ export function saveSidebarOrder(items: SidebarItemConfig[]): void {
 export function resetSidebarOrder(): SidebarItemConfig[] {
   try {
     localStorage.removeItem(SIDEBAR_STORAGE_KEY);
-    persistCustomizationToPocketBase(PB_KEY_SIDEBAR, DEFAULT_SIDEBAR_ITEMS);
+    persistCustomizationToSupabase(PB_KEY_SIDEBAR, DEFAULT_SIDEBAR_ITEMS);
   } catch {}
   return DEFAULT_SIDEBAR_ITEMS;
 }
@@ -193,12 +239,19 @@ export function getSavedDashboardWidgets(): DashboardWidgetConfig[] {
     // Filter out removed widgets like quick_audio_monitor
     const validParsed = parsed.filter(w => (w.id as string) !== 'quick_audio_monitor');
 
-    // Ensure all default widgets exist in the array
+    // Ensure all default widgets exist in the array and have valid height
+    const defaultMap = new Map(DEFAULT_DASHBOARD_WIDGETS.map(d => [d.id, d]));
     const existingIds = new Set(validParsed.map(w => w.id));
-    const merged = [...validParsed];
+    const merged: DashboardWidgetConfig[] = validParsed.map(w => {
+      const def = defaultMap.get(w.id);
+      return {
+        ...w,
+        height: w.height || def?.height || 'normal',
+      };
+    });
     DEFAULT_DASHBOARD_WIDGETS.forEach((def) => {
       if (!existingIds.has(def.id)) {
-        merged.push({ ...def, order: merged.length });
+        merged.push({ ...def, height: def.height || 'normal', order: merged.length });
       }
     });
 
@@ -213,15 +266,8 @@ export function saveDashboardWidgets(widgets: DashboardWidgetConfig[]): void {
     const normalized = widgets.map((w, idx) => ({ ...w, order: idx }));
     localStorage.setItem(DASHBOARD_STORAGE_KEY, JSON.stringify(normalized));
 
-    // Persist to PocketBase synapse_admin_data in background
-    persistCustomizationToPocketBase(PB_KEY_DASHBOARD, normalized);
-
-    // If user is authenticated, also persist to their record
-    if (pb.authStore.isValid && pb.authStore.record?.id) {
-      pb.collection('users').update(pb.authStore.record.id, {
-        dashboard_layout: normalized,
-      }).catch(() => {});
-    }
+    // Persist to Supabase in background
+    persistCustomizationToSupabase(PB_KEY_DASHBOARD, normalized);
   } catch (err) {
     console.error('Error saving dashboard widgets:', err);
   }
@@ -230,32 +276,28 @@ export function saveDashboardWidgets(widgets: DashboardWidgetConfig[]): void {
 export function resetDashboardWidgets(): DashboardWidgetConfig[] {
   try {
     localStorage.removeItem(DASHBOARD_STORAGE_KEY);
-    persistCustomizationToPocketBase(PB_KEY_DASHBOARD, DEFAULT_DASHBOARD_WIDGETS);
+    persistCustomizationToSupabase(PB_KEY_DASHBOARD, DEFAULT_DASHBOARD_WIDGETS);
   } catch {}
   return DEFAULT_DASHBOARD_WIDGETS;
 }
 
 /**
- * Helper to persist custom layouts to PocketBase synapse_admin_data
+ * Helper to persist custom layouts to Supabase admin_customizations
  */
-async function persistCustomizationToPocketBase(key: string, payload: any): Promise<void> {
+async function persistCustomizationToSupabase(key: string, payload: any): Promise<void> {
   try {
-    const existing = await pb.collection('synapse_admin_data').getFirstListItem(`key = "${key}"`).catch(() => null);
-    if (existing) {
-      await pb.collection('synapse_admin_data').update(existing.id, { payload });
-    } else {
-      await pb.collection('synapse_admin_data').create({
-        key,
-        payload,
-      });
-    }
+    await supabase.from('admin_customizations').upsert({
+      key,
+      value: payload,
+      updated_at: new Date().toISOString(),
+    });
   } catch (err) {
     // Non-blocking catch
   }
 }
 
 /**
- * Fetch and synchronize customization layouts from PocketBase on app/drawer start
+ * Fetch and synchronize customization layouts from Supabase on app/drawer start
  */
 export async function syncCustomizationsWithPocketBase(): Promise<{
   sidebar?: SidebarItemConfig[];
@@ -264,45 +306,22 @@ export async function syncCustomizationsWithPocketBase(): Promise<{
   const result: { sidebar?: SidebarItemConfig[]; dashboard?: DashboardWidgetConfig[] } = {};
 
   try {
-    // 1. Check user record first if authenticated
-    if (pb.authStore.isValid && pb.authStore.record?.id) {
-      try {
-        const userRec: any = await pb.collection('users').getOne(pb.authStore.record.id);
-        if (Array.isArray(userRec?.sidebar_layout) && userRec.sidebar_layout.length > 0) {
-          localStorage.setItem(SIDEBAR_STORAGE_KEY, JSON.stringify(userRec.sidebar_layout));
-          result.sidebar = userRec.sidebar_layout;
-        }
-        if (Array.isArray(userRec?.dashboard_layout) && userRec.dashboard_layout.length > 0) {
-          const filtered = userRec.dashboard_layout.filter((w: any) => w.id !== 'quick_audio_monitor');
-          localStorage.setItem(DASHBOARD_STORAGE_KEY, JSON.stringify(filtered));
-          result.dashboard = filtered;
-        }
-      } catch {}
-    }
-
-    // 2. If not found in user record, check global synapse_admin_data
-    if (!result.sidebar) {
-      try {
-        const sidebarRec: any = await pb.collection('synapse_admin_data').getFirstListItem(`key = "${PB_KEY_SIDEBAR}"`);
-        if (Array.isArray(sidebarRec?.payload) && sidebarRec.payload.length > 0) {
-          localStorage.setItem(SIDEBAR_STORAGE_KEY, JSON.stringify(sidebarRec.payload));
-          result.sidebar = sidebarRec.payload;
-        }
-      } catch {}
-    }
-
-    if (!result.dashboard) {
-      try {
-        const dashRec: any = await pb.collection('synapse_admin_data').getFirstListItem(`key = "${PB_KEY_DASHBOARD}"`);
-        if (Array.isArray(dashRec?.payload) && dashRec.payload.length > 0) {
-          const filtered = dashRec.payload.filter((w: any) => w.id !== 'quick_audio_monitor');
-          localStorage.setItem(DASHBOARD_STORAGE_KEY, JSON.stringify(filtered));
-          result.dashboard = filtered;
-        }
-      } catch {}
+    const { data } = await supabase.from('admin_customizations').select('*');
+    if (data && Array.isArray(data)) {
+      const sidebarRow = data.find((r: any) => r.key === PB_KEY_SIDEBAR);
+      if (sidebarRow?.value && Array.isArray(sidebarRow.value)) {
+        localStorage.setItem(SIDEBAR_STORAGE_KEY, JSON.stringify(sidebarRow.value));
+        result.sidebar = sidebarRow.value;
+      }
+      const dashRow = data.find((r: any) => r.key === PB_KEY_DASHBOARD);
+      if (dashRow?.value && Array.isArray(dashRow.value)) {
+        const filtered = dashRow.value.filter((w: any) => w.id !== 'quick_audio_monitor');
+        localStorage.setItem(DASHBOARD_STORAGE_KEY, JSON.stringify(filtered));
+        result.dashboard = filtered;
+      }
     }
   } catch (err) {
-    console.warn('PocketBase customization sync error:', err);
+    console.warn('Supabase customization sync error:', err);
   }
 
   return result;

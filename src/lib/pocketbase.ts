@@ -113,12 +113,15 @@ CREATE TABLE IF NOT EXISTS synapse_challenges (
     station_id TEXT DEFAULT 'all',
     title TEXT NOT NULL,
     description TEXT DEFAULT '',
-    type TEXT DEFAULT 'stats', -- 'stats', 'blind_test', 'suggest_track', 'custom'
+    type TEXT DEFAULT 'stats', -- 'stats', 'blind_test', 'suggest_music', 'share_liked_tracks', 'listening_time', 'custom'
     points INTEGER DEFAULT 100,
     reward TEXT DEFAULT '',
     total INTEGER DEFAULT 1,
     progress INTEGER DEFAULT 0,
     completed INTEGER DEFAULT 0,
+    criteria JSON DEFAULT '{}',
+    required_shares INTEGER,
+    required_minutes INTEGER,
     created TEXT DEFAULT (strftime('%Y-%m-%d %H:%M:%fZ', 'now')),
     updated TEXT DEFAULT (strftime('%Y-%m-%d %H:%M:%fZ', 'now'))
 );
@@ -136,7 +139,10 @@ CREATE TABLE IF NOT EXISTS synapse_promotions (
     old_price TEXT,
     code_promo TEXT,
     link_url TEXT,
-    status TEXT DEFAULT 'active', -- 'active', 'draft'
+    status TEXT DEFAULT 'active', -- 'active', 'draft', 'archived'
+    points_cost INTEGER DEFAULT 0,
+    initial_stock INTEGER,
+    remaining_stock INTEGER,
     created TEXT DEFAULT (strftime('%Y-%m-%d %H:%M:%fZ', 'now')),
     updated TEXT DEFAULT (strftime('%Y-%m-%d %H:%M:%fZ', 'now'))
 );
@@ -225,10 +231,54 @@ CREATE TABLE IF NOT EXISTS profiles (
     spotify_id TEXT,
     spotify_account JSON,
     is_spotify_linked INTEGER DEFAULT 0,
+    points INTEGER DEFAULT 0,
+    purchased_promo_codes JSON DEFAULT '[]',
+    notifications JSON DEFAULT '[]',
     created TEXT DEFAULT (strftime('%Y-%m-%d %H:%M:%fZ', 'now')),
     updated TEXT DEFAULT (strftime('%Y-%m-%d %H:%M:%fZ', 'now'))
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_pb_profiles_user_id ON profiles (user_id);
 CREATE INDEX IF NOT EXISTS idx_pb_profiles_email ON profiles (email);
 CREATE INDEX IF NOT EXISTS idx_pb_profiles_spotify_id ON profiles (spotify_id);
+
+-- 11. Table synapse_track_submissions (Propositions Musicales Auditeurs)
+CREATE TABLE IF NOT EXISTS synapse_track_submissions (
+    id TEXT PRIMARY KEY NOT NULL,
+    submission_id TEXT,
+    challenge_id TEXT,
+    station_id TEXT,
+    user_id TEXT NOT NULL,
+    user_name TEXT,
+    user_email TEXT,
+    track_title TEXT NOT NULL,
+    artist TEXT NOT NULL,
+    genre TEXT,
+    preview_url TEXT,
+    notes TEXT,
+    status TEXT DEFAULT 'pending', -- 'pending', 'selected', 'rejected'
+    points_awarded INTEGER DEFAULT 0,
+    reviewed_at INTEGER,
+    reviewed_by TEXT,
+    rejection_reason TEXT,
+    created TEXT DEFAULT (strftime('%Y-%m-%d %H:%M:%fZ', 'now')),
+    updated TEXT DEFAULT (strftime('%Y-%m-%d %H:%M:%fZ', 'now'))
+);
+CREATE INDEX IF NOT EXISTS idx_pb_synapse_submissions_status ON synapse_track_submissions (status, created);
+CREATE INDEX IF NOT EXISTS idx_pb_synapse_submissions_user ON synapse_track_submissions (user_id);
+
+-- 12. Table synapse_constant_challenges (Podiums & Défis Permanents Hebdo)
+CREATE TABLE IF NOT EXISTS synapse_constant_challenges (
+    id TEXT PRIMARY KEY NOT NULL,
+    config_id TEXT,
+    title TEXT NOT NULL,
+    type TEXT NOT NULL,
+    description TEXT,
+    station_id TEXT,
+    podium JSON DEFAULT '{}',
+    current_leaderboard JSON DEFAULT '[]',
+    enabled INTEGER DEFAULT 1,
+    created TEXT DEFAULT (strftime('%Y-%m-%d %H:%M:%fZ', 'now')),
+    updated TEXT DEFAULT (strftime('%Y-%m-%d %H:%M:%fZ', 'now'))
+);
+CREATE INDEX IF NOT EXISTS idx_pb_synapse_cch_enabled ON synapse_constant_challenges (enabled, type);
 `;

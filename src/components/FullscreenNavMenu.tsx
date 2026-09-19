@@ -59,8 +59,8 @@ export default function FullscreenNavMenu({
       id: 'programming' as const,
       label: 'Programmation',
       icon: Calendar,
-      color: 'text-cyan-400',
-      hoverGlow: 'hover:text-cyan-300 group-hover:border-cyan-500/40',
+      color: 'text-purple-400',
+      hoverGlow: 'hover:text-purple-300 group-hover:border-purple-500/40',
     },
     {
       id: 'challenges' as const,
@@ -80,15 +80,15 @@ export default function FullscreenNavMenu({
       id: 'events' as const,
       label: 'Évènements',
       icon: CalendarDays,
-      color: 'text-purple-400',
-      hoverGlow: 'hover:text-purple-300 group-hover:border-purple-500/40',
+      color: 'text-rose-400',
+      hoverGlow: 'hover:text-rose-300 group-hover:border-rose-500/40',
     },
     {
       id: 'contact' as const,
       label: 'Contact',
       icon: Mail,
-      color: 'text-blue-400',
-      hoverGlow: 'hover:text-blue-300 group-hover:border-blue-500/40',
+      color: 'text-sky-400',
+      hoverGlow: 'hover:text-sky-300 group-hover:border-sky-500/40',
     },
     ...(isAdmin ? [{
       id: 'admin' as const,
@@ -118,6 +118,7 @@ export default function FullscreenNavMenu({
     >
       {/* Top Bar of Overlay */}
       <div className="w-full max-w-md sm:max-w-lg mx-auto flex items-center justify-between relative z-10 pb-2.5 border-b border-white/10 flex-shrink-0">
+        <div className="absolute -bottom-[1px] left-0 right-0 h-[1.5px] chromatic-line opacity-75 pointer-events-none" />
         <div className="flex items-center gap-3">
           <BrandLogo size="sm" withStar={true} />
         </div>

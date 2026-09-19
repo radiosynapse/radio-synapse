@@ -1,3 +1,6 @@
+import { supabase } from '../lib/supabase';
+import { getStoredSynapseUser } from './supabaseAuthService';
+
 export interface FavoriteStationSetting {
   stationId: string;
   notificationsEnabled: boolean;
@@ -20,6 +23,19 @@ export function getFavoriteStations(): FavoriteStationSetting[] {
 export function saveFavoriteStations(items: FavoriteStationSetting[]): void {
   try {
     localStorage.setItem(FAVORITE_STATIONS_KEY, JSON.stringify(items));
+    
+    // Asynchronous background sync to Supabase
+    const user = getStoredSynapseUser();
+    if (user && user.id) {
+      const stationIds = items.map((i) => i.stationId);
+
+      // Upsert into user_synapse_data
+      supabase.from('user_synapse_data').upsert({
+        user_id: user.id,
+        favorite_stations: stationIds,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' }).then(() => {});
+    }
   } catch (e) {
     console.error('Failed to save favorite stations', e);
   }

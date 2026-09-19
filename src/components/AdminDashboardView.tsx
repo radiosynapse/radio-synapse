@@ -1,11 +1,12 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { 
-  Sparkles, RefreshCw, MoreVertical, Plus, RotateCcw, 
-  ChevronUp, ChevronDown, Check, EyeOff, Radio, Users, 
+  Sparkles, RefreshCw, Plus, RotateCcw, 
+  Check, Radio, Users, 
   Mail, Trophy, Server, Square, 
   Volume2, CalendarDays, Tag, 
   Settings2, LayoutGrid, Mic, Headphones, Activity,
-  Clock, Zap, Flame
+  Clock, Zap, Flame, ListMusic, History, Play, Music,
+  GripVertical, X
 } from 'lucide-react';
 import { StreamChannel } from '../data';
 import { SynapseUser } from '../types';
@@ -17,10 +18,10 @@ import {
   AdminScheduleShow,
   getAdminSchedules
 } from '../utils/adminStore';
+import { getTrackSubmissions } from '../utils/challengesStore';
 import { 
   DashboardWidgetConfig, 
   DashboardWidgetId, 
-  WidgetSize, 
   WidgetDensity 
 } from '../types/adminCustomization';
 import { 
@@ -28,7 +29,9 @@ import {
   saveDashboardWidgets, 
   resetDashboardWidgets 
 } from '../utils/adminCustomizationStore';
-import { POCKETBASE_CONFIG } from '../lib/pocketbase';
+import { getWidgetPresetConfig, computeDynamicFilledGridSpans } from '../utils/dashboardLayoutPresets';
+import { useSiteFeatureFlags } from '../utils/siteFeatureFlagsStore';
+import { SUPABASE_CONFIG } from '../lib/supabase';
 
 interface AdminDashboardViewProps {
   stations: StreamChannel[];
@@ -74,8 +77,9 @@ export default function AdminDashboardView({
 }: AdminDashboardViewProps) {
   const [widgets, setWidgets] = useState<DashboardWidgetConfig[]>(() => getSavedDashboardWidgets());
   const [isEditMode, setIsEditMode] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isAddWidgetModalOpen, setIsAddWidgetModalOpen] = useState(false);
+  const [isAddWidgetOpen, setIsAddWidgetOpen] = useState(false);
+  const [draggedWidgetId, setDraggedWidgetId] = useState<DashboardWidgetId | null>(null);
+  const [dragOverWidgetId, setDragOverWidgetId] = useState<DashboardWidgetId | null>(null);
 
   // Schedules state for Next-Up & Station Focus
   const [schedules, setSchedules] = useState<AdminScheduleShow[]>(() => getAdminSchedules());
@@ -196,87 +200,155 @@ export default function AdminDashboardView({
     saveDashboardWidgets(newWidgets);
   };
 
-  const moveWidget = (index: number, direction: 'up' | 'down') => {
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= widgets.length) return;
+  const handleReorderWidgets = (sourceId: DashboardWidgetId, targetId: DashboardWidgetId) => {
+    const currentVisible = widgets.filter(w => w.visible);
+    const sourceIndex = currentVisible.findIndex(w => w.id === sourceId);
+    const targetIndex = currentVisible.findIndex(w => w.id === targetId);
 
-    const updated = [...widgets];
-    const [moved] = updated.splice(index, 1);
-    updated.splice(targetIndex, 0, moved);
-    updateWidgetsState(updated);
+    if (sourceIndex === -1 || targetIndex === -1) return;
+
+    const reorderedVisible = [...currentVisible];
+    const [movedItem] = reorderedVisible.splice(sourceIndex, 1);
+    reorderedVisible.splice(targetIndex, 0, movedItem);
+
+    const hiddenList = widgets.filter(w => !w.visible);
+    const combined = [...reorderedVisible, ...hiddenList].map((w, idx) => ({ ...w, order: idx }));
+    updateWidgetsState(combined);
+    showToast(`Widget déplacé avec succès.`);
   };
 
-  const changeWidgetSize = (id: DashboardWidgetId, newSize: WidgetSize) => {
-    const updated = widgets.map(w => w.id === id ? { ...w, size: newSize } : w);
+  const changeWidgetPreset = (id: DashboardWidgetId, newDensity: WidgetDensity) => {
+    const preset = getWidgetPresetConfig(id, newDensity);
+    const updated = widgets.map(w => w.id === id ? { 
+      ...w, 
+      density: newDensity,
+      size: preset.size,
+      height: preset.height,
+    } : w);
     updateWidgetsState(updated);
+    const label = newDensity === 'compact' ? 'Compact' : newDensity === 'expanded' ? 'Détaillé' : 'Standard';
+    showToast(`Format ${label} appliqué (${preset.label}).`);
   };
 
-  const changeWidgetDensity = (id: DashboardWidgetId, newDensity: WidgetDensity) => {
-    const updated = widgets.map(w => w.id === id ? { ...w, density: newDensity } : w);
+  const removeWidget = (id: DashboardWidgetId) => {
+    const target = widgets.find(w => w.id === id);
+    const updated = widgets.map(w => w.id === id ? { ...w, visible: false } : w);
     updateWidgetsState(updated);
+    showToast(`Widget "${target?.title || id}" retiré. La grille s'est automatiquement réajustée.`);
   };
 
-  const toggleWidgetVisibility = (id: DashboardWidgetId) => {
-    const updated = widgets.map(w => w.id === id ? { ...w, visible: !w.visible } : w);
+  const addWidgetToDashboard = (id: DashboardWidgetId) => {
+    const target = widgets.find(w => w.id === id);
+    const updated = widgets.map(w => w.id === id ? { ...w, visible: true } : w);
     updateWidgetsState(updated);
-    showToast('Disposition du tableau de bord mise à jour.');
+    showToast(`Widget "${target?.title || id}" ajouté au tableau de bord.`);
+  };
+
+  const handleUpdateWidgetStation = (id: DashboardWidgetId, stationId: string) => {
+    const updated = widgets.map(w => w.id === id ? { ...w, stationId } : w);
+    updateWidgetsState(updated);
+    showToast('Station assignée au widget mise à jour.');
   };
 
   const handleResetLayout = () => {
     const defaults = resetDashboardWidgets();
     setWidgets(defaults);
-    setIsMenuOpen(false);
     showToast('Disposition du tableau de bord réinitialisée par défaut.');
   };
 
-  // Helper for Tailwind grid col span based on widget size
-  const getSizeClass = (size: WidgetSize) => {
-    switch (size) {
-      case 'full':
-        return 'col-span-12';
-      case 'half':
-        return 'col-span-12 lg:col-span-6';
-      case 'third':
-        return 'col-span-12 md:col-span-6 lg:col-span-4';
+  const { isFeatureEnabled } = useSiteFeatureFlags();
+
+  // Filter widgets by both user visibility preference and global site feature flags
+  const visibleWidgets = widgets.filter(w => {
+    if (!w.visible) return false;
+    if (w.id === 'active_challenges' && !isFeatureEnabled('challenges')) return false;
+    if (w.id === 'promotions_partners' && !isFeatureEnabled('promotions')) return false;
+    if (w.id === 'upcoming_events' && !isFeatureEnabled('events')) return false;
+    if (w.id === 'recent_messages' && !isFeatureEnabled('messages')) return false;
+    if (w.id === 'next_up_schedule' && !isFeatureEnabled('programming')) return false;
+    if (w.id === 'station_song_requests' && !isFeatureEnabled('song_requests')) return false;
+    return true;
+  });
+
+  const hiddenWidgets = widgets.filter(w => !visibleWidgets.some(v => v.id === w.id));
+
+  // Compute 100% gap-free dynamic packed layout across 12-col grid
+  const dynamicPackedLayoutMap = useMemo(
+    () => computeDynamicFilledGridSpans(visibleWidgets),
+    [visibleWidgets]
+  );
+
+  // Helper to get widget metadata (icon and format badge)
+  const getWidgetMeta = (id: DashboardWidgetId): { icon: any; formatHint: string; isColumn: boolean } => {
+    switch (id) {
+      case 'kpi_overview':
+        return { icon: Activity, formatHint: 'Format Large (1/1)', isColumn: false };
+      case 'stations_monitor':
+        return { icon: Radio, formatHint: 'Format Large (2/3)', isColumn: false };
+      case 'station_focus':
+        return { icon: Mic, formatHint: 'Format Colonne Haut', isColumn: true };
+      case 'station_playlist_history':
+        return { icon: History, formatHint: 'Format Moyen (1/2)', isColumn: false };
+      case 'recent_messages':
+        return { icon: Mail, formatHint: 'Format Colonne Haut', isColumn: true };
+      case 'station_song_requests':
+        return { icon: Headphones, formatHint: 'Format Colonne Haut', isColumn: true };
+      case 'next_up_schedule':
+        return { icon: Clock, formatHint: 'Format Colonne Haut', isColumn: true };
+      case 'station_live_controls':
+        return { icon: Zap, formatHint: 'Format Moyen (1/2)', isColumn: false };
+      case 'station_stats_listeners':
+        return { icon: Flame, formatHint: 'Format Colonne (1/3)', isColumn: true };
+      case 'broadcast_quick_status':
+        return { icon: Radio, formatHint: 'Format Colonne (1/3)', isColumn: true };
+      case 'services_status':
+        return { icon: Server, formatHint: 'Format Colonne (1/3)', isColumn: true };
+      case 'quick_actions':
+        return { icon: Sparkles, formatHint: 'Format Large (1/1)', isColumn: false };
+      case 'active_challenges':
+        return { icon: Trophy, formatHint: 'Format Colonne Haut', isColumn: true };
+      case 'community_users':
+        return { icon: Users, formatHint: 'Format Colonne (1/3)', isColumn: true };
+      case 'upcoming_events':
+        return { icon: CalendarDays, formatHint: 'Format Colonne (1/3)', isColumn: true };
+      case 'promotions_partners':
+        return { icon: Tag, formatHint: 'Format Colonne (1/3)', isColumn: true };
       default:
-        return 'col-span-12';
+        return { icon: LayoutGrid, formatHint: 'Format Standard', isColumn: false };
     }
   };
 
-  const visibleWidgets = widgets.filter(w => w.visible);
-  const hiddenWidgets = widgets.filter(w => !w.visible);
-
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in duration-300">
+    <div className="flex flex-col w-full min-w-0">
       
-      {/* HEADER BANNER WITH ACTIONS & 3-DOTS MENU */}
-      <div className="p-5 sm:p-6 rounded-2xl bg-zinc-900/70 border border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm relative backdrop-blur-sm">
-        <div className="flex flex-col gap-1 text-left">
-          <div className="flex items-center gap-2.5">
-            <Sparkles className="w-5 h-5 text-cyan-400" />
-            <h2 className="text-lg sm:text-xl font-futuristic font-black tracking-wide text-white">
-              Tableau de Bord Synapse
-            </h2>
-            {isEditMode && (
-              <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-[10px] font-mono font-bold uppercase tracking-wider animate-pulse">
-                Mode Édition Actif
-              </span>
-            )}
-            {activeListeningStationId && (
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-[10px] font-mono font-bold flex items-center gap-1.5 animate-pulse">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                ÉCOUTE RAPIDE EN COURS
-              </span>
-            )}
-          </div>
-          <p className="text-xs font-mono text-zinc-400 max-w-2xl">
-            Surveillance en temps réel des fréquences, raccourcis animateur, prises d'antenne et personnalisation avancée des blocs.
-          </p>
+      {/* STICKY TOP BAR - COLLÉE À LA TOP BAR PRINCIPALE, 100% OPAQUE, SANS ESPACE */}
+      <div className="sticky top-0 z-20 w-full bg-zinc-950 border-b border-zinc-800 px-4 sm:px-6 lg:px-8 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0 shadow-lg">
+        {/* Chromatic fine accent line along the top banner */}
+        <div className="absolute top-0 left-0 right-0 h-[1.5px] chromatic-line opacity-80 pointer-events-none" />
+
+        <div className="flex items-center gap-2.5 text-left flex-wrap">
+          <span className="w-2.5 h-2.5 rounded-full synapse-star-dot shrink-0" />
+          <Sparkles className="w-5 h-5 text-white" />
+          <h2 className="text-base sm:text-lg font-futuristic font-black tracking-wide text-white">
+            Tableau de Bord Synapse
+          </h2>
+          {isEditMode && (
+            <span className="px-2.5 py-0.5 rounded-full bg-white/10 border border-white/20 text-white text-[10px] font-mono font-bold uppercase tracking-wider animate-pulse">
+              Mode Glisser-Déposer Actif
+            </span>
+          )}
+          {activeListeningStationId && (
+            <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-[10px] font-mono font-bold flex items-center gap-1.5 animate-pulse">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              ÉCOUTE RAPIDE EN COURS
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto shrink-0 relative">
           {activeListeningStationId && (
             <button
+              id="admin-dashboard-stop-audio-btn"
               onClick={stopStationAudio}
               className="px-3 py-2 rounded-xl bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-300 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer animate-pulse"
               title="Couper l'écoute rapide"
@@ -287,6 +359,7 @@ export default function AdminDashboardView({
           )}
 
           <button
+            id="admin-dashboard-refresh-btn"
             onClick={() => {
               onRefreshData();
               setSchedules(getAdminSchedules());
@@ -295,228 +368,328 @@ export default function AdminDashboardView({
             className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 text-xs font-mono font-bold flex items-center gap-2 transition-all cursor-pointer"
             title="Rafraîchir les métriques"
           >
-            <RefreshCw className="w-3.5 h-3.5 text-cyan-400" />
+            <RefreshCw className="w-3.5 h-3.5 text-zinc-300" />
             <span className="hidden md:inline">Actualiser</span>
           </button>
 
-          {/* EDIT MODE TOGGLE BUTTON */}
+          {/* PERSONNALISER TOGGLE BUTTON */}
           <button
-            onClick={() => setIsEditMode(!isEditMode)}
+            id="admin-dashboard-toggle-customize-btn"
+            onClick={() => {
+              setIsEditMode(!isEditMode);
+              setIsAddWidgetOpen(false);
+            }}
             className={`px-3.5 py-2 rounded-xl border text-xs font-mono font-bold flex items-center gap-2 transition-all cursor-pointer ${
               isEditMode
-                ? 'bg-cyan-500 text-black border-cyan-400 shadow-lg shadow-cyan-500/20'
+                ? 'bg-white text-black border-white shadow-lg shadow-white/10'
                 : 'bg-zinc-800 hover:bg-zinc-700 border-zinc-700 text-zinc-200'
             }`}
           >
-            <Settings2 className="w-3.5 h-3.5" />
-            <span>{isEditMode ? 'Terminer' : 'Personnaliser'}</span>
-          </button>
-
-          {/* 3 VERTICAL DOTS MENU TRIGGER */}
-          <div className="relative">
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 hover:text-white transition-all cursor-pointer"
-              title="Options du tableau de bord"
-            >
-              <MoreVertical className="w-4 h-4" />
-            </button>
-
-            {/* 3 DOTS DROPDOWN MENU */}
-            {isMenuOpen && (
+            {isEditMode ? (
               <>
-                <div 
-                  className="fixed inset-0 z-30" 
-                  onClick={() => setIsMenuOpen(false)} 
-                />
-                <div className="absolute right-0 mt-2 w-64 bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl p-1.5 z-40 flex flex-col gap-1 text-left animate-in fade-in zoom-in-95 duration-150">
-                  <button
-                    onClick={() => {
-                      setIsEditMode(!isEditMode);
-                      setIsMenuOpen(false);
-                    }}
-                    className="w-full px-3 py-2 rounded-lg hover:bg-zinc-850 text-xs font-mono text-zinc-200 flex items-center justify-between transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-center gap-2">
-                      <LayoutGrid className="w-4 h-4 text-cyan-400" />
-                      <span>{isEditMode ? 'Quitter le mode édition' : 'Éditer les widgets'}</span>
-                    </div>
-                    {isEditMode && <Check className="w-3.5 h-3.5 text-cyan-400" />}
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setIsAddWidgetModalOpen(true);
-                      setIsMenuOpen(false);
-                    }}
-                    className="w-full px-3 py-2 rounded-lg hover:bg-zinc-850 text-xs font-mono text-zinc-200 flex items-center gap-2 transition-colors cursor-pointer"
-                  >
-                    <Plus className="w-4 h-4 text-emerald-400" />
-                    <span>Gérer les widgets ({hiddenWidgets.length} masqués)</span>
-                  </button>
-
-                  <div className="my-1 border-t border-zinc-850" />
-
-                  <button
-                    onClick={handleResetLayout}
-                    className="w-full px-3 py-2 rounded-lg hover:bg-zinc-850 text-xs font-mono text-zinc-400 hover:text-zinc-200 flex items-center gap-2 transition-colors cursor-pointer"
-                  >
-                    <RotateCcw className="w-4 h-4 text-amber-400" />
-                    <span>Rétablir disposition d'origine</span>
-                  </button>
-                </div>
+                <Check className="w-3.5 h-3.5" />
+                <span>Terminer</span>
+              </>
+            ) : (
+              <>
+                <Settings2 className="w-3.5 h-3.5 text-zinc-400 group-hover:text-white" />
+                <span>Personnaliser</span>
               </>
             )}
-          </div>
+          </button>
+
+          {/* "+" BUTTON: APPEARS ONLY IN EDIT MODE TO ADD WIDGETS */}
+          {isEditMode && (
+            <div className="relative">
+              <button
+                id="admin-dashboard-add-widget-btn"
+                onClick={() => setIsAddWidgetOpen(!isAddWidgetOpen)}
+                className={`px-3.5 py-2 rounded-xl border text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  isAddWidgetOpen
+                    ? 'bg-emerald-500 text-black border-emerald-400 shadow-lg shadow-emerald-500/20'
+                    : 'bg-emerald-500/20 hover:bg-emerald-500/30 border-emerald-500/50 text-emerald-300'
+                }`}
+                title="Ajouter un widget au tableau de bord"
+                aria-label="Ajouter un widget"
+              >
+                <Plus className="w-4 h-4 stroke-[2.5]" />
+                <span className="hidden sm:inline">Ajouter</span>
+                {hiddenWidgets.length > 0 && (
+                  <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-950/80 text-emerald-300 border border-emerald-500/40">
+                    {hiddenWidgets.length}
+                  </span>
+                )}
+              </button>
+
+              {/* QUICK ADD WIDGET POPOVER */}
+              {isAddWidgetOpen && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-30" 
+                    onClick={() => setIsAddWidgetOpen(false)} 
+                  />
+                  <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl p-2.5 z-40 flex flex-col text-left animate-in fade-in zoom-in-95 duration-150 max-h-[80vh] overflow-hidden">
+                    <div className="px-3 py-2 border-b border-zinc-850 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Plus className="w-4 h-4 text-emerald-400" />
+                        <span className="text-xs font-mono font-bold text-white uppercase tracking-wider">
+                          Ajouter un widget ({hiddenWidgets.length} dispo{hiddenWidgets.length > 1 ? 's' : ''})
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => setIsAddWidgetOpen(false)}
+                        className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 cursor-pointer"
+                        aria-label="Fermer la liste d'ajout"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="p-1 overflow-y-auto space-y-1.5 custom-scrollbar max-h-[55vh]">
+                      {hiddenWidgets.length === 0 ? (
+                        <div className="p-5 text-center text-xs font-mono text-zinc-400 flex flex-col items-center gap-2">
+                          <Check className="w-6 h-6 text-emerald-400" />
+                          <span>Tous les widgets sont déjà actifs sur votre tableau de bord.</span>
+                        </div>
+                      ) : (
+                        hiddenWidgets.map((w) => {
+                          const wMeta = getWidgetMeta(w.id);
+                          const IconComp = wMeta.icon;
+
+                          return (
+                            <div
+                              key={w.id}
+                              className="p-2.5 rounded-xl bg-zinc-900/90 border border-zinc-800/80 hover:border-zinc-700 flex items-center justify-between gap-3 transition-colors"
+                            >
+                              <div className="flex items-start gap-2.5 min-w-0">
+                                <div className="p-1.5 rounded-lg bg-zinc-800 text-white shrink-0 mt-0.5">
+                                  <IconComp className="w-4 h-4" />
+                                </div>
+                                <div className="flex flex-col min-w-0">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-xs font-mono font-bold text-white truncate">{w.title}</span>
+                                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-zinc-850 text-zinc-400 border border-zinc-750">
+                                      {wMeta.formatHint}
+                                    </span>
+                                  </div>
+                                  <span className="text-[11px] font-mono text-zinc-400 line-clamp-1">{w.description}</span>
+                                </div>
+                              </div>
+
+                              <button
+                                onClick={() => {
+                                  addWidgetToDashboard(w.id);
+                                }}
+                                className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-mono font-bold flex items-center gap-1 shrink-0 transition-all cursor-pointer"
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                                <span>Ajouter</span>
+                              </button>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+
+                    <div className="p-2 border-t border-zinc-850 bg-zinc-950/90 flex items-center justify-between gap-2">
+                      <button
+                        onClick={() => {
+                          handleResetLayout();
+                          setIsAddWidgetOpen(false);
+                        }}
+                        className="w-full px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-400 hover:text-amber-400 text-[11px] font-mono flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <RotateCcw className="w-3 h-3 text-amber-400" />
+                        <span>Rétablir la disposition par défaut</span>
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* EDIT MODE NOTIFICATION BAR */}
+      {/* DASHBOARD CONTENT (PASSES BEHIND STICKY TOP BAR WHEN SCROLLING) */}
+      <div className="p-4 sm:p-6 lg:p-8 flex flex-col gap-6 flex-1 text-left">
+        {/* EDIT MODE NOTIFICATION BANNER */}
       {isEditMode && (
-        <div className="p-4 rounded-xl bg-cyan-950/40 border border-cyan-500/40 text-cyan-200 text-xs font-mono flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
+        <div className="p-3.5 sm:p-4 rounded-xl bg-zinc-900/90 border border-zinc-700 text-zinc-200 text-xs font-mono flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex items-center gap-2.5">
-            <LayoutGrid className="w-4 h-4 text-cyan-400 shrink-0" />
-            <span>
-              <strong>Mode personnalisation activé :</strong> Changez la taille (1/3, 1/2, 1/1), le niveau de vue (Compact, Standard, Détaillé) ou réordonnez chaque bloc.
-            </span>
+            <div className="p-1.5 rounded-lg bg-zinc-800 text-white shrink-0">
+              <GripVertical className="w-4 h-4" />
+            </div>
+            <div className="flex flex-col text-left">
+              <span className="font-bold text-white">Mode Personnalisation & Glisser-Déposer actif</span>
+              <span className="text-[11px] text-zinc-400">
+                Glissez les widgets pour les réordonner. Ajustez le format (Compact, Standard, Détaillé). La grille comble automatiquement les espaces.
+              </span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
             <button
-              onClick={() => setIsAddWidgetModalOpen(true)}
-              className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-cyan-500/40 text-cyan-300 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+              id="admin-dashboard-reset-layout-btn"
+              onClick={handleResetLayout}
+              className="px-2.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-400 hover:text-amber-400 text-xs font-mono flex items-center gap-1.5 transition-colors cursor-pointer"
+              title="Rétablir la disposition d'origine"
             >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Gérer ({visibleWidgets.length} actifs)</span>
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span className="hidden md:inline">Rétablir par défaut</span>
             </button>
             <button
+              id="admin-dashboard-done-btn"
               onClick={() => setIsEditMode(false)}
-              className="px-3 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-black font-mono font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+              className="px-3.5 py-1.5 rounded-lg bg-white hover:bg-zinc-200 text-black font-mono font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-md shadow-black/40"
             >
               <Check className="w-3.5 h-3.5" />
-              <span>Valider</span>
+              <span>Valider la disposition</span>
             </button>
           </div>
         </div>
       )}
 
-      {/* DYNAMIC WIDGETS GRID */}
-      <div className="grid grid-cols-12 gap-4">
-        {visibleWidgets.map((widget, index) => {
-          const isFirst = index === 0;
-          const isLast = index === visibleWidgets.length - 1;
+      {/* DYNAMIC WIDGETS GRID WITH DENSE AUTO-STACKING */}
+      <div 
+        id="admin-dashboard-widgets-grid"
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 auto-rows-auto [grid-auto-flow:dense] gap-4"
+      >
+        {visibleWidgets.map((widget) => {
+          const isDragging = draggedWidgetId === widget.id;
+          const isOver = dragOverWidgetId === widget.id && !isDragging;
+          const meta = getWidgetMeta(widget.id);
+          const WidgetIcon = meta.icon;
+          const preset = getWidgetPresetConfig(widget.id, widget.density);
+          const packedLayout = dynamicPackedLayoutMap.get(widget.id) || preset;
 
           return (
             <div
               key={widget.id}
-              className={`${getSizeClass(widget.size)} transition-all duration-200 flex flex-col`}
+              id={`dashboard-widget-${widget.id}`}
+              draggable={isEditMode}
+              onDragStart={(e) => {
+                if (!isEditMode) return;
+                e.dataTransfer.setData('text/plain', widget.id);
+                e.dataTransfer.effectAllowed = 'move';
+                setDraggedWidgetId(widget.id);
+              }}
+              onDragOver={(e) => {
+                if (!isEditMode) return;
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                if (dragOverWidgetId !== widget.id) {
+                  setDragOverWidgetId(widget.id);
+                }
+              }}
+              onDragLeave={() => {
+                if (dragOverWidgetId === widget.id) {
+                  setDragOverWidgetId(null);
+                }
+              }}
+              onDrop={(e) => {
+                if (!isEditMode) return;
+                e.preventDefault();
+                const sourceId = e.dataTransfer.getData('text/plain') || draggedWidgetId;
+                if (sourceId && sourceId !== widget.id) {
+                  handleReorderWidgets(sourceId as DashboardWidgetId, widget.id);
+                }
+                setDraggedWidgetId(null);
+                setDragOverWidgetId(null);
+              }}
+              onDragEnd={() => {
+                setDraggedWidgetId(null);
+                setDragOverWidgetId(null);
+              }}
+              className={`${packedLayout.colSpanClass} ${packedLayout.rowSpanClass} transition-all duration-200 flex flex-col ${
+                isDragging ? 'opacity-30 scale-[0.98]' : ''
+              } ${
+                isOver ? 'ring-2 ring-white/60 shadow-2xl shadow-black/60 scale-[1.01]' : ''
+              }`}
             >
               <div className={`h-full rounded-2xl bg-zinc-900/80 border flex flex-col justify-between shadow-lg overflow-hidden transition-all ${
-                isEditMode ? 'border-cyan-500/50 ring-1 ring-cyan-500/20' : 'border-zinc-800/80 hover:border-zinc-750'
+                isEditMode ? 'border-white/30 ring-1 ring-white/10' : 'border-zinc-800/80 hover:border-zinc-700'
               }`}>
                 
-                {/* WIDGET CUSTOMIZATION TOOLBAR (VISIBLE IN EDIT MODE) */}
+                {/* WIDGET CUSTOMIZATION TOOLBAR (VISIBLE IN EDIT MODE: GRIP + TITLE + 3 PRESETS + CLOSE) */}
                 {isEditMode && (
-                  <div className="px-4 py-2.5 bg-zinc-950 border-b border-zinc-800 flex items-center justify-between gap-2 flex-wrap text-xs font-mono">
+                  <div className="px-3.5 py-2.5 bg-zinc-950 border-b border-zinc-800 flex items-center justify-between gap-2 flex-wrap text-xs font-mono select-none">
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-zinc-500 font-bold uppercase">Ordre:</span>
-                      <button
-                        onClick={() => moveWidget(index, 'up')}
-                        disabled={isFirst}
-                        className="p-1 rounded bg-zinc-850 hover:bg-zinc-800 border border-zinc-750 text-zinc-300 disabled:opacity-30 cursor-pointer"
-                        title="Monter"
+                      {/* DRAG HANDLE */}
+                      <div 
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-850 hover:bg-zinc-800 text-zinc-300 border border-zinc-750 cursor-grab active:cursor-grabbing transition-colors"
+                        title="Glisser-déposer pour déplacer ce widget n'importe où sur la grille"
                       >
-                        <ChevronUp className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => moveWidget(index, 'down')}
-                        disabled={isLast}
-                        className="p-1 rounded bg-zinc-850 hover:bg-zinc-800 border border-zinc-750 text-zinc-300 disabled:opacity-30 cursor-pointer"
-                        title="Descendre"
-                      >
-                        <ChevronDown className="w-3.5 h-3.5" />
-                      </button>
+                        <GripVertical className="w-4 h-4 text-zinc-300" />
+                        <span className="text-[11px] font-bold text-zinc-300">Glisser</span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 text-zinc-300">
+                        <WidgetIcon className="w-3.5 h-3.5 text-white" />
+                        <span className="font-bold truncate max-w-[140px] sm:max-w-none">{widget.title}</span>
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-2">
-                      {/* SIZE SWITCHER */}
-                      <span className="text-[10px] text-zinc-500 font-bold uppercase">Largeur:</span>
-                      <div className="flex items-center rounded-lg bg-zinc-900 border border-zinc-800 p-0.5">
+                      {/* SEUL BOUTON ACCESSIBLE : CHOIX ENTRE LES 3 PROPOSITIONS (COMPACT, STANDARD, DÉTAILLÉ) */}
+                      <div className="flex items-center rounded-lg bg-zinc-900 border border-zinc-800 p-0.5" role="group" aria-label="Format et densité du widget">
                         <button
-                          onClick={() => changeWidgetSize(widget.id, 'third')}
-                          className={`px-2 py-0.5 rounded text-[10px] font-mono cursor-pointer transition-colors ${
-                            widget.size === 'third' ? 'bg-cyan-500/20 text-cyan-300 font-bold' : 'text-zinc-400 hover:text-white'
+                          type="button"
+                          onClick={() => changeWidgetPreset(widget.id, 'compact')}
+                          className={`px-2.5 py-1 rounded text-[11px] font-mono cursor-pointer transition-colors ${
+                            widget.density === 'compact' 
+                              ? 'bg-white text-black font-bold border border-white' 
+                              : 'text-zinc-400 hover:text-white'
                           }`}
-                          title="Tiers (33%)"
-                        >
-                          1/3
-                        </button>
-                        <button
-                          onClick={() => changeWidgetSize(widget.id, 'half')}
-                          className={`px-2 py-0.5 rounded text-[10px] font-mono cursor-pointer transition-colors ${
-                            widget.size === 'half' ? 'bg-cyan-500/20 text-cyan-300 font-bold' : 'text-zinc-400 hover:text-white'
-                          }`}
-                          title="Moitié (50%)"
-                        >
-                          1/2
-                        </button>
-                        <button
-                          onClick={() => changeWidgetSize(widget.id, 'full')}
-                          className={`px-2 py-0.5 rounded text-[10px] font-mono cursor-pointer transition-colors ${
-                            widget.size === 'full' ? 'bg-cyan-500/20 text-cyan-300 font-bold' : 'text-zinc-400 hover:text-white'
-                          }`}
-                          title="Pleine largeur (100%)"
-                        >
-                          1/1
-                        </button>
-                      </div>
-
-                      {/* DENSITY SWITCHER */}
-                      <span className="text-[10px] text-zinc-500 font-bold uppercase ml-1">Vue:</span>
-                      <div className="flex items-center rounded-lg bg-zinc-900 border border-zinc-800 p-0.5">
-                        <button
-                          onClick={() => changeWidgetDensity(widget.id, 'compact')}
-                          className={`px-2 py-0.5 rounded text-[10px] font-mono cursor-pointer transition-colors ${
-                            widget.density === 'compact' ? 'bg-purple-500/20 text-purple-300 font-bold' : 'text-zinc-400 hover:text-white'
-                          }`}
-                          title="Format condensé (micro)"
+                          title="Format Compact (vertical/horizontal condensé selon données)"
+                          aria-label="Format Compact"
                         >
                           Compact
                         </button>
                         <button
-                          onClick={() => changeWidgetDensity(widget.id, 'normal')}
-                          className={`px-2 py-0.5 rounded text-[10px] font-mono cursor-pointer transition-colors ${
-                            widget.density === 'normal' ? 'bg-purple-500/20 text-purple-300 font-bold' : 'text-zinc-400 hover:text-white'
+                          type="button"
+                          onClick={() => changeWidgetPreset(widget.id, 'normal')}
+                          className={`px-2.5 py-1 rounded text-[11px] font-mono cursor-pointer transition-colors ${
+                            widget.density === 'normal' || !widget.density 
+                              ? 'bg-white text-black font-bold border border-white' 
+                              : 'text-zinc-400 hover:text-white'
                           }`}
-                          title="Format standard"
+                          title="Format Standard (équilibré et ergonomique)"
+                          aria-label="Format Standard"
                         >
                           Standard
                         </button>
                         <button
-                          onClick={() => changeWidgetDensity(widget.id, 'expanded')}
-                          className={`px-2 py-0.5 rounded text-[10px] font-mono cursor-pointer transition-colors ${
-                            widget.density === 'expanded' ? 'bg-purple-500/20 text-purple-300 font-bold' : 'text-zinc-400 hover:text-white'
+                          type="button"
+                          onClick={() => changeWidgetPreset(widget.id, 'expanded')}
+                          className={`px-2.5 py-1 rounded text-[11px] font-mono cursor-pointer transition-colors ${
+                            widget.density === 'expanded' 
+                              ? 'bg-white text-black font-bold border border-white' 
+                              : 'text-zinc-400 hover:text-white'
                           }`}
-                          title="Format détaillé (complet)"
+                          title="Format Détaillé (étendu, analyse approfondie)"
+                          aria-label="Format Détaillé"
                         >
                           Détaillé
                         </button>
                       </div>
 
-                      {/* HIDE WIDGET */}
+                      {/* CROIX DE SUPPRESSION (RECALAGE AUTOMATIQUE DE LA GRILLE) */}
                       <button
-                        onClick={() => toggleWidgetVisibility(widget.id)}
-                        className="p-1 rounded bg-zinc-850 hover:bg-red-500/20 hover:text-red-400 text-zinc-400 transition-colors ml-1 cursor-pointer"
-                        title="Masquer ce widget"
+                        type="button"
+                        onClick={() => removeWidget(widget.id)}
+                        className="p-1.5 rounded-lg bg-zinc-850 hover:bg-red-500/20 hover:text-red-400 text-zinc-400 transition-colors ml-1 cursor-pointer flex items-center justify-center"
+                        title="Retirer ce widget (la grille s'adapte automatiquement)"
+                        aria-label={`Supprimer ${widget.title}`}
                       >
-                        <EyeOff className="w-3.5 h-3.5" />
+                        <X className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
                 )}
 
                 {/* WIDGET CONTENT RENDERING */}
-                <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between">
+                <div className="p-4 sm:p-5 flex-1 min-h-0 min-w-0 flex flex-col justify-between overflow-y-auto custom-scrollbar">
                   {renderWidgetContent(
                     widget.id, 
                     widget.density,
@@ -532,6 +705,8 @@ export default function AdminDashboardView({
                       activeStationsCount,
                       dbStatus,
                       currentUser,
+                      widgetStationId: widget.stationId,
+                      onUpdateWidgetStation: (stationId: string) => handleUpdateWidgetStation(widget.id, stationId),
                       focusedStationId,
                       onSelectFocusedStation: handleSelectFocusedStation,
                       activeListeningStationId,
@@ -554,98 +729,7 @@ export default function AdminDashboardView({
           );
         })}
       </div>
-
-      {/* MODAL AJOUTER / GÉRER LES WIDGETS */}
-      {isAddWidgetModalOpen && (
-        <div className="fixed inset-0 z-[130] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div 
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-xl bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-[90vh]"
-          >
-            <div className="p-5 border-b border-zinc-850 flex items-center justify-between bg-zinc-900/60">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
-                  <LayoutGrid className="w-5 h-5" />
-                </div>
-                <div className="flex flex-col text-left">
-                  <h3 className="text-base font-futuristic font-black text-white">
-                    Bibliothèque de Widgets Synapse
-                  </h3>
-                  <p className="text-xs font-mono text-zinc-400">
-                    Activez ou désactivez les blocs affichés sur votre tableau de bord
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsAddWidgetModalOpen(false)}
-                className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-5 space-y-3 custom-scrollbar">
-              {widgets.map((w) => (
-                <div
-                  key={w.id}
-                  className={`p-3.5 rounded-xl border flex items-center justify-between gap-4 transition-all ${
-                    w.visible 
-                      ? 'bg-zinc-900/80 border-zinc-800 text-white' 
-                      : 'bg-zinc-950/80 border-zinc-900 text-zinc-400'
-                  }`}
-                >
-                  <div className="flex flex-col text-left">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono font-bold text-white">{w.title}</span>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-850 text-zinc-400 border border-zinc-800">
-                        {w.size === 'full' ? 'Plein écran' : w.size === 'half' ? '1/2 largeur' : '1/3 largeur'}
-                      </span>
-                    </div>
-                    <span className="text-[11px] font-mono text-zinc-400 mt-0.5">{w.description}</span>
-                  </div>
-
-                  <button
-                    onClick={() => toggleWidgetVisibility(w.id)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                      w.visible
-                        ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30'
-                        : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40'
-                    }`}
-                  >
-                    {w.visible ? (
-                      <>
-                        <EyeOff className="w-3.5 h-3.5" />
-                        <span>Masquer</span>
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Afficher</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            <div className="p-4 border-t border-zinc-850 bg-zinc-950 flex items-center justify-between">
-              <button
-                onClick={handleResetLayout}
-                className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-400 text-xs font-mono flex items-center gap-1.5 cursor-pointer"
-              >
-                <RotateCcw className="w-3 h-3 text-amber-400" />
-                <span>Rétablir tout par défaut</span>
-              </button>
-              <button
-                onClick={() => setIsAddWidgetModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-mono font-bold text-xs transition-all cursor-pointer"
-              >
-                Terminer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      </div>
 
     </div>
   );
@@ -669,6 +753,8 @@ function renderWidgetContent(
     activeStationsCount: number;
     dbStatus: any;
     currentUser?: SynapseUser | null;
+    widgetStationId?: string;
+    onUpdateWidgetStation?: (stationId: string) => void;
     focusedStationId: string;
     onSelectFocusedStation: (id: string) => void;
     activeListeningStationId: string | null;
@@ -695,7 +781,7 @@ function renderWidgetContent(
           <div className="flex flex-col gap-2.5 text-left">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-mono font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                <Sparkles className="w-3.5 h-3.5 text-white" />
                 Indicateurs Clés
               </span>
               <span className="text-[10px] font-mono text-emerald-400 font-bold">99.8% Uptime</span>
@@ -703,10 +789,10 @@ function renderWidgetContent(
             <div className="grid grid-cols-4 gap-2">
               <div 
                 onClick={() => ctx.onNavigateTab('stations')} 
-                className="p-2 rounded-lg bg-zinc-950 border border-cyan-500/20 hover:border-cyan-500/40 cursor-pointer flex flex-col items-center justify-center text-center"
+                className="p-2 rounded-lg bg-zinc-950 border border-zinc-800 hover:border-zinc-700 cursor-pointer flex flex-col items-center justify-center text-center"
               >
                 <span className="text-base font-mono font-black text-white">{ctx.activeStationsCount}</span>
-                <span className="text-[9px] font-mono text-cyan-300 uppercase">Radios</span>
+                <span className="text-[9px] font-mono text-zinc-400 uppercase">Radios</span>
               </div>
               <div 
                 onClick={() => ctx.onNavigateTab('users')} 
@@ -738,7 +824,7 @@ function renderWidgetContent(
         <div className="flex flex-col gap-4 text-left">
           <div className="flex items-center justify-between">
             <span className="text-xs font-mono font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-cyan-400" />
+              <Sparkles className="w-4 h-4 text-white" />
               Indicateurs Clés & KPIs de la Plateforme
             </span>
             <span className="text-[10px] font-mono text-zinc-400">Temps réel direct</span>
@@ -748,17 +834,17 @@ function renderWidgetContent(
             {/* KPI 1 */}
             <div 
               onClick={() => ctx.onNavigateTab('stations')}
-              className="p-3.5 rounded-xl bg-zinc-950 border border-cyan-500/20 hover:border-cyan-500/50 flex flex-col justify-between gap-2 cursor-pointer transition-all"
+              className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 hover:border-zinc-700 flex flex-col justify-between gap-2 cursor-pointer transition-all"
             >
-              <div className="flex items-center justify-between text-cyan-400">
+              <div className="flex items-center justify-between text-zinc-200">
                 <span className="text-[10px] font-mono font-bold uppercase">Stations Radio</span>
-                <Radio className="w-3.5 h-3.5" />
+                <Radio className="w-3.5 h-3.5 text-zinc-300" />
               </div>
               <div className="flex flex-col">
                 <span className="text-2xl font-mono font-black text-white">
                   {ctx.activeStationsCount} / {ctx.stations.length}
                 </span>
-                <span className="text-[10px] font-mono text-cyan-300">Actives en direct</span>
+                <span className="text-[10px] font-mono text-zinc-400">Actives en direct</span>
               </div>
             </div>
 
@@ -824,7 +910,7 @@ function renderWidgetContent(
                 <span className="text-zinc-500">|</span>
                 <span>Latence moyenne AzuraCast : <strong>12ms</strong></span>
               </div>
-              <span className="text-cyan-300 font-bold">PocketBase SQLite Synchronisé</span>
+              <span className="text-zinc-300 font-bold">PocketBase SQLite Synchronisé</span>
             </div>
           )}
         </div>
@@ -841,7 +927,7 @@ function renderWidgetContent(
         <div className="flex flex-col gap-3 text-left">
           <div className="flex items-center justify-between border-b border-zinc-800 pb-2.5">
             <div className="flex items-center gap-2 text-xs font-mono font-bold text-white uppercase">
-              <Radio className="w-4 h-4 text-cyan-400" />
+              <Radio className="w-4 h-4 text-white" />
               <span>Moniteur des Stations ({ctx.stations.length})</span>
             </div>
             
@@ -854,7 +940,7 @@ function renderWidgetContent(
               )}
               <button
                 onClick={() => ctx.onNavigateTab('stations')}
-                className="text-xs font-mono text-cyan-400 hover:underline cursor-pointer"
+                className="text-xs font-mono text-zinc-400 hover:text-white hover:underline cursor-pointer"
               >
                 Voir tout
               </button>
@@ -866,7 +952,7 @@ function renderWidgetContent(
             <div className="p-2.5 rounded-xl bg-zinc-950 border border-white/5 text-[10.5px] font-mono text-zinc-400 flex items-center justify-between gap-2">
               <span>🎧 <strong>Écoute rapide :</strong> Cliquez pour allumer/éteindre, ou <em>maintenez appuyé</em> pour écouter puis relâchez pour couper instantanément.</span>
               <div className="flex items-center gap-1.5">
-                <Volume2 className="w-3 h-3 text-cyan-400" />
+                <Volume2 className="w-3 h-3 text-zinc-300" />
                 <input
                   type="range"
                   min="0"
@@ -874,7 +960,7 @@ function renderWidgetContent(
                   step="0.05"
                   value={ctx.listenVolume}
                   onChange={(e) => ctx.onSetListenVolume(parseFloat(e.target.value))}
-                  className="w-16 accent-cyan-400 h-1 bg-zinc-800 rounded cursor-pointer"
+                  className="w-16 accent-white h-1 bg-zinc-800 rounded cursor-pointer"
                   title="Volume d'écoute"
                 />
               </div>
@@ -892,7 +978,7 @@ function renderWidgetContent(
                     key={st.id}
                     className={`p-2 rounded-xl border flex items-center justify-between gap-2 transition-all ${
                       isListening 
-                        ? 'bg-cyan-950/40 border-cyan-500/50 shadow-[0_0_12px_rgba(0,242,255,0.15)]' 
+                        ? 'bg-zinc-850 border-white/40 shadow-[0_0_12px_rgba(255,255,255,0.08)] ring-1 ring-white/20' 
                         : 'bg-zinc-950 border-zinc-850 hover:border-zinc-750'
                     }`}
                   >
@@ -916,7 +1002,7 @@ function renderWidgetContent(
                         className={`p-1.5 rounded-lg border text-xs font-mono transition-all cursor-pointer ${
                           isListening
                             ? 'bg-emerald-500 text-black border-emerald-400 font-bold shadow-md shadow-emerald-500/30'
-                            : 'bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border-zinc-800'
+                            : 'bg-zinc-900 hover:bg-zinc-850 text-zinc-300 border-zinc-800'
                         }`}
                         title="Clic: Écouter/Arrêter | Appui maintenu: Écouter puis relâcher"
                       >
@@ -926,7 +1012,7 @@ function renderWidgetContent(
                       {/* ICONE RÉGIE */}
                       <button
                         onClick={() => ctx.onOpenControlDeck(st)}
-                        className="p-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 transition-all cursor-pointer"
+                        className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-all cursor-pointer"
                         title="Ouvrir la régie de cette station"
                       >
                         <Mic className="w-3.5 h-3.5" />
@@ -941,7 +1027,7 @@ function renderWidgetContent(
                   key={st.id}
                   className={`p-3 rounded-xl border flex items-center justify-between gap-3 transition-all ${
                     isListening 
-                      ? 'bg-cyan-950/40 border-cyan-500/60 shadow-[0_0_15px_rgba(0,242,255,0.15)] ring-1 ring-cyan-500/30' 
+                      ? 'bg-zinc-850 border-white/40 shadow-[0_0_15px_rgba(255,255,255,0.08)] ring-1 ring-white/20' 
                       : 'bg-zinc-950 border-zinc-800/80 hover:border-zinc-700'
                   }`}
                 >
@@ -1002,7 +1088,7 @@ function renderWidgetContent(
                         </>
                       ) : (
                         <>
-                          <Headphones className="w-3.5 h-3.5 text-cyan-400" />
+                          <Headphones className="w-3.5 h-3.5 text-zinc-300" />
                           <span>Écoute</span>
                         </>
                       )}
@@ -1011,7 +1097,7 @@ function renderWidgetContent(
                     {/* ICÔNE RÉGIE DIRECTE */}
                     <button
                       onClick={() => ctx.onOpenControlDeck(st)}
-                      className="px-3 py-1.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                      className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
                       title="Ouvrir la régie et le direct antenne"
                     >
                       <Mic className="w-3.5 h-3.5" />
@@ -1047,7 +1133,7 @@ function renderWidgetContent(
             <select
               value={ctx.focusedStationId}
               onChange={(e) => ctx.onSelectFocusedStation(e.target.value)}
-              className="bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1 text-xs font-mono text-cyan-300 font-bold cursor-pointer focus:border-cyan-400"
+              className="bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1 text-xs font-mono text-zinc-200 font-bold cursor-pointer focus:border-white"
             >
               {ctx.stations.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -1063,7 +1149,7 @@ function renderWidgetContent(
               <div className="flex items-center gap-3 min-w-0">
                 <div 
                   className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs text-black shrink-0 shadow-lg"
-                  style={{ backgroundColor: selectedStation?.color || '#00f2ff' }}
+                  style={{ backgroundColor: selectedStation?.color || '#ffffff' }}
                 >
                   <Radio className="w-5 h-5 text-zinc-950" />
                 </div>
@@ -1105,7 +1191,7 @@ function renderWidgetContent(
                 {/* OPEN REGIE */}
                 <button
                   onClick={() => selectedStation && ctx.onOpenControlDeck(selectedStation)}
-                  className="px-3 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-mono font-bold text-xs flex items-center gap-1.5 transition-all shadow-md shadow-cyan-500/20 cursor-pointer"
+                  className="px-3 py-2 rounded-xl bg-white hover:bg-zinc-200 text-black font-mono font-bold text-xs flex items-center gap-1.5 transition-all shadow-md shadow-white/10 cursor-pointer"
                 >
                   <Mic className="w-3.5 h-3.5" />
                   <span>Régie Direct</span>
@@ -1131,7 +1217,7 @@ function renderWidgetContent(
                     onClick={() => ctx.showToast(`Jingle Station envoyé au flux "${selectedStation?.name}"`)}
                     className="p-2 rounded-lg bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-[11px] font-mono text-zinc-300 flex items-center justify-center gap-1.5 cursor-pointer"
                   >
-                    <Sparkles className="w-3 h-3 text-cyan-400" />
+                    <Sparkles className="w-3 h-3 text-zinc-300" />
                     <span>Jingle Radio</span>
                   </button>
                   <button
@@ -1209,12 +1295,12 @@ function renderWidgetContent(
         <div className="flex flex-col gap-3 text-left">
           <div className="flex items-center justify-between border-b border-zinc-800 pb-2.5">
             <div className="flex items-center gap-2 text-xs font-mono font-bold text-white uppercase">
-              <Mic className="w-4 h-4 text-cyan-400" />
+              <Mic className="w-4 h-4 text-zinc-200" />
               <span>Direct Antenne & DJ Streamer</span>
             </div>
             <button
               onClick={() => ctx.onNavigateTab('stations')}
-              className="text-xs font-mono text-cyan-400 hover:underline cursor-pointer"
+              className="text-xs font-mono text-zinc-400 hover:text-white hover:underline cursor-pointer"
             >
               Régie
             </button>
@@ -1223,7 +1309,7 @@ function renderWidgetContent(
           <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 flex flex-col gap-3">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-xl bg-white/10 border border-white/20 text-white flex items-center justify-center shrink-0">
                   <Mic className="w-4 h-4" />
                 </div>
                 <div className="flex flex-col">
@@ -1248,7 +1334,7 @@ function renderWidgetContent(
                 <span>Signal WebDJ : <strong>Stéréo 48kHz Opus</strong></span>
                 <button
                   onClick={() => ctx.onOpenControlDeck(ctx.stations[0])}
-                  className="px-2.5 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-cyan-300 text-[10px] font-mono border border-zinc-800 cursor-pointer"
+                  className="px-2.5 py-1 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-200 text-[10px] font-mono border border-zinc-800 cursor-pointer"
                 >
                   Ouvrir Console
                 </button>
@@ -1272,7 +1358,7 @@ function renderWidgetContent(
             <div className="grid grid-cols-4 gap-2">
               <button
                 onClick={() => { ctx.onNavigateTab('stations'); ctx.onOpenAddNew('stations'); }}
-                className="p-2 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 text-[10.5px] font-mono font-bold flex items-center justify-center gap-1 cursor-pointer"
+                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white text-[10.5px] font-mono font-bold flex items-center justify-center gap-1 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Station</span>
@@ -1317,9 +1403,9 @@ function renderWidgetContent(
                 ctx.onNavigateTab('stations');
                 ctx.onOpenAddNew('stations');
               }}
-              className="p-3 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 text-xs font-mono font-bold flex items-center gap-2 transition-all cursor-pointer"
+              className="p-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-mono font-bold flex items-center gap-2 transition-all cursor-pointer"
             >
-              <Plus className="w-4 h-4 text-cyan-400" />
+              <Plus className="w-4 h-4 text-white" />
               <span>Nouvelle Station</span>
             </button>
 
@@ -1380,13 +1466,13 @@ function renderWidgetContent(
           </div>
 
           <div className="space-y-2.5">
-            {/* POCKETBASE STATUS CARD */}
+            {/* SUPABASE STATUS CARD */}
             <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#10b981]" />
                 <div className="flex flex-col">
-                  <span className="text-xs font-mono font-bold text-white">PocketBase v0.40+</span>
-                  <span className="text-[10px] font-mono text-zinc-400">{POCKETBASE_CONFIG.url}</span>
+                  <span className="text-xs font-mono font-bold text-white">Supabase PostgreSQL & Realtime</span>
+                  <span className="text-[10px] font-mono text-zinc-400">{SUPABASE_CONFIG.url}</span>
                 </div>
               </div>
 
@@ -1397,25 +1483,25 @@ function renderWidgetContent(
                 <button
                   onClick={ctx.onTestDatabase}
                   className="p-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-[10px] font-mono border border-zinc-800 cursor-pointer"
-                  title="Tester PocketBase"
+                  title="Tester Supabase"
                 >
-                  <RefreshCw className={`w-3 h-3 ${ctx.dbStatus.isTesting ? 'animate-spin text-cyan-400' : ''}`} />
+                  <RefreshCw className={`w-3 h-3 ${ctx.dbStatus.isTesting ? 'animate-spin text-white' : ''}`} />
                 </button>
               </div>
             </div>
 
-            {/* AZURACAST STATUS CARD */}
+            {/* LIQUIDSOAP & ICECAST STATUS CARD */}
             <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#00f2ff]" />
+                <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.6)]" />
                 <div className="flex flex-col">
-                  <span className="text-xs font-mono font-bold text-white">AzuraCast AutoDJ & Régie</span>
-                  <span className="text-[10px] font-mono text-zinc-400">Streamer DJ, Direct Antenne & Files</span>
+                  <span className="text-xs font-mono font-bold text-white">Liquidsoap & Icecast Diffusion</span>
+                  <span className="text-[10px] font-mono text-zinc-400">Encodage multi-flux & Prise direct Harbor DJ</span>
                 </div>
               </div>
 
-              <span className="px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 text-[10px] font-mono font-bold">
-                PRÊT
+              <span className="px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-[10px] font-mono font-bold">
+                DIFFUSION OK
               </span>
             </div>
           </div>
@@ -1548,7 +1634,7 @@ function renderWidgetContent(
 
                 <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${
                   u.role === 'super-admin'
-                    ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400/50'
+                    ? 'bg-white/20 text-white border-white/40'
                     : u.role === 'admin'
                     ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
                     : 'bg-zinc-900 text-zinc-400 border-zinc-800'
@@ -1637,6 +1723,376 @@ function renderWidgetContent(
                 <span className="text-xs font-mono font-bold text-pink-400 shrink-0">{p.price}</span>
               </div>
             ))}
+          </div>
+        </div>
+      );
+    }
+
+    // =========================================================
+    // 13. GESTION STATION : FILE D'ATTENTE & TITRES PASSÉS
+    // =========================================================
+    case 'station_playlist_history': {
+      const targetStationId = ctx.widgetStationId || (ctx.currentUser?.assignedStationId && ctx.currentUser.assignedStationId !== 'all' ? ctx.currentUser.assignedStationId : 'pop-variete');
+      const targetStation = ctx.stations.find((s) => s.id === targetStationId) || ctx.stations[0];
+
+      const upcomingTracks = [
+        { time: 'Dans 2m', title: 'Get Lucky (Radio Edit)', artist: 'Daft Punk ft. Pharrell', duration: '4:08' },
+        { time: 'Dans 6m', title: 'Blinding Lights', artist: 'The Weeknd', duration: '3:20' },
+        { time: 'Dans 9m', title: 'One More Time', artist: 'Daft Punk', duration: '5:20' },
+      ];
+
+      const pastTracks = [
+        { time: '14:28', title: 'Midnight City', artist: 'M83', likes: 28 },
+        { time: '14:24', title: 'Instant Crush', artist: 'Daft Punk ft. Julian Casablancas', likes: 42 },
+        { time: '14:20', title: 'Starboy', artist: 'The Weeknd ft. Daft Punk', likes: 19 },
+      ];
+
+      return (
+        <div className="flex flex-col gap-3 text-left">
+          <div className="flex items-center justify-between border-b border-zinc-800 pb-2.5">
+            <div className="flex items-center gap-2">
+              <ListMusic className="w-4 h-4 text-white" />
+              <span className="text-xs font-mono font-bold text-white uppercase truncate">
+                File & Passés • <span className="text-white">{targetStation?.name || 'Station'}</span>
+              </span>
+            </div>
+            {ctx.onUpdateWidgetStation && (
+              <select
+                value={targetStation?.id || 'pop-variete'}
+                onChange={(e) => ctx.onUpdateWidgetStation!(e.target.value)}
+                className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-700 text-zinc-200 text-[10px] font-mono cursor-pointer"
+              >
+                {ctx.stations.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+            {/* FILE D'ATTENTE */}
+            <div className="flex flex-col gap-1.5 p-2.5 rounded-xl bg-zinc-950 border border-zinc-800">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-200 font-bold flex items-center gap-1.5">
+                <Clock className="w-3 h-3" />
+                Titres à venir (File d'attente)
+              </span>
+              <div className="flex flex-col gap-1">
+                {upcomingTracks.map((trk, i) => (
+                  <div key={i} className="flex items-center justify-between p-1.5 rounded-lg bg-zinc-900/60 border border-white/5 text-[11px] font-mono">
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-bold text-white truncate">{trk.title}</span>
+                      <span className="text-[10px] text-zinc-400 truncate">{trk.artist}</span>
+                    </div>
+                    <span className="text-[10px] text-zinc-300 font-bold shrink-0">{trk.time}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* TITRES PASSÉS */}
+            <div className="flex flex-col gap-1.5 p-2.5 rounded-xl bg-zinc-950 border border-purple-500/20">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-purple-400 font-bold flex items-center gap-1.5">
+                <History className="w-3 h-3" />
+                Titres passés récemment
+              </span>
+              <div className="flex flex-col gap-1">
+                {pastTracks.map((trk, i) => (
+                  <div key={i} className="flex items-center justify-between p-1.5 rounded-lg bg-zinc-900/60 border border-white/5 text-[11px] font-mono">
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-bold text-zinc-200 truncate">{trk.title}</span>
+                      <span className="text-[10px] text-zinc-400 truncate">{trk.artist}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className="text-[10px] text-zinc-500">{trk.time}</span>
+                      <span className="text-[10px] text-amber-400 font-bold">♥ {trk.likes}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // =========================================================
+    // 14. GESTION STATION : CONTRÔLES DIRECT & CARTOUCHES ANIMATEUR
+    // =========================================================
+    case 'station_live_controls': {
+      const targetStationId = ctx.widgetStationId || (ctx.currentUser?.assignedStationId && ctx.currentUser.assignedStationId !== 'all' ? ctx.currentUser.assignedStationId : 'pop-variete');
+      const targetStation = ctx.stations.find((s) => s.id === targetStationId) || ctx.stations[0];
+
+      const playCartridge = (name: string) => {
+        ctx.showToast(`Lancement cartouche [${name}] sur ${targetStation?.name}`);
+      };
+
+      return (
+        <div className="flex flex-col gap-3 text-left">
+          <div className="flex items-center justify-between border-b border-zinc-800 pb-2.5">
+            <div className="flex items-center gap-2">
+              <Mic className="w-4 h-4 text-red-400" />
+              <span className="text-xs font-mono font-bold text-white uppercase truncate">
+                Régie & Jingles Direct • <span className="text-red-400">{targetStation?.name || 'Station'}</span>
+              </span>
+            </div>
+            {ctx.onUpdateWidgetStation && (
+              <select
+                value={targetStation?.id || 'pop-variete'}
+                onChange={(e) => ctx.onUpdateWidgetStation!(e.target.value)}
+                className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-700 text-red-300 text-[10px] font-mono cursor-pointer"
+              >
+                {ctx.stations.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <button
+              onClick={() => playCartridge('Jingle Officiel')}
+              className="p-2.5 rounded-xl bg-red-950/40 hover:bg-red-900/60 border border-red-500/40 text-left cursor-pointer transition-all flex flex-col gap-1"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono uppercase text-red-400 font-bold">F1 • Jingle</span>
+                <Play className="w-3 h-3 text-red-400" />
+              </div>
+              <span className="text-xs font-mono font-bold text-white">Id Station HD</span>
+            </button>
+
+            <button
+              onClick={() => playCartridge('Top Horaire')}
+              className="p-2.5 rounded-xl bg-amber-950/40 hover:bg-amber-900/60 border border-amber-500/40 text-left cursor-pointer transition-all flex flex-col gap-1"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono uppercase text-amber-400 font-bold">F2 • Top</span>
+                <Clock className="w-3 h-3 text-amber-400" />
+              </div>
+              <span className="text-xs font-mono font-bold text-white">Top Horaire Bip</span>
+            </button>
+
+            <button
+              onClick={() => playCartridge('Voice Intro')}
+              className="p-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-750 text-left cursor-pointer transition-all flex flex-col gap-1"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono uppercase text-zinc-300 font-bold">F3 • Voix</span>
+                <Mic className="w-3 h-3 text-zinc-300" />
+              </div>
+              <span className="text-xs font-mono font-bold text-white">Liner Animateur</span>
+            </button>
+
+            <button
+              onClick={() => playCartridge('Bed Fond Parle')}
+              className="p-2.5 rounded-xl bg-purple-950/40 hover:bg-purple-900/60 border border-purple-500/40 text-left cursor-pointer transition-all flex flex-col gap-1"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono uppercase text-purple-400 font-bold">F4 • Loop</span>
+                <Volume2 className="w-3 h-3 text-purple-400" />
+              </div>
+              <span className="text-xs font-mono font-bold text-white">Bed Talk Show</span>
+            </button>
+
+            <button
+              onClick={() => playCartridge('Drop Musical')}
+              className="p-2.5 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/40 text-left cursor-pointer transition-all flex flex-col gap-1"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono uppercase text-emerald-400 font-bold">F5 • FX</span>
+                <Zap className="w-3 h-3 text-emerald-400" />
+              </div>
+              <span className="text-xs font-mono font-bold text-white">Impact Transition</span>
+            </button>
+
+            <button
+              onClick={() => ctx.showToast(`Arrêt d'urgence flux ${targetStation?.name}`)}
+              className="p-2.5 rounded-xl bg-zinc-900 hover:bg-red-950/80 border border-red-500/60 text-left cursor-pointer transition-all flex flex-col gap-1 text-red-300"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono uppercase text-red-500 font-bold">Urgence</span>
+                <Square className="w-3 h-3 text-red-500" />
+              </div>
+              <span className="text-xs font-mono font-bold text-white">Coupure Micro</span>
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // =========================================================
+    // 15. GESTION STATION : AUDIENCE & SANTÉ DU FLUX
+    // =========================================================
+    case 'station_stats_listeners': {
+      const targetStationId = ctx.widgetStationId || (ctx.currentUser?.assignedStationId && ctx.currentUser.assignedStationId !== 'all' ? ctx.currentUser.assignedStationId : 'pop-variete');
+      const targetStation = ctx.stations.find((s) => s.id === targetStationId) || ctx.stations[0];
+
+      return (
+        <div className="flex flex-col gap-3 text-left">
+          <div className="flex items-center justify-between border-b border-zinc-800 pb-2.5">
+            <div className="flex items-center gap-2">
+              <Activity className="w-4 h-4 text-emerald-400" />
+              <span className="text-xs font-mono font-bold text-white uppercase truncate">
+                Audience Direct • <span className="text-emerald-400">{targetStation?.name || 'Station'}</span>
+              </span>
+            </div>
+            {ctx.onUpdateWidgetStation && (
+              <select
+                value={targetStation?.id || 'pop-variete'}
+                onChange={(e) => ctx.onUpdateWidgetStation!(e.target.value)}
+                className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-700 text-emerald-300 text-[10px] font-mono cursor-pointer"
+              >
+                {ctx.stations.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="p-2.5 rounded-xl bg-zinc-950 border border-emerald-500/20 flex flex-col">
+              <span className="text-[10px] font-mono text-zinc-400 uppercase">En Écoute</span>
+              <span className="text-lg font-mono font-black text-emerald-400">412</span>
+              <span className="text-[9px] font-mono text-zinc-500">Auditeurs live</span>
+            </div>
+            <div className="p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 flex flex-col">
+              <span className="text-[10px] font-mono text-zinc-400 uppercase">Pic 24h</span>
+              <span className="text-lg font-mono font-black text-white">584</span>
+              <span className="text-[9px] font-mono text-zinc-500">Record journalier</span>
+            </div>
+            <div className="p-2.5 rounded-xl bg-zinc-950 border border-purple-500/20 flex flex-col">
+              <span className="text-[10px] font-mono text-zinc-400 uppercase">Durée Moy.</span>
+              <span className="text-lg font-mono font-black text-purple-400">46m</span>
+              <span className="text-[9px] font-mono text-zinc-500">Session moyenne</span>
+            </div>
+            <div className="p-2.5 rounded-xl bg-zinc-950 border border-amber-500/20 flex flex-col">
+              <span className="text-[10px] font-mono text-zinc-400 uppercase">Qualité</span>
+              <span className="text-lg font-mono font-black text-amber-400">192k</span>
+              <span className="text-[9px] font-mono text-zinc-500">AAC+ Studio HD</span>
+            </div>
+          </div>
+
+          <div className="p-2 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-between text-[11px] font-mono">
+            <span className="text-zinc-400 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              Serveur Icecast Synapse Connecté
+            </span>
+            <span className="text-emerald-400 font-bold">Latence: 1.2s • Zéro coupure</span>
+          </div>
+        </div>
+      );
+    }
+
+    // =========================================================
+    // 16. GESTION STATION : PROPOSITIONS MUSICALES & DÉDICACES
+    // =========================================================
+    case 'station_song_requests': {
+      const targetStationId = ctx.widgetStationId || (ctx.currentUser?.assignedStationId && ctx.currentUser.assignedStationId !== 'all' ? ctx.currentUser.assignedStationId : 'pop-variete');
+      const targetStation = ctx.stations.find((s) => s.id === targetStationId) || ctx.stations[0];
+
+      // Get proposals filtered for this station
+      const submissions = getTrackSubmissions().filter(
+        (s) => s.stationId === targetStationId || s.stationId === 'all'
+      );
+
+      // Get messages / dedications for this station
+      const stationMessages = ctx.messages.filter(
+        (m) => !m.stationId || m.stationId === targetStationId || m.stationId === 'all'
+      );
+
+      return (
+        <div className="flex flex-col gap-3 text-left">
+          <div className="flex items-center justify-between border-b border-zinc-800 pb-2.5">
+            <div className="flex items-center gap-2">
+              <Music className="w-4 h-4 text-amber-400" />
+              <span className="text-xs font-mono font-bold text-white uppercase truncate">
+                Propositions & Dédicaces • <span className="text-amber-400">{targetStation?.name || 'Station'}</span>
+              </span>
+            </div>
+            {ctx.onUpdateWidgetStation && (
+              <select
+                value={targetStation?.id || 'pop-variete'}
+                onChange={(e) => ctx.onUpdateWidgetStation!(e.target.value)}
+                className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-700 text-amber-300 text-[10px] font-mono cursor-pointer"
+              >
+                {ctx.stations.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+            {/* AUDITOR PROPOSALS */}
+            <div className="flex flex-col gap-1.5 p-2.5 rounded-xl bg-zinc-950 border border-amber-500/20">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-bold flex items-center gap-1.5">
+                  <Flame className="w-3 h-3" />
+                  Titres Proposés ({submissions.length})
+                </span>
+                <button
+                  onClick={() => ctx.onNavigateTab('challenges')}
+                  className="text-[10px] font-mono text-amber-400 hover:underline cursor-pointer"
+                >
+                  Voir tout
+                </button>
+              </div>
+              <div className="flex flex-col gap-1">
+                {submissions.length === 0 ? (
+                  <span className="text-[11px] font-mono text-zinc-500 py-3 text-center">
+                    Aucune proposition en attente pour cette station.
+                  </span>
+                ) : (
+                  submissions.slice(0, 3).map((sub) => (
+                    <div key={sub.id} className="flex items-center justify-between p-1.5 rounded-lg bg-zinc-900/60 border border-white/5 text-[11px] font-mono">
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-bold text-white truncate">{sub.trackTitle}</span>
+                        <span className="text-[10px] text-zinc-400 truncate">{sub.artist} • Par {sub.userName}</span>
+                      </div>
+                      <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded shrink-0 ${
+                        sub.status === 'selected' ? 'bg-emerald-500/20 text-emerald-300' :
+                        sub.status === 'rejected' ? 'bg-red-500/20 text-red-300' :
+                        'bg-amber-500/20 text-amber-300'
+                      }`}>
+                        {sub.status === 'selected' ? 'Validé' : sub.status === 'rejected' ? 'Archivé' : 'À valider'}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* AUDITOR DEDICATIONS */}
+            <div className="flex flex-col gap-1.5 p-2.5 rounded-xl bg-zinc-950 border border-pink-500/20">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-pink-400 font-bold flex items-center gap-1.5">
+                  <Mail className="w-3 h-3" />
+                  Dédicaces Auditeurs ({stationMessages.length})
+                </span>
+                <button
+                  onClick={() => ctx.onNavigateTab('messages')}
+                  className="text-[10px] font-mono text-pink-400 hover:underline cursor-pointer"
+                >
+                  Voir tout
+                </button>
+              </div>
+              <div className="flex flex-col gap-1">
+                {stationMessages.length === 0 ? (
+                  <span className="text-[11px] font-mono text-zinc-500 py-3 text-center">
+                    Aucune dédicace en attente pour cette station.
+                  </span>
+                ) : (
+                  stationMessages.slice(0, 3).map((msg) => (
+                    <div key={msg.id} className="flex items-center justify-between p-1.5 rounded-lg bg-zinc-900/60 border border-white/5 text-[11px] font-mono">
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-bold text-white truncate">{msg.authorName}</span>
+                        <span className="text-[10px] text-zinc-400 truncate">"{msg.message}"</span>
+                      </div>
+                      <span className="text-[10px] text-zinc-500 shrink-0">Live</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           </div>
         </div>
       );

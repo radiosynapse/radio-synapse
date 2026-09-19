@@ -228,10 +228,10 @@ export default function LikedTracksDrawer({
             </div>
           </div>
         ) : (
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-pink-950/40 via-purple-950/40 to-cyan-950/40 border border-white/15 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
+          <div className="relative overflow-hidden rounded-2xl bg-zinc-900/90 border border-zinc-700 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
             <div className="flex items-start gap-3 min-w-0">
-              <div className="p-2.5 rounded-xl bg-pink-500/20 border border-pink-400/30 text-pink-300 flex-shrink-0 mt-0.5">
-                <Sparkles className="w-5 h-5 animate-pulse" />
+              <div className="p-2.5 rounded-xl bg-white/10 border border-white/20 text-white flex-shrink-0 mt-0.5">
+                <Sparkles className="w-5 h-5 animate-pulse text-zinc-200" />
               </div>
               <div className="flex flex-col">
                 <span className="text-xs sm:text-sm font-semibold text-white leading-snug">
@@ -245,7 +245,7 @@ export default function LikedTracksDrawer({
 
             <button
               onClick={onOpenConnectModal}
-              className="flex-shrink-0 w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-cyan-500 hover:from-pink-400 hover:to-cyan-400 text-white font-mono font-bold text-xs uppercase tracking-wider transition-all shadow-[0_0_18px_rgba(236,72,153,0.3)] hover:scale-105 active:scale-95 cursor-pointer flex items-center justify-center gap-2"
+              className="flex-shrink-0 w-full sm:w-auto px-4 py-2.5 rounded-xl bg-white hover:bg-zinc-200 text-black font-mono font-bold text-xs uppercase tracking-wider transition-all shadow-md hover:scale-105 active:scale-95 cursor-pointer flex items-center justify-center gap-2"
             >
               <Music2 className="w-4 h-4" />
               <span>Connecter un compte</span>
@@ -302,7 +302,7 @@ export default function LikedTracksDrawer({
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Filtrer par titre ou artiste..."
-                    className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-black/50 border border-white/10 text-xs font-mono text-white placeholder:text-zinc-400 focus:outline-none focus:border-cyan-400 transition-all"
+                    className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-black/50 border border-white/10 text-xs font-mono text-white placeholder:text-zinc-400 focus:outline-none focus:border-white transition-all"
                   />
                 </div>
               )}
@@ -416,9 +416,9 @@ function LikedTrackRowItem({
           >
             {isPlayingThis ? (
               <div className="flex items-end justify-center gap-0.5 h-5 px-1">
-                <span className="w-1 bg-gradient-to-t from-pink-500 to-cyan-400 rounded-full animate-bounce [animation-duration:0.6s] h-4" />
-                <span className="w-1 bg-gradient-to-t from-pink-500 to-cyan-400 rounded-full animate-bounce [animation-duration:0.8s] [animation-delay:0.15s] h-5" />
-                <span className="w-1 bg-gradient-to-t from-pink-500 to-cyan-400 rounded-full animate-bounce [animation-duration:0.5s] [animation-delay:0.3s] h-3.5" />
+                <span className="w-1 bg-white rounded-full animate-bounce [animation-duration:0.6s] h-4" />
+                <span className="w-1 bg-white rounded-full animate-bounce [animation-duration:0.8s] [animation-delay:0.15s] h-5" />
+                <span className="w-1 bg-white rounded-full animate-bounce [animation-duration:0.5s] [animation-delay:0.3s] h-3.5" />
               </div>
             ) : (
               <div className="p-2 rounded-full bg-white/90 text-black shadow-md">

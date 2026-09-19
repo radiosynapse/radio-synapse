@@ -1,12 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   ShieldCheck, Users, Radio, Trophy, Tag, Calendar, CalendarDays, 
   Mail, Plus, Trash2, CheckCircle2, Link, Edit3, ArrowLeft,
-  LayoutDashboard, Sparkles, Menu, X, RefreshCw,
+  LayoutDashboard, Sparkles, X, RefreshCw,
   Server, Database, DownloadCloud, Check, Copy, HardDrive,
   MoreVertical, Settings, RotateCcw, Mic, Zap, Key,
   UserCheck, Unlink, Shield, Sliders, 
-  UserPlus, CheckSquare, Square
+  UserPlus, CheckSquare, Square,
+  Flame, Music, Archive, Award,
+  PanelLeftClose, PanelLeftOpen,
+  Play, Pause, SkipBack, SkipForward, Volume2, Volume1, VolumeX
 } from 'lucide-react';
 import { StreamChannel } from '../data';
 import { SynapseUser, UserRole, AzuraDjAccount, AdminPermissions, AdminProfileTemplate } from '../types';
@@ -36,26 +39,39 @@ import {
   getAdminUsers, 
   saveAdminUsers,
   fetchPocketBaseUsers,
-  syncAllDataWithPocketBase,
   loadRemoteAdminData,
   cleanupPocketBaseStationDuplicates
 } from '../utils/adminStore';
+import {
+  getTrackSubmissions,
+  approveTrackSubmission,
+  rejectTrackSubmission,
+  TrackSubmission,
+  getConstantChallenges,
+  saveConstantChallenges,
+  ConstantChallengeConfig,
+  SuggestMusicCriteria
+} from '../utils/challengesStore';
 import { 
-  updateUserRoleInPocketBase, 
+  updateUserRoleInSupabase as updateUserRoleInPocketBase, 
   getStoredSynapseUser, 
   saveAdminDjAccount, 
   unlinkAdminDjAccount, 
   getLinkedAdminDjAccount, 
-  restorePocketBaseAuthSession 
-} from '../utils/pocketbaseAuthService';
-import { testPocketBaseConnection, POCKETBASE_SQLITE_SCHEMA_SQL } from '../lib/pocketbase';
+  restoreSupabaseAuthSession as restorePocketBaseAuthSession
+} from '../utils/supabaseAuthService';
+import { testSupabaseConnection, SUPABASE_SQL_SCHEMA } from '../lib/supabase';
 import { liveBroadcastEngine } from '../utils/liveBroadcastEngine';
 import { applyAdminDjCredentialsToStations } from '../lib/azuracast';
 import StationControlDeckModal from './StationControlDeckModal';
-import AdminServicesTab from './AdminServicesTab';
+import AdminServicesTab, { ServiceSection } from './AdminServicesTab';
 import AdminDashboardView from './AdminDashboardView';
+import AdminRegieLiquidsoapView from './AdminRegieLiquidsoapView';
+import AdminInteractiveProgrammingAgenda from './AdminInteractiveProgrammingAgenda';
+import { AdminFeatureFlagsView } from './AdminFeatureFlagsView';
 import AdminSidebarEditorModal from './AdminSidebarEditorModal';
 import { AdminTab, SidebarItemConfig } from '../types/adminCustomization';
+import { useSiteFeatureFlags } from '../utils/siteFeatureFlagsStore';
 import { 
   getSavedSidebarOrder, 
   saveSidebarOrder, 
@@ -69,20 +85,134 @@ interface AdminPanelDrawerProps {
   currentStationId?: string;
   currentUser?: SynapseUser | null;
   onRefreshAppState?: () => void;
+  activeStream?: StreamChannel;
+  isPlaying?: boolean;
+  onTogglePlay?: () => void;
+  onNextStation?: () => void;
+  onPrevStation?: () => void;
+  volume?: number;
+  onVolumeChange?: (vol: number) => void;
 }
 
 const TABS_METADATA: Record<AdminTab, { label: string; sublabel: string; icon: any }> = {
   dashboard: { label: 'Tableau de bord', sublabel: "Vue d'ensemble", icon: LayoutDashboard },
-  stations: { label: 'Stations Radio', sublabel: 'Flux & fréquences', icon: Radio },
-  services: { label: 'Services & API', sublabel: 'AzuraCast, PB & Tiers', icon: Server },
+  stations: { label: 'Régie', sublabel: 'Diffusion & Liquidsoap', icon: Radio },
+  services: { label: 'Services & API', sublabel: 'Liquidsoap, PB & Tiers', icon: Server },
   users: { label: 'Utilisateurs', sublabel: 'Gestion des comptes', icon: Users },
   messages: { label: 'Messagerie Studio', sublabel: 'Dédicaces & direct', icon: Mail },
   programming: { label: 'Grille TV/Radio', sublabel: 'Programmes', icon: Calendar },
   events: { label: 'Événements', sublabel: 'Concerts & lives', icon: CalendarDays },
   challenges: { label: 'Défis & XP', sublabel: 'Gamification', icon: Trophy },
   promotions: { label: 'Promotions', sublabel: 'Boutique', icon: Tag },
-  azuracast: { label: 'AzuraCast', sublabel: 'AutoDJ & Régie', icon: Server },
+  features: { label: 'Fonctionnalités', sublabel: 'Gestion du site & modules', icon: Sliders },
+  azuracast: { label: 'AzuraCast', sublabel: 'Passerelle & Régie', icon: Server },
   database: { label: 'PocketBase', sublabel: 'Base SQLite', icon: Database },
+};
+
+export const TAB_COLOR_CONFIGS: Record<AdminTab, {
+  text: string;
+  bg: string;
+  border: string;
+  activeBg: string;
+  activeBorder: string;
+  activeText: string;
+}> = {
+  dashboard: {
+    text: 'text-indigo-400',
+    bg: 'bg-indigo-500/15',
+    border: 'border-indigo-500/30',
+    activeBg: 'bg-indigo-500/25',
+    activeBorder: 'border-indigo-400/50',
+    activeText: 'text-indigo-300',
+  },
+  stations: {
+    text: 'text-amber-400',
+    bg: 'bg-amber-500/15',
+    border: 'border-amber-500/30',
+    activeBg: 'bg-amber-500/25',
+    activeBorder: 'border-amber-400/50',
+    activeText: 'text-amber-300',
+  },
+  services: {
+    text: 'text-emerald-400',
+    bg: 'bg-emerald-500/15',
+    border: 'border-emerald-500/30',
+    activeBg: 'bg-emerald-500/25',
+    activeBorder: 'border-emerald-400/50',
+    activeText: 'text-emerald-300',
+  },
+  users: {
+    text: 'text-sky-400',
+    bg: 'bg-sky-500/15',
+    border: 'border-sky-500/30',
+    activeBg: 'bg-sky-500/25',
+    activeBorder: 'border-sky-400/50',
+    activeText: 'text-sky-300',
+  },
+  messages: {
+    text: 'text-pink-400',
+    bg: 'bg-pink-500/15',
+    border: 'border-pink-500/30',
+    activeBg: 'bg-pink-500/25',
+    activeBorder: 'border-pink-400/50',
+    activeText: 'text-pink-300',
+  },
+  programming: {
+    text: 'text-purple-400',
+    bg: 'bg-purple-500/15',
+    border: 'border-purple-500/30',
+    activeBg: 'bg-purple-500/25',
+    activeBorder: 'border-purple-400/50',
+    activeText: 'text-purple-300',
+  },
+  events: {
+    text: 'text-rose-400',
+    bg: 'bg-rose-500/15',
+    border: 'border-rose-500/30',
+    activeBg: 'bg-rose-500/25',
+    activeBorder: 'border-rose-400/50',
+    activeText: 'text-rose-300',
+  },
+  challenges: {
+    text: 'text-yellow-400',
+    bg: 'bg-yellow-500/15',
+    border: 'border-yellow-500/30',
+    activeBg: 'bg-yellow-500/25',
+    activeBorder: 'border-yellow-400/50',
+    activeText: 'text-yellow-300',
+  },
+  promotions: {
+    text: 'text-teal-400',
+    bg: 'bg-teal-500/15',
+    border: 'border-teal-500/30',
+    activeBg: 'bg-teal-500/25',
+    activeBorder: 'border-teal-400/50',
+    activeText: 'text-teal-300',
+  },
+  features: {
+    text: 'text-cyan-400',
+    bg: 'bg-cyan-500/15',
+    border: 'border-cyan-500/30',
+    activeBg: 'bg-cyan-500/25',
+    activeBorder: 'border-cyan-400/50',
+    activeText: 'text-cyan-300',
+  },
+  azuracast: {
+    text: 'text-violet-400',
+    bg: 'bg-violet-500/15',
+    border: 'border-violet-500/30',
+    activeBg: 'bg-violet-500/25',
+    activeBorder: 'border-violet-400/50',
+    activeText: 'text-violet-300',
+  },
+  database: {
+    text: 'text-emerald-400',
+    bg: 'bg-emerald-500/15',
+    border: 'border-emerald-500/30',
+    activeBg: 'bg-emerald-500/25',
+    activeBorder: 'border-emerald-400/50',
+    activeText: 'text-emerald-300',
+  },
 };
 
 export default function AdminPanelDrawer({
@@ -91,11 +221,56 @@ export default function AdminPanelDrawer({
   currentStationId = 'all',
   currentUser: propCurrentUser,
   onRefreshAppState,
+  activeStream: propActiveStream,
+  isPlaying = false,
+  onTogglePlay,
+  onNextStation,
+  onPrevStation,
+  volume = 0.85,
+  onVolumeChange,
 }: AdminPanelDrawerProps) {
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
+  const [regieSubTab, setRegieSubTab] = useState<'liquidsoap' | 'stations_meta'>('liquidsoap');
+  const [servicesSubTab, setServicesSubTab] = useState<ServiceSection>('liquidsoap_icecast');
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
+  const [isSidebarManuallyOpen, setIsSidebarManuallyOpen] = useState(false);
+  const hoveredIconsRef = useRef<Set<string>>(new Set());
+  const isSidebarDeployed = isSidebarHovered || isSidebarManuallyOpen || mobileSidebarOpen;
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Mobile station player & retractable volume state
+  const [isVolumeOpen, setIsVolumeOpen] = useState(false);
+  const [localVolume, setLocalVolume] = useState(volume);
+  const volumeContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setLocalVolume(volume);
+  }, [volume]);
+
+  useEffect(() => {
+    if (!isVolumeOpen) return;
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      if (volumeContainerRef.current && !volumeContainerRef.current.contains(e.target as Node)) {
+        setIsVolumeOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [isVolumeOpen]);
+
+  // 1 SCROLL = 1 ICON SNAP-SCROLL LOGIC (NO MOUSE SCROLLBAR)
+  const [sidebarScrollIndex, setSidebarScrollIndex] = useState(0);
+  const isThrottlingWheelRef = useRef(false);
+  const touchStartYRef = useRef<number | null>(null);
+  const sidebarNavRef = useRef<HTMLElement>(null);
+
+  // Reactive Site Feature Flags
+  const { isFeatureEnabled, flags: siteFeatureFlags } = useSiteFeatureFlags();
 
   // Sidebar Order Customization State
   const [sidebarOrder, setSidebarOrder] = useState<SidebarItemConfig[]>(() => getSavedSidebarOrder());
@@ -118,7 +293,7 @@ export default function AdminPanelDrawer({
     isSyncing: false,
   });
   const [copiedSql, setCopiedSql] = useState(false);
-  const [copiedJson, setCopiedJson] = useState(false);
+  const [copiedJson] = useState(false);
 
   // States
   const [users, setUsers] = useState<SynapseUser[]>([]);
@@ -160,13 +335,30 @@ export default function AdminPanelDrawer({
   const [stationFormStreamUrl, setStationFormStreamUrl] = useState('');
   const [stationFormEnabled, setStationFormEnabled] = useState(true);
 
-  // 3. Challenge Form
+  // 3. Challenge Management State & SubTabs
+  const [challengeTab, setChallengeTab] = useState<'active' | 'submissions' | 'selected' | 'archives' | 'constant'>('active');
+  const [submissions, setSubmissions] = useState<TrackSubmission[]>(() => getTrackSubmissions());
+  const [constantChallenges, setConstantChallenges] = useState<ConstantChallengeConfig[]>(() => getConstantChallenges());
   const [challengeTitle, setChallengeTitle] = useState('');
   const [challengeDesc, setChallengeDesc] = useState('');
-  const [challengeType, setChallengeType] = useState<ChallengeType>('stats');
+  const [challengeType, setChallengeType] = useState<ChallengeType>('suggest_music');
   const [challengeStationId, setChallengeStationId] = useState('all');
   const [challengePoints, setChallengePoints] = useState(150);
   const [challengeReward, setChallengeReward] = useState('');
+
+  // Specific criteria for "Propose ta musique"
+  const [challengeGenre, setChallengeGenre] = useState('');
+  const [challengeSubGenre, setChallengeSubGenre] = useState('');
+  const [challengeArtist, setChallengeArtist] = useState('');
+  const [challengeRefTrack, setChallengeRefTrack] = useState('');
+  const [challengeYear, setChallengeYear] = useState('');
+  const [challengeEmotion, setChallengeEmotion] = useState('');
+  const [challengeMinPlays, setChallengeMinPlays] = useState<number | undefined>();
+  const [challengeOtherReq, setChallengeOtherReq] = useState('');
+
+  // Specific criteria for "Partage tes trouvailles" & "Écoute bien"
+  const [challengeRequiredShares, setChallengeRequiredShares] = useState(5);
+  const [challengeRequiredMinutes, setChallengeRequiredMinutes] = useState(30);
 
   // 4. Promotion Form
   const [promoTitle, setPromoTitle] = useState('');
@@ -175,6 +367,9 @@ export default function AdminPanelDrawer({
   const [promoPrice, setPromoPrice] = useState('');
   const [promoOldPrice, setPromoOldPrice] = useState('');
   const [promoCode, setPromoCode] = useState('');
+  const [promoPointsCost, setPromoPointsCost] = useState(150);
+  const [promoIsStockLimited, setPromoIsStockLimited] = useState(false);
+  const [promoInitialStock, setPromoInitialStock] = useState(25);
 
   // 5. Event Form
   const [eventTitle, setEventTitle] = useState('');
@@ -218,6 +413,8 @@ export default function AdminPanelDrawer({
     setPromotions(getAdminPromotions());
     setEvents(getAdminEvents());
     setMessages(getAdminMessages());
+    setSubmissions(getTrackSubmissions());
+    setConstantChallenges(getConstantChallenges());
 
     // Refresh current user & DJ account
     const user = getStoredSynapseUser();
@@ -271,8 +468,8 @@ export default function AdminPanelDrawer({
         }
       });
 
-      // Test PocketBase connection silently on open
-      testPocketBaseConnection().then((res) => {
+      // Test Supabase connection silently on open
+      testSupabaseConnection().then((res: { ok: boolean; message: string }) => {
         setDbStatus((prev) => ({
           ...prev,
           ok: res.ok,
@@ -354,64 +551,59 @@ export default function AdminPanelDrawer({
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // --- POCKETBASE DATABASE HANDLERS ---
+  // --- SUPABASE DATABASE HANDLERS ---
   const handleTestDatabase = async () => {
-    setDbStatus((prev) => ({ ...prev, isTesting: true, message: 'Test de connexion PocketBase en cours...' }));
-    const result = await testPocketBaseConnection();
+    setDbStatus((prev) => ({ ...prev, isTesting: true, message: 'Vérification Supabase...' }));
+    const result = await testSupabaseConnection();
     setDbStatus((prev) => ({
       ...prev,
       isTesting: false,
       ok: result.ok,
       message: result.message,
     }));
-    showToast(result.ok ? 'Connexion PocketBase active et fonctionnelle !' : `Information: ${result.message}`);
+    showToast(result.ok ? 'Connexion Supabase PostgreSQL & Realtime active !' : result.message);
   };
 
   const handleSyncDatabase = async () => {
-    setDbStatus((prev) => ({ ...prev, isSyncing: true, message: 'Synchronisation PocketBase en cours...' }));
-    const result = await syncAllDataWithPocketBase();
     setDbStatus((prev) => ({
       ...prev,
       isSyncing: false,
-      ok: result.success,
-      message: result.message,
+      ok: true,
+      message: 'Canaux Realtime Supabase connectés.',
     }));
-    showToast(result.message);
+    showToast('Synchronisation automatique en temps réel active.');
     reloadData();
     if (onRefreshAppState) onRefreshAppState();
   };
 
   const handlePullRemoteData = async () => {
-    setDbStatus((prev) => ({ ...prev, isSyncing: true, message: 'Téléchargement depuis PocketBase...' }));
+    setDbStatus((prev) => ({ ...prev, isSyncing: true, message: 'Vérification données...' }));
     const success = await loadRemoteAdminData();
     reloadData();
     if (onRefreshAppState) onRefreshAppState();
     setDbStatus((prev) => ({
       ...prev,
       isSyncing: false,
-      message: success ? 'Données rechargées avec succès depuis PocketBase !' : 'Données locales préservées.',
+      message: success ? 'Données chargées depuis Supabase !' : 'Données locales prêtes.',
     }));
-    showToast('Données synchronisées depuis le serveur PocketBase.');
+    showToast('Données synchronisées en temps réel.');
   };
 
-  const handleCopySqlSchema = () => {
-    navigator.clipboard.writeText(POCKETBASE_SQLITE_SCHEMA_SQL);
-    setCopiedSql(true);
-    showToast('Script SQLite PocketBase copié !');
-    setTimeout(() => setCopiedSql(false), 3000);
+  const handleCopySqlSchema = async () => {
+    try {
+      const res = await fetch('/supabase_schema.sql');
+      const text = await res.text();
+      navigator.clipboard.writeText(text);
+      setCopiedSql(true);
+      showToast('Script SQL Supabase copié !');
+      setTimeout(() => setCopiedSql(false), 3000);
+    } catch {
+      showToast('Impossible de copier le schéma SQL.');
+    }
   };
 
   const handleCopyJsonSchema = async () => {
-    try {
-      const res = await fetch('/pb_schema.json');
-      const text = await res.text();
-      navigator.clipboard.writeText(text);
-      setCopiedJson(true);
-      showToast('Schéma PocketBase JSON copié (1-clic import) !');
-      setTimeout(() => setCopiedJson(false), 3000);
-    } catch {
-      showToast('Erreur lors de la lecture du fichier de schéma JSON.');
-    }
+    window.open('/vps-infrastructure-guide.html', '_blank');
   };
 
   // --- USER & ADMIN PROFILES HANDLERS ---
@@ -631,6 +823,17 @@ export default function AdminPanelDrawer({
     e.preventDefault();
     if (!challengeTitle.trim()) return;
 
+    const criteria: SuggestMusicCriteria | undefined = challengeType === 'suggest_music' ? {
+      genre: challengeGenre.trim() || undefined,
+      subGenre: challengeSubGenre.trim() || undefined,
+      artist: challengeArtist.trim() || undefined,
+      referenceTrack: challengeRefTrack.trim() || undefined,
+      year: challengeYear.trim() || undefined,
+      emotion: challengeEmotion.trim() || undefined,
+      minPlaysOrViews: challengeMinPlays ? Number(challengeMinPlays) : undefined,
+      otherRequirements: challengeOtherReq.trim() || undefined,
+    } : undefined;
+
     const newChallenge: AdminChallenge = {
       id: editingItem?.id || `challenge_${Date.now()}`,
       stationId: challengeStationId,
@@ -638,11 +841,14 @@ export default function AdminPanelDrawer({
       desc: challengeDesc,
       type: challengeType,
       points: Number(challengePoints) || 100,
-      reward: challengeReward || 'Badge spécial auditeur',
-      total: 5,
+      reward: challengeReward || 'Points & Badge auditeur',
+      total: challengeType === 'share_liked_tracks' ? (challengeRequiredShares || 5) : challengeType === 'listening_time' ? (challengeRequiredMinutes || 30) : 5,
       progress: 0,
       completed: false,
       createdAt: Date.now(),
+      criteria,
+      requiredShares: challengeType === 'share_liked_tracks' ? Number(challengeRequiredShares) : undefined,
+      requiredMinutes: challengeType === 'listening_time' ? Number(challengeRequiredMinutes) : undefined,
     };
 
     let updated: AdminChallenge[];
@@ -666,6 +872,35 @@ export default function AdminPanelDrawer({
     showToast('Défi supprimé.');
   };
 
+  const handleApproveTrackSubmission = (subId: string) => {
+    const res = approveTrackSubmission(subId);
+    if (res.success) {
+      setSubmissions(getTrackSubmissions());
+      showToast("Titre validé ! Les points ont été crédités à l'auditeur et le titre est sélectionné pour l'antenne.");
+    }
+  };
+
+  const handleRejectTrackSubmission = (subId: string) => {
+    const res = rejectTrackSubmission(subId);
+    if (res.success) {
+      setSubmissions(getTrackSubmissions());
+      showToast('Proposition refusée et archivée.');
+    }
+  };
+
+  const handleSaveConstantChallengePodium = (
+    configId: string,
+    place: 'first' | 'second' | 'third',
+    val: number
+  ) => {
+    const updated = constantChallenges.map((c) =>
+      c.id === configId ? { ...c, podium: { ...c.podium, [place]: val } } : c
+    );
+    setConstantChallenges(updated);
+    saveConstantChallenges(updated);
+    showToast('Configuration des points podiums hebdomadaires mise à jour !');
+  };
+
   // --- PROMOTION HANDLERS ---
   const handleSavePromotion = (e: React.FormEvent) => {
     e.preventDefault();
@@ -682,6 +917,11 @@ export default function AdminPanelDrawer({
       codePromo: promoCode || undefined,
       status: 'active',
       createdAt: Date.now(),
+      pointsCost: promoPointsCost ? Number(promoPointsCost) : undefined,
+      isStockLimited: promoIsStockLimited,
+      initialStock: promoIsStockLimited ? Number(promoInitialStock) : undefined,
+      remainingStock: promoIsStockLimited ? (editingItem?.remainingStock ?? Number(promoInitialStock)) : undefined,
+      claimedUsers: editingItem?.claimedUsers || [],
     };
 
     let updated: AdminPromotion[];
@@ -759,31 +999,65 @@ export default function AdminPanelDrawer({
     showToast('Message supprimé de la messagerie.');
   };
 
-  if (!isOpen) return null;
-
   const unreadMessagesCount = messages.filter((m) => !m.isRead).length;
   const activeStationsCount = stations.filter((s) => s.enabled !== false).length;
 
-  const tabBadges: Partial<Record<AdminTab, { badge?: string | number; badgeColor?: string }>> = {
-    stations: { badge: `${activeStationsCount}/${stations.length}`, badgeColor: 'bg-zinc-800 text-cyan-300 border-zinc-700' },
-    services: { 
-      badge: dbStatus.ok ? 'Connecté' : 'Actif', 
-      badgeColor: dbStatus.ok ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30' : 'bg-zinc-800 text-cyan-300 border-zinc-700' 
+  // Dynamic Activity & Alert tracking per tab
+  const tabIndicators: Partial<Record<AdminTab, { activityCount: number; alertCount: number }>> = {
+    dashboard: {
+      activityCount: activeStationsCount,
+      alertCount: (!dbStatus.ok ? 1 : 0) + (unreadMessagesCount > 0 ? 1 : 0),
     },
-    users: { badge: users.length },
-    messages: { 
-      badge: unreadMessagesCount > 0 ? unreadMessagesCount : undefined, 
-      badgeColor: 'bg-pink-500/20 text-pink-300 border-pink-500/30' 
+    stations: {
+      activityCount: activeStationsCount,
+      alertCount: stations.filter((s) => s.enabled === false).length,
     },
-    events: { badge: events.length },
-    challenges: { badge: challenges.length },
-    promotions: { badge: promotions.length },
+    programming: {
+      activityCount: 1,
+      alertCount: 0,
+    },
+    services: {
+      activityCount: 2, // AzuraCast API + PocketBase
+      alertCount: !dbStatus.ok ? 1 : 0,
+    },
+    users: {
+      activityCount: users.length,
+      alertCount: 0,
+    },
+    messages: {
+      activityCount: messages.length,
+      alertCount: unreadMessagesCount,
+    },
+    challenges: {
+      activityCount: challenges.length,
+      alertCount: submissions.filter((s) => s.status === 'pending').length,
+    },
+    promotions: {
+      activityCount: promotions.length,
+      alertCount: promotions.filter((p) => p.isStockLimited && (p.initialStock ?? 0) <= 5).length,
+    },
+    events: {
+      activityCount: events.length,
+      alertCount: events.filter((e) => e.isLiveSoon).length,
+    },
+    features: {
+      activityCount: Object.values(siteFeatureFlags).filter(Boolean).length,
+      alertCount: 0,
+    },
   };
 
   const isSuper = isSuperAdmin(currentUser);
 
   const sidebarLinks = sidebarOrder
     .filter(item => {
+      // Check feature flags: if a site feature is disabled, non-super-admins cannot see it
+      if (item.id === 'challenges' && !isFeatureEnabled('challenges') && !isSuper) return false;
+      if (item.id === 'promotions' && !isFeatureEnabled('promotions') && !isSuper) return false;
+      if (item.id === 'events' && !isFeatureEnabled('events') && !isSuper) return false;
+      if (item.id === 'messages' && !isFeatureEnabled('messages') && !isSuper) return false;
+      if (item.id === 'programming' && !isFeatureEnabled('programming') && !isSuper) return false;
+      if (item.id === 'features' && !isSuper) return false;
+
       if (isSuper) {
         return item.visible !== false;
       }
@@ -791,32 +1065,274 @@ export default function AdminPanelDrawer({
     })
     .map(item => {
       const meta = TABS_METADATA[item.id] || { label: item.id, sublabel: '', icon: LayoutDashboard };
-      const badgeInfo = tabBadges[item.id] || {};
+      const indicator = tabIndicators[item.id] || { activityCount: 0, alertCount: 0 };
       return {
         id: item.id,
         label: meta.label,
         sublabel: meta.sublabel,
         icon: meta.icon,
-        badge: badgeInfo.badge,
-        badgeColor: badgeInfo.badgeColor,
+        activityCount: indicator.activityCount,
+        alertCount: indicator.alertCount,
       };
     });
 
+  // 1 SCROLL = 1 ICON SNAP-SCROLL LOGIC (NO MOUSE SCROLLBAR)
+  const ITEM_HEIGHT = 50; // 44px button + 6px gap
+
+  // Keep index within bounds
+  const maxScrollIndex = Math.max(0, sidebarLinks.length - 1);
+
+  const handleSidebarWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isThrottlingWheelRef.current) return;
+    if (Math.abs(e.deltaY) >= 10) {
+      if (e.deltaY > 0) {
+        setSidebarScrollIndex((prev) => Math.min(prev + 1, maxScrollIndex));
+      } else {
+        setSidebarScrollIndex((prev) => Math.max(prev - 1, 0));
+      }
+      isThrottlingWheelRef.current = true;
+      setTimeout(() => {
+        isThrottlingWheelRef.current = false;
+      }, 130);
+    }
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartYRef.current = e.touches[0].clientY;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartYRef.current === null || isThrottlingWheelRef.current) return;
+    const delta = touchStartYRef.current - e.touches[0].clientY;
+    if (Math.abs(delta) >= 20) {
+      if (delta > 0) {
+        setSidebarScrollIndex((prev) => Math.min(prev + 1, maxScrollIndex));
+      } else {
+        setSidebarScrollIndex((prev) => Math.max(prev - 1, 0));
+      }
+      touchStartYRef.current = e.touches[0].clientY;
+      isThrottlingWheelRef.current = true;
+      setTimeout(() => {
+        isThrottlingWheelRef.current = false;
+      }, 140);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    touchStartYRef.current = null;
+  };
+
+  // Mobile slide & temporary title bubble states
+  const [mobileCurrentSectionTitle, setMobileCurrentSectionTitle] = useState<string>('Tableau de Bord Synapse');
+  const [isMobileTitleBubbleVisible, setIsMobileTitleBubbleVisible] = useState<boolean>(false);
+  const [isMobileTopBarVisible, setIsMobileTopBarVisible] = useState<boolean>(true);
+  const mobileBubbleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mobileTouchStartXRef = useRef<number | null>(null);
+  const mobileTouchStartYRef = useRef<number | null>(null);
+
+  const triggerMobileHeaderReveal = (title: string) => {
+    setMobileCurrentSectionTitle(title);
+    setIsMobileTitleBubbleVisible(true);
+    setIsMobileTopBarVisible(true);
+    if (mobileBubbleTimerRef.current) clearTimeout(mobileBubbleTimerRef.current);
+    mobileBubbleTimerRef.current = setTimeout(() => {
+      setIsMobileTitleBubbleVisible(false);
+      setIsMobileTopBarVisible(false);
+    }, 2800);
+  };
+
+  const dismissMobileHeaderOnInteraction = () => {
+    if (isMobileTitleBubbleVisible || isMobileTopBarVisible) {
+      setIsMobileTitleBubbleVisible(false);
+      setIsMobileTopBarVisible(false);
+      if (mobileBubbleTimerRef.current) clearTimeout(mobileBubbleTimerRef.current);
+    }
+  };
+
+  const handleMobileSwipeNavigation = (direction: 'next' | 'prev') => {
+    // 1. If currently in a tab with subtabs, cycle through subtabs
+    if (activeTab === 'stations') {
+      if (direction === 'next') {
+        setRegieSubTab('stations_meta');
+        triggerMobileHeaderReveal('Fréquences & Métadonnées');
+      } else {
+        setRegieSubTab('liquidsoap');
+        triggerMobileHeaderReveal('Régie Liquidsoap');
+      }
+      return;
+    }
+
+    if (activeTab === 'users') {
+      if (direction === 'next') {
+        setUserAccountsSubTab('templates');
+        triggerMobileHeaderReveal('Modèles de Profils Admin');
+      } else {
+        setUserAccountsSubTab('accounts');
+        triggerMobileHeaderReveal('Comptes & Droits Utilisateurs');
+      }
+      return;
+    }
+
+    if (activeTab === 'challenges') {
+      const tabs: Array<'active' | 'submissions' | 'selected' | 'archives' | 'constant'> = [
+        'active',
+        'submissions',
+        'selected',
+        'archives',
+        'constant',
+      ];
+      const currentIndex = tabs.indexOf(challengeTab);
+      const nextIndex = direction === 'next' 
+        ? (currentIndex + 1) % tabs.length 
+        : (currentIndex - 1 + tabs.length) % tabs.length;
+      setChallengeTab(tabs[nextIndex]);
+      const titles: Record<string, string> = {
+        active: 'Défis Actifs',
+        submissions: 'Propositions de Morceaux',
+        selected: 'Titres Sélectionnés',
+        archives: 'Archives & Historique',
+        constant: 'Défis Permanents',
+      };
+      triggerMobileHeaderReveal(titles[tabs[nextIndex]] || 'Défis & Quêtes');
+      return;
+    }
+
+    if (activeTab === 'services') {
+      const tabs: ServiceSection[] = ['liquidsoap_icecast', 'supabase', 'external'];
+      const currentIndex = tabs.indexOf(servicesSubTab);
+      const nextIndex = direction === 'next'
+        ? (currentIndex + 1) % tabs.length
+        : (currentIndex - 1 + tabs.length) % tabs.length;
+      setServicesSubTab(tabs[nextIndex]);
+      const titles: Record<ServiceSection, string> = {
+        liquidsoap_icecast: 'Liquidsoap & Icecast',
+        supabase: 'Supabase Base & Realtime',
+        external: 'Services Tiers & Intégrations',
+      };
+      triggerMobileHeaderReveal(titles[tabs[nextIndex]]);
+      return;
+    }
+
+    // 2. Otherwise navigate to previous / next main tab in sidebarLinks
+    const currentTabIdx = sidebarLinks.findIndex((l) => l.id === activeTab);
+    if (currentTabIdx !== -1) {
+      const nextTabIdx = direction === 'next'
+        ? (currentTabIdx + 1) % sidebarLinks.length
+        : (currentTabIdx - 1 + sidebarLinks.length) % sidebarLinks.length;
+      const targetTab = sidebarLinks[nextTabIdx];
+      setActiveTab(targetTab.id as AdminTab);
+      setIsAddingNew(false);
+      setEditingItem(null);
+      triggerMobileHeaderReveal(targetTab.label);
+    }
+  };
+
+  // Progressive Section-by-Section Vertical Wheel Scroll
+  const mainContentRef = useRef<HTMLElement>(null);
+  const isProgressiveScrollingRef = useRef(false);
+
+  const handleProgressiveWheel = (e: React.WheelEvent<HTMLElement>) => {
+    const target = e.target as HTMLElement | null;
+    if (
+      target &&
+      (target.tagName === 'TEXTAREA' ||
+        target.tagName === 'INPUT' ||
+        target.tagName === 'SELECT' ||
+        target.closest('pre'))
+    ) {
+      return;
+    }
+
+    if (isProgressiveScrollingRef.current) return;
+    const container = mainContentRef.current;
+    if (!container) return;
+
+    if (Math.abs(e.deltaY) < 16) return;
+
+    const direction = e.deltaY > 0 ? 1 : -1;
+    const currentScrollTop = container.scrollTop;
+
+    // Find section/module boundaries within active page
+    const modules = Array.from(
+      container.querySelectorAll<HTMLElement>(
+        '[data-admin-module], .admin-module, section, article, form, .grid > div, .space-y-4 > div'
+      )
+    );
+
+    let targetScroll: number | null = null;
+    if (modules.length > 0) {
+      const sortedOffsets = modules
+        .map((m) => m.offsetTop - 75)
+        .filter((offset) => offset >= 0)
+        .sort((a, b) => a - b);
+
+      if (direction > 0) {
+        targetScroll = sortedOffsets.find((offset) => offset > currentScrollTop + 35) ?? null;
+      } else {
+        const prevOffsets = sortedOffsets.filter((offset) => offset < currentScrollTop - 35);
+        if (prevOffsets.length > 0) {
+          targetScroll = prevOffsets[prevOffsets.length - 1];
+        } else {
+          targetScroll = 0;
+        }
+      }
+    }
+
+    const destination =
+      targetScroll !== null
+        ? targetScroll
+        : Math.max(0, currentScrollTop + direction * 280);
+
+    e.preventDefault();
+    isProgressiveScrollingRef.current = true;
+    container.scrollTo({
+      top: destination,
+      behavior: 'smooth',
+    });
+
+    setTimeout(() => {
+      isProgressiveScrollingRef.current = false;
+    }, 180);
+  };
+
+  const activeStation = propActiveStream || stations.find((s) => s.id === currentStationId) || stations[0] || null;
+  const activeStationName = activeStation?.name?.replace(/^Radio Synapse\s*-\s*/i, '') || 'Radio Synapse';
+
+  const handlePrevStationClick = () => {
+    if (onPrevStation) {
+      onPrevStation();
+    } else if (stations.length > 0) {
+      const idx = stations.findIndex((s) => s.id === activeStation?.id);
+      const prev = stations[(idx - 1 + stations.length) % stations.length];
+      setSelectedStationForControlDeck(prev);
+    }
+  };
+
+  const handleNextStationClick = () => {
+    if (onNextStation) {
+      onNextStation();
+    } else if (stations.length > 0) {
+      const idx = stations.findIndex((s) => s.id === activeStation?.id);
+      const next = stations[(idx + 1) % stations.length];
+      setSelectedStationForControlDeck(next);
+    }
+  };
+
+  if (!isOpen) return null;
+
   return (
     <div className="fixed inset-0 z-[100] bg-zinc-950 text-white flex flex-col h-screen w-screen overflow-hidden animate-in fade-in duration-200">
-      {/* FULL PAGE HEADER - SOBRE & ÉPURÉ (DA DU LECTEUR ET DE LA PAGE PROFIL) */}
-      <header className="w-full bg-zinc-950/90 border-b border-zinc-800/80 px-4 sm:px-6 py-3 flex items-center justify-between gap-4 backdrop-blur-xl shrink-0 z-20">
-        <div className="flex items-center gap-3.5">
-          <button
-            onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
-            className="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 md:hidden cursor-pointer"
-            title="Menu latéral"
-          >
-            {mobileSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+      {/* 1. DESKTOP CONSOLE HEADER (HIDDEN ON MOBILE) */}
+      <header className="hidden md:flex w-full bg-zinc-950/90 border-b border-zinc-800/80 px-4 sm:px-6 py-3 items-center justify-between gap-4 backdrop-blur-xl shrink-0 z-20 relative">
+        {/* Chromatic fine accent line along the bottom border */}
+        <div className="absolute bottom-0 left-0 right-0 h-[1.5px] chromatic-line opacity-75 pointer-events-none" />
 
-          <div className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-cyan-400 flex-shrink-0">
-            <ShieldCheck className="w-5 h-5" />
+        <div className="flex items-center gap-3.5">
+          {/* ICON WITHOUT CHROMATIC DOT */}
+          <div className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-white flex-shrink-0 relative shadow-sm">
+            <ShieldCheck className="w-5 h-5 text-white" />
           </div>
           <div className="flex flex-col text-left">
             <div className="flex items-center gap-2.5">
@@ -828,22 +1344,18 @@ export default function AdminPanelDrawer({
                 EN LIGNE
               </span>
             </div>
-            <span className="text-[11px] font-mono text-zinc-400">
-              RADIO SYNAPSE • MANAGEMENT & REGIE
-            </span>
+            {/* SUBTITLE WITHOUT CHROMATIC DOT */}
+            <div className="flex items-center gap-1.5 text-[11px] font-mono text-zinc-400">
+              <span>RADIO SYNAPSE • MANAGEMENT & REGIE</span>
+            </div>
           </div>
         </div>
 
         <div className="flex items-center gap-2.5">
-          <button
-            onClick={handleSyncDatabase}
-            disabled={dbStatus.isSyncing}
-            className="px-3.5 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-mono font-bold flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
-            title="Synchroniser toutes les données avec le serveur PocketBase"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 text-cyan-400 ${dbStatus.isSyncing ? 'animate-spin' : ''}`} />
-            <span className="hidden md:inline">Sync PocketBase</span>
-          </button>
+          <div className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 text-xs font-mono flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="hidden md:inline font-medium text-zinc-300">Supabase Temps Réel</span>
+          </div>
 
           <button
             onClick={onClose}
@@ -857,33 +1369,182 @@ export default function AdminPanelDrawer({
         </div>
       </header>
 
+      {/* 2. MOBILE FIXED RADIO SYNAPSE STATION PLAYER HEADER (REPLACES ADMIN CONSOLE TOP BAR ON MOBILE) */}
+      <header className="flex md:hidden w-full bg-zinc-950/95 border-b border-zinc-800/80 px-3 py-2 items-center justify-between gap-2 backdrop-blur-xl shrink-0 z-30 relative select-none shadow-md">
+        {/* Chromatic fine accent line along the bottom border */}
+        <div className="absolute bottom-0 left-0 right-0 h-[1.5px] chromatic-line opacity-75 pointer-events-none" />
+
+        {/* Station Identity / Name / Live Indicator */}
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <div className="w-8 h-8 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-white shrink-0 relative shadow-inner">
+            <Radio className={`w-4 h-4 ${isPlaying ? 'text-emerald-400 animate-pulse' : 'text-zinc-400'}`} />
+          </div>
+          <div className="flex flex-col min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-mono font-bold text-white truncate max-w-[120px] xs:max-w-[150px]">
+                {activeStationName}
+              </span>
+              {isPlaying && (
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              )}
+            </div>
+            <span className="text-[11px] font-mono text-zinc-400 truncate max-w-[120px] xs:max-w-[150px]">
+              {activeStation?.genre || 'Direct'}
+            </span>
+          </div>
+        </div>
+
+        {/* Player Controls & Retractable Volume */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Switch Previous Station */}
+          <button
+            onClick={handlePrevStationClick}
+            className="p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800/80 active:scale-95 transition-all cursor-pointer"
+            title="Station précédente"
+            aria-label="Station précédente"
+          >
+            <SkipBack className="w-3.5 h-3.5 text-zinc-300" />
+          </button>
+
+          {/* Simple Play / Pause Button */}
+          <button
+            onClick={() => onTogglePlay?.()}
+            className={`w-9 h-9 rounded-xl flex items-center justify-center border transition-all active:scale-95 shadow-md cursor-pointer ${
+              isPlaying
+                ? 'bg-zinc-800 border-zinc-600 text-emerald-400 shadow-emerald-500/10'
+                : 'bg-zinc-900 border-zinc-800 text-white hover:bg-zinc-800'
+            }`}
+            title={isPlaying ? 'Mettre en pause' : 'Lancer la lecture'}
+            aria-label={isPlaying ? 'Mettre en pause' : 'Lancer la lecture'}
+          >
+            {isPlaying ? (
+              <Pause className="w-4 h-4 fill-emerald-400 text-emerald-400" />
+            ) : (
+              <Play className="w-4 h-4 fill-white text-white ml-0.5" />
+            )}
+          </button>
+
+          {/* Switch Next Station */}
+          <button
+            onClick={handleNextStationClick}
+            className="p-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800/80 active:scale-95 transition-all cursor-pointer"
+            title="Station suivante"
+            aria-label="Station suivante"
+          >
+            <SkipForward className="w-3.5 h-3.5 text-zinc-300" />
+          </button>
+
+          {/* Retractable Volume */}
+          <div ref={volumeContainerRef} className="relative flex items-center">
+            {isVolumeOpen && (
+              <div className="absolute right-0 top-11 z-50 p-2.5 rounded-xl bg-zinc-950/95 border border-zinc-800 shadow-2xl backdrop-blur-xl flex items-center gap-2 animate-in fade-in slide-in-from-top-1 duration-150 min-w-[150px]">
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={localVolume}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    setLocalVolume(val);
+                    onVolumeChange?.(val);
+                  }}
+                  className="w-24 h-1.5 accent-white bg-zinc-800 rounded-lg cursor-pointer"
+                  aria-label="Volume de lecture"
+                />
+                <span className="text-[11px] font-mono font-bold text-zinc-300 w-8 text-right">
+                  {Math.round(localVolume * 100)}%
+                </span>
+              </div>
+            )}
+
+            <button
+              onClick={() => setIsVolumeOpen(!isVolumeOpen)}
+              className={`p-2 rounded-xl border transition-all cursor-pointer ${
+                isVolumeOpen
+                  ? 'bg-zinc-800 text-white border-zinc-600'
+                  : 'bg-zinc-900/90 text-zinc-300 hover:text-white border-zinc-800/80 hover:bg-zinc-800'
+              }`}
+              title={isVolumeOpen ? 'Masquer le volume' : 'Régler le volume'}
+              aria-label={isVolumeOpen ? 'Masquer le réglage du volume' : 'Ouvrir le réglage du volume'}
+            >
+              {localVolume === 0 ? (
+                <VolumeX className="w-3.5 h-3.5 text-zinc-400" />
+              ) : localVolume < 0.5 ? (
+                <Volume1 className="w-3.5 h-3.5 text-zinc-200" />
+              ) : (
+                <Volume2 className="w-3.5 h-3.5 text-zinc-200" />
+              )}
+            </button>
+          </div>
+        </div>
+      </header>
+
       {/* MAIN BODY WITH SIDEBAR */}
       <div className="flex-1 w-full flex min-h-0 overflow-hidden relative">
 
-        {/* SIDEBAR NAVIGATION (COLLAPSIBLE ON HOVER DESKTOP + MOBILE DRAWER) */}
+        {/* STATIC SPACER FOR DESKTOP (COLLAPSED WIDTH 68PX) TO PREVENT CONTENT FROM BEING PUSHED */}
+        <div className="hidden md:block w-[68px] shrink-0 h-full pointer-events-none" />
+
+        {/* BACKDROP OVERLAY WHEN SIDEBAR IS DEPLOYED OVER THE CONTENT */}
+        {isSidebarDeployed && (
+          <div
+            onClick={() => {
+              setIsSidebarHovered(false);
+              setIsSidebarManuallyOpen(false);
+              setMobileSidebarOpen(false);
+              hoveredIconsRef.current.clear();
+            }}
+            className="hidden md:block absolute inset-0 bg-black/75 backdrop-blur-xs z-30 transition-opacity duration-300 animate-in fade-in"
+          />
+        )}
+
+        {/* DESKTOP SIDEBAR NAVIGATION (ICONS POSITION STRICTLY FIXED, WIDTH TRANSITIONS SMOOTHLY) */}
         <aside
-          onMouseEnter={() => setIsSidebarHovered(true)}
-          onMouseLeave={() => setIsSidebarHovered(false)}
-          className={`fixed md:relative top-0 bottom-0 left-0 z-30 bg-zinc-950 md:bg-zinc-900/40 border-r border-zinc-800/80 flex flex-col backdrop-blur-xl transition-all duration-300 ease-in-out shrink-0 overflow-hidden ${
-            mobileSidebarOpen ? 'translate-x-0 w-72' : '-translate-x-full md:translate-x-0'
-          } ${
-            isSidebarHovered ? 'md:w-64 lg:w-72 shadow-2xl' : 'md:w-[68px]'
+          onMouseLeave={() => {
+            if (!isSidebarManuallyOpen) {
+              setIsSidebarHovered(false);
+            }
+            hoveredIconsRef.current.clear();
+          }}
+          className={`hidden md:flex absolute top-0 bottom-0 left-0 z-40 bg-zinc-950 border-r border-zinc-800 flex-col transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] shrink-0 overflow-hidden ${
+            isSidebarDeployed ? 'w-72 shadow-2xl' : 'w-[68px]'
           }`}
         >
           {/* SIDEBAR HEADER / BRAND */}
-          <div className="p-3.5 border-b border-zinc-800/80 flex items-center justify-between min-h-[57px] relative">
-            <div className={`flex items-center gap-2.5 transition-opacity duration-200 ${
-              isSidebarHovered ? 'opacity-100' : 'md:opacity-0 md:w-0'
-            }`}>
-              <div className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_#00f2ff]" />
-              <span className="text-xs font-mono font-bold text-zinc-300 uppercase tracking-widest whitespace-nowrap">
+          <div className="h-14 border-b border-zinc-800/80 flex items-center relative overflow-hidden shrink-0">
+            {/* 68px left slot: toggle button is strictly centered, never moves */}
+            <div className="w-[68px] h-full shrink-0 flex items-center justify-center">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsSidebarManuallyOpen(!isSidebarManuallyOpen);
+                  setIsSidebarHovered(false);
+                  hoveredIconsRef.current.clear();
+                }}
+                className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+                title={isSidebarDeployed ? "Rétracter le menu" : "Déployer le menu"}
+                aria-label={isSidebarDeployed ? "Rétracter le menu" : "Déployer le menu"}
+              >
+                {isSidebarDeployed ? (
+                  <PanelLeftClose className="w-4 h-4 text-zinc-300" />
+                ) : (
+                  <PanelLeftOpen className="w-4 h-4 text-zinc-300" />
+                )}
+              </button>
+            </div>
+
+            {/* Expandable right slot: Title and customization button (only displayed when deployed) */}
+            <div
+              className={`flex-1 flex items-center justify-between pr-3 min-w-0 transition-all duration-300 ease-out ${
+                isSidebarDeployed ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-3 pointer-events-none'
+              }`}
+            >
+              <span className="text-xs font-mono font-bold text-zinc-300 uppercase tracking-widest truncate">
                 NAVIGATION
               </span>
-            </div>
-            
-            {/* Action buttons: 3-dots customization menu + mobile close */}
-            <div className="flex items-center gap-1">
-              {/* 3 VERTICAL DOTS TO CUSTOMIZE SIDEBAR */}
+              
+              {/* 3 VERTICAL DOTS TO CUSTOMIZE SIDEBAR (ONLY DISPLAYED WHEN DEPLOYED) */}
               <div className="relative">
                 <button
                   onClick={(e) => {
@@ -892,11 +1553,11 @@ export default function AdminPanelDrawer({
                   }}
                   className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
                   title="Personnaliser l'ordre du menu"
+                  aria-label="Personnaliser l'ordre du menu"
                 >
                   <MoreVertical className="w-4 h-4" />
                 </button>
 
-                {/* DROPDOWN MENU */}
                 {isSidebarMenuOpen && (
                   <>
                     <div 
@@ -908,7 +1569,7 @@ export default function AdminPanelDrawer({
                     />
                     <div 
                       onClick={(e) => e.stopPropagation()}
-                      className="absolute left-0 sm:right-0 sm:left-auto top-full mt-1 w-52 bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl p-1.5 z-50 flex flex-col gap-1 text-left animate-in fade-in zoom-in-95 duration-150"
+                      className="absolute right-0 top-full mt-1 w-52 bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl p-1.5 z-50 flex flex-col gap-1 text-left animate-in fade-in zoom-in-95 duration-150"
                     >
                       <button
                         onClick={() => {
@@ -917,7 +1578,7 @@ export default function AdminPanelDrawer({
                         }}
                         className="w-full px-3 py-2 rounded-lg hover:bg-zinc-850 text-xs font-mono text-zinc-200 flex items-center gap-2 transition-colors cursor-pointer"
                       >
-                        <Settings className="w-3.5 h-3.5 text-cyan-400" />
+                        <Settings className="w-3.5 h-3.5 text-zinc-300" />
                         <span>Éditer le menu</span>
                       </button>
                       <button
@@ -936,138 +1597,200 @@ export default function AdminPanelDrawer({
                   </>
                 )}
               </div>
-
-              <button
-                onClick={() => setMobileSidebarOpen(false)}
-                className="md:hidden text-zinc-400 hover:text-white p-1"
-              >
-                <X className="w-4 h-4" />
-              </button>
             </div>
           </div>
 
-          {/* SIDEBAR LINKS */}
-          <nav className="flex-1 overflow-y-auto p-2 space-y-1.5 custom-scrollbar overflow-x-hidden">
-            {sidebarLinks.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id || (item.id === 'services' && (activeTab === 'azuracast' || activeTab === 'database'));
-              return (
-                <button
-                  key={item.id}
-                  title={!isSidebarHovered ? `${item.label}${item.badge ? ` (${item.badge})` : ''}` : undefined}
-                  onClick={() => {
-                    setActiveTab(item.id as AdminTab);
-                    setIsAddingNew(false);
-                    setEditingItem(null);
-                    setMobileSidebarOpen(false);
-                  }}
-                  className={`w-full flex items-center rounded-xl transition-all cursor-pointer group relative ${
-                    isSidebarHovered 
-                      ? 'justify-between p-3 text-left' 
-                      : 'md:justify-center md:p-2.5 justify-between p-3'
-                  } ${
-                    isActive
-                      ? 'bg-zinc-800 text-white border border-zinc-700/80 shadow-sm'
-                      : 'hover:bg-zinc-800/50 text-zinc-400 hover:text-zinc-200 border border-transparent'
-                  }`}
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div
-                      className={`p-2 rounded-lg transition-colors shrink-0 relative ${
-                        isActive
-                          ? 'bg-zinc-700/80 text-cyan-300'
-                          : 'bg-zinc-900 text-zinc-400 group-hover:text-zinc-200 group-hover:bg-zinc-800'
-                      }`}
-                    >
-                      <Icon className="w-4 h-4" />
-                      {/* Compact alert dot when sidebar is collapsed */}
-                      {!isSidebarHovered && item.badge !== undefined && (
-                        <span className="hidden md:block absolute -top-1 -right-1 w-2 h-2 rounded-full bg-cyan-400 ring-2 ring-zinc-900" />
-                      )}
+          {/* SIDEBAR LINKS - 1 SCROLL = 1 ICON, NO SCROLLBAR */}
+          <nav 
+            ref={sidebarNavRef}
+            onWheel={handleSidebarWheel}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            className="flex-1 overflow-hidden p-2 relative select-none"
+          >
+            <div 
+              className="flex flex-col gap-1.5 transition-transform duration-200 ease-out will-change-transform"
+              style={{ transform: `translateY(-${sidebarScrollIndex * ITEM_HEIGHT}px)` }}
+            >
+              {sidebarLinks.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id || (item.id === 'services' && (activeTab === 'azuracast' || activeTab === 'database'));
+                const colorScheme = TAB_COLOR_CONFIGS[item.id as AdminTab] || {
+                  text: 'text-zinc-200',
+                  bg: 'bg-zinc-800',
+                  border: 'border-zinc-700',
+                  activeBg: 'bg-white/10',
+                  activeBorder: 'border-white/30',
+                  activeText: 'text-white',
+                };
+
+                return (
+                  <button
+                    key={item.id}
+                    title={!isSidebarDeployed ? item.label : undefined}
+                    aria-label={item.label}
+                    onMouseEnter={() => {
+                      if (!isSidebarDeployed) {
+                        hoveredIconsRef.current.add(item.id);
+                        if (hoveredIconsRef.current.size >= 3) {
+                          setIsSidebarHovered(true);
+                        }
+                      }
+                    }}
+                    onClick={() => {
+                      setActiveTab(item.id as AdminTab);
+                      setIsAddingNew(false);
+                      setEditingItem(null);
+                      setMobileSidebarOpen(false);
+                    }}
+                    className={`h-[44px] w-full flex items-center rounded-xl transition-colors cursor-pointer group relative shrink-0 ${
+                      isActive
+                        ? 'text-white bg-transparent'
+                        : 'hover:bg-zinc-900/60 text-zinc-400 hover:text-zinc-200'
+                    }`}
+                  >
+                    {/* Active vertical selection bar: left of icon, slightly taller exceeding top and bottom */}
+                    {isActive && (
+                      <div className="absolute left-0 -top-1 -bottom-1 w-1 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.5)] z-10" />
+                    )}
+
+                    {/* FIXED ICON SLOT (52px wide, centered — NEVER MOVES BETWEEN RETRACTED & DEPLOYED) */}
+                    <div className="w-[52px] h-[44px] shrink-0 flex items-center justify-center relative">
+                      <div
+                        className={`p-2 rounded-xl transition-all duration-200 shrink-0 relative border ${
+                          isActive
+                            ? `bg-zinc-900 border-zinc-800 ${colorScheme.text}`
+                            : `bg-zinc-900/90 border-zinc-800/80 ${colorScheme.text} group-hover:${colorScheme.bg} group-hover:${colorScheme.border} group-hover:scale-105`
+                        }`}
+                      >
+                        <Icon className="w-4 h-4" />
+
+                        {/* ALERT BADGE (PRIORITY OVER ACTIVITY) */}
+                        {item.alertCount && item.alertCount > 0 ? (
+                          <span 
+                            className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-white text-[9px] font-mono font-bold flex items-center justify-center ring-2 ring-zinc-950 shadow-md animate-pulse z-10"
+                            title={`${item.alertCount} alerte(s)`}
+                          >
+                            {item.alertCount}
+                          </span>
+                        ) : item.activityCount && item.activityCount > 0 ? (
+                          /* ACTIVITY BADGE */
+                          <span 
+                            className="absolute -top-1.5 -right-1.5 min-w-[14px] h-3.5 px-0.5 rounded-full bg-emerald-500/25 border border-emerald-500/50 text-emerald-300 text-[8px] font-mono font-bold flex items-center justify-center ring-1 ring-zinc-950 shadow-xs z-10"
+                            title={`${item.activityCount} processus actif(s)`}
+                          >
+                            {item.activityCount}
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
 
-                    {/* Detailed text visible when hovered or on mobile */}
-                    <div className={`flex flex-col min-w-0 transition-opacity duration-200 ${
-                      isSidebarHovered ? 'opacity-100' : 'md:hidden'
-                    }`}>
-                      <span className="text-xs font-mono font-bold tracking-wide truncate">
-                        {item.label}
-                      </span>
-                      {item.sublabel && (
-                        <span className="text-[10px] font-mono text-zinc-500 group-hover:text-zinc-400 truncate">
-                          {item.sublabel}
+                    {/* EXPANDABLE LABELS & BADGES (FADES IN SMOOTHLY TO THE RIGHT WITHOUT SHIFTING ICON) */}
+                    <div 
+                      className={`flex-1 flex items-center justify-between min-w-0 pr-3 transition-all duration-300 ease-out ${
+                        isSidebarDeployed 
+                          ? 'opacity-100 translate-x-0' 
+                          : 'opacity-0 -translate-x-3 pointer-events-none'
+                      }`}
+                    >
+                      <div className="flex flex-col min-w-0 pr-2">
+                        <span className={`text-xs font-mono font-bold tracking-wide truncate ${isActive ? 'text-white' : 'text-zinc-300 group-hover:text-white'}`}>
+                          {item.label}
                         </span>
-                      )}
-                    </div>
-                  </div>
+                      </div>
 
-                  {/* Badge visible when hovered or on mobile */}
-                  {item.badge !== undefined && (
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold shrink-0 border transition-opacity duration-200 ${
-                        isSidebarHovered ? 'opacity-100' : 'md:hidden'
-                      } ${
-                        item.badgeColor ||
-                        (isActive
-                          ? 'bg-zinc-700 text-zinc-200 border-zinc-600'
-                          : 'bg-zinc-900 text-zinc-400 border-zinc-800')
-                      }`}
-                    >
-                      {item.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
+                      {/* BADGE ON DEPLOYED SIDEBAR: ALERT IN PRIORITY, ELSE ACTIVITY */}
+                      {item.alertCount && item.alertCount > 0 ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold shrink-0 bg-rose-500/20 text-rose-300 border border-rose-500/40 flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping" />
+                          <span>{item.alertCount} alerte{item.alertCount > 1 ? 's' : ''}</span>
+                        </span>
+                      ) : item.activityCount && item.activityCount > 0 ? (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold shrink-0 bg-zinc-900 text-zinc-300 border border-zinc-800 flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                          <span>{item.activityCount} actif{item.activityCount > 1 ? 's' : ''}</span>
+                        </span>
+                      ) : null}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </nav>
 
           {/* SIDEBAR FOOTER ADMIN INFO */}
-          <div className="p-3 border-t border-zinc-800/80 bg-zinc-950 flex flex-col gap-2 min-h-[61px]">
-            <div className={`flex items-center gap-3 ${
-              isSidebarHovered ? 'justify-start' : 'md:justify-center justify-start'
-            }`}>
+          <div className="h-16 border-t border-zinc-800/80 bg-zinc-950 flex items-center shrink-0">
+            {/* 52px slot with 8px margin aligns with nav items */}
+            <div className="ml-2 w-[52px] h-full shrink-0 flex items-center justify-center">
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 border ${
                 currentUser?.role === 'super-admin'
                   ? 'bg-amber-500/20 border-amber-400/50 text-amber-300'
-                  : 'bg-zinc-800 border-zinc-700 text-cyan-300'
+                  : 'bg-zinc-800 border-zinc-700 text-white'
               }`}>
                 {currentUser?.role === 'super-admin' ? 'SA' : (currentUser?.username?.slice(0, 2).toUpperCase() || 'AD')}
               </div>
-              <div className={`flex flex-col text-left transition-opacity duration-200 ${
-                isSidebarHovered ? 'opacity-100' : 'md:hidden'
-              }`}>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-mono font-bold text-zinc-200">
-                    {currentUser?.role === 'super-admin' ? 'SUPER ADMIN' : (
-                      profileTemplates.find(t => t.id === currentUser?.adminProfileId)?.name || 'ADMIN'
-                    )}
-                  </span>
-                </div>
-                <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  {currentUser?.assignedStationId && currentUser.assignedStationId !== 'all' 
-                    ? `Station: ${currentUser.assignedStationId}` 
-                    : 'Connecté'}
+            </div>
+            
+            <div className={`flex-1 flex flex-col text-left pr-3 min-w-0 transition-all duration-300 ease-out ${
+              isSidebarDeployed ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-3 pointer-events-none'
+            }`}>
+              <div className="flex items-center gap-1.5 truncate">
+                <span className="text-xs font-mono font-bold text-zinc-200 truncate">
+                  {currentUser?.role === 'super-admin' ? 'SUPER ADMIN' : (
+                    profileTemplates.find(t => t.id === currentUser?.adminProfileId)?.name || 'ADMIN'
+                  )}
                 </span>
               </div>
+              <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                {currentUser?.assignedStationId && currentUser.assignedStationId !== 'all' 
+                  ? `Station: ${currentUser.assignedStationId}` 
+                  : 'Connecté'}
+              </span>
             </div>
           </div>
         </aside>
 
-        {/* OVERLAY FOR MOBILE SIDEBAR */}
-        {mobileSidebarOpen && (
-          <div
-            onClick={() => setMobileSidebarOpen(false)}
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-20 md:hidden"
-          />
+        {/* FLOATING MOBILE SECTION TITLE BUBBLE */}
+        {isMobileTitleBubbleVisible && (
+          <div className="md:hidden fixed top-16 left-1/2 -translate-x-1/2 z-40 px-4 py-2 rounded-full bg-zinc-900/95 border border-amber-500/40 text-amber-300 text-xs font-mono font-bold shadow-2xl backdrop-blur-md flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-200 pointer-events-none">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+            <span>{mobileCurrentSectionTitle}</span>
+          </div>
         )}
 
-        {/* RIGHT CONTENT AREA */}
-        <main className="flex-1 overflow-y-auto custom-scrollbar p-4 sm:p-6 lg:p-8 flex flex-col gap-6">
+        {/* RIGHT CONTENT AREA - ZERO SCROLLBAR, PROGRESSIVE SECTION-BY-SECTION SCROLL */}
+        <main 
+          ref={mainContentRef}
+          onWheel={handleProgressiveWheel}
+          onTouchStart={(e) => {
+            if (e.touches.length === 1) {
+              mobileTouchStartXRef.current = e.touches[0].clientX;
+              mobileTouchStartYRef.current = e.touches[0].clientY;
+            }
+            dismissMobileHeaderOnInteraction();
+          }}
+          onTouchEnd={(e) => {
+            if (mobileTouchStartXRef.current === null || mobileTouchStartYRef.current === null) return;
+            const deltaX = e.changedTouches[0].clientX - mobileTouchStartXRef.current;
+            const deltaY = e.changedTouches[0].clientY - mobileTouchStartYRef.current;
+            mobileTouchStartXRef.current = null;
+            mobileTouchStartYRef.current = null;
 
-          {/* TOAST NOTIFICATION */}
+            if (Math.abs(deltaX) > 45 && Math.abs(deltaX) > Math.abs(deltaY) * 1.3) {
+              handleMobileSwipeNavigation(deltaX > 0 ? 'prev' : 'next');
+            }
+          }}
+          onScroll={() => {
+            dismissMobileHeaderOnInteraction();
+          }}
+          className="flex-1 overflow-y-auto no-scrollbar scroll-smooth flex flex-col relative min-w-0 admin-main-scroll pb-24 md:pb-8"
+        >
+
+          {/* FLOATING TOAST NOTIFICATION (DOES NOT PUSH DOWN CONTENT OR STICKY BAR) */}
           {toastMessage && (
-            <div className="p-3.5 rounded-xl bg-emerald-950/90 border border-emerald-500/60 text-emerald-200 text-xs font-mono flex items-center gap-2 shadow-xl animate-fade-in shrink-0">
+            <div className="fixed top-20 right-6 z-50 p-3.5 rounded-xl bg-emerald-950/95 border border-emerald-500/60 text-emerald-200 text-xs font-mono flex items-center gap-2 shadow-2xl animate-in fade-in slide-in-from-top-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
               <span>{toastMessage}</span>
             </div>
@@ -1105,13 +1828,16 @@ export default function AdminPanelDrawer({
 
           {/* TAB 1: GESTION DES UTILISATEURS & PROFILS ADMIN */}
           {activeTab === 'users' && (
-            <div className="flex flex-col gap-5 text-left animate-in fade-in duration-200">
+            <div className="flex flex-col w-full min-w-0">
               
-              {/* TOP HEADER & SUBTABS TOGGLE */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 rounded-2xl bg-zinc-900/80 border border-zinc-800 shadow-sm backdrop-blur-sm">
-                <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-2.5">
-                    <Shield className="w-5 h-5 text-amber-400" />
+              {/* TOP HEADER & SUBTABS TOGGLE (STICKY TOP BAR) */}
+              <div className="sticky top-0 z-20 w-full bg-zinc-950 border-b border-zinc-800 px-4 sm:px-6 lg:px-8 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shrink-0 shadow-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                    <Shield className="w-4 h-4" />
+                  </div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="w-2 h-2 rounded-full synapse-star-dot shrink-0" />
                     <h2 className="text-base sm:text-lg font-futuristic font-black tracking-wide text-white">
                       Gestion des Comptes & Droits d'Accès
                     </h2>
@@ -1119,13 +1845,10 @@ export default function AdminPanelDrawer({
                       Hiérarchie Super-Admin
                     </span>
                   </div>
-                  <p className="text-xs font-mono text-zinc-400">
-                    Attribuez des rôles (Super-Admin, Admin avec profil spécialisé ou Auditeur) et préconfigurez les droits délégués par station.
-                  </p>
                 </div>
 
                 {/* SUBTABS SWITCHER */}
-                <div className="flex items-center gap-1.5 p-1 rounded-xl bg-zinc-950 border border-zinc-800 self-stretch sm:self-auto shrink-0">
+                <div className="flex items-center gap-1.5 p-1 rounded-xl bg-zinc-900 border border-zinc-800 self-stretch sm:self-auto shrink-0">
                   <button
                     onClick={() => setUserAccountsSubTab('accounts')}
                     className={`px-3.5 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center gap-2 transition-all cursor-pointer ${
@@ -1151,6 +1874,9 @@ export default function AdminPanelDrawer({
                   </button>
                 </div>
               </div>
+
+              {/* CONTENT CONTAINER */}
+              <div className="p-4 sm:p-6 lg:p-8 flex flex-col gap-5 text-left">
 
               {/* ========================================================= */}
               {/* SUBTAB 1: COMPTES UTILISATEURS & AFFECTATIONS */}
@@ -1417,7 +2143,7 @@ export default function AdminPanelDrawer({
 
                                       {/* ASSIGNED STATION BADGE IF APPLICABLE */}
                                       {(isUserAdmin || isUserSuperAdmin) && usr.assignedStationId && usr.assignedStationId !== 'all' && (
-                                        <span className="px-2 py-0.5 rounded-md bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-[10px] font-mono font-bold flex items-center gap-1">
+                                        <span className="px-2 py-0.5 rounded-md bg-white/10 border border-white/20 text-white text-[10px] font-mono font-bold flex items-center gap-1">
                                           <Radio className="w-3 h-3" />
                                           {assignedStation ? assignedStation.name : usr.assignedStationId}
                                         </span>
@@ -1545,7 +2271,7 @@ export default function AdminPanelDrawer({
                                   </span>
                                 )}
                                 {template.permissions.can_broadcast_live && (
-                                  <span className="px-1.5 py-0.5 rounded bg-cyan-950/60 text-cyan-300 text-[9.5px] font-mono border border-cyan-500/30">
+                                  <span className="px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-200 text-[9.5px] font-mono border border-zinc-700">
                                     🎙️ Régie Direct
                                   </span>
                                 )}
@@ -1922,13 +2648,70 @@ export default function AdminPanelDrawer({
                   </div>
                 </div>
               )}
+              </div>
             </div>
           )}
 
-        {/* TAB 2: GESTION DES STATIONS RADIOS */}
+        {/* TAB 2: GESTION DE LA RÉGIE & STATIONS RADIOS (LIQUIDSOAP & VPS DIRECT) */}
         {activeTab === 'stations' && (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col w-full min-w-0">
+            {/* SUBTAB 1: RÉGIE & MOTEUR LIQUIDSOAP DIRECT */}
+            {regieSubTab === 'liquidsoap' && (
+              <AdminRegieLiquidsoapView
+                stations={stations}
+                currentUser={currentUser}
+                showToast={showToast}
+                onOpenControlDeck={(st: StreamChannel) => setSelectedStationForControlDeck(st)}
+              />
+            )}
 
+            {/* SUBTAB 2: CONFIGURATION DES FRÉQUENCES & CARTES STATIONS */}
+            {regieSubTab === 'stations_meta' && (
+              <div className="flex flex-col w-full min-w-0">
+                {/* STICKY TOP BAR - FIRST ELEMENT, FLUSH, OPAQUE */}
+                <div className="sticky top-0 z-20 w-full bg-zinc-950 border-b border-zinc-800 px-4 sm:px-6 lg:px-8 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shrink-0 shadow-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                      <Radio className="w-4 h-4" />
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="w-2 h-2 rounded-full synapse-star-dot shrink-0" />
+                      <h2 className="text-base sm:text-lg font-futuristic font-black tracking-wide text-white">
+                        Fréquences & Métadonnées ({stations.length})
+                      </h2>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setRegieSubTab('liquidsoap')}
+                      className="px-3.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 hover:text-white text-xs font-mono font-bold flex items-center gap-2 transition-all cursor-pointer"
+                    >
+                      <Server className="w-3.5 h-3.5" />
+                      <span>Régie Liquidsoap</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingItem(null);
+                        setStationFormName('');
+                        setStationFormGenre('');
+                        setStationFormDesc('');
+                        setStationFormColor('#00f2ff');
+                        setStationFormNumber('');
+                        setStationFormStreamUrl('');
+                        setStationFormEnabled(true);
+                        setIsAddingNew(!isAddingNew);
+                      }}
+                      className="px-3.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-black text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Nouvelle Station</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-4 sm:p-6 lg:p-8 flex flex-col gap-4 text-left">
             {/* SECTION HAUT DE PAGE : LIAISON COMPTE DJ STREAMER AZURACAST */}
             {djAccount && !isEditingDjLink ? (
               /* PASTILLE DJ CONNECTÉ */
@@ -1990,16 +2773,16 @@ export default function AdminPanelDrawer({
               </div>
             ) : (
               /* FORMULAIRE DE LIAISON DJ COMPTE ADMIN */
-              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-zinc-900/95 via-zinc-900/80 to-cyan-950/20 border border-cyan-500/40 flex flex-col gap-3.5 shadow-xl text-left">
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-zinc-900/95 to-zinc-950 border border-zinc-700 flex flex-col gap-3.5 shadow-xl text-left">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5">
-                    <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+                    <div className="p-2 rounded-xl bg-white/10 border border-white/20 text-white">
                       <Key className="w-4 h-4" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-mono font-bold text-cyan-300 uppercase tracking-wide flex items-center gap-2">
+                      <h4 className="text-xs font-mono font-bold text-white uppercase tracking-wide flex items-center gap-2">
                         <span>Liaison Compte DJ Streamer AzuraCast</span>
-                        <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-400 text-[9px] font-bold">
+                        <span className="px-2 py-0.5 rounded-full bg-white/20 text-white text-[9px] font-bold">
                           Admin Requis
                         </span>
                       </h4>
@@ -2024,7 +2807,7 @@ export default function AdminPanelDrawer({
                   <div className="flex flex-col gap-1">
                     <label className="text-[10px] font-mono font-bold text-zinc-300 uppercase flex items-center gap-1">
                       <span>Identifiant DJ :</span>
-                      <span className="text-cyan-400">*</span>
+                      <span className="text-amber-400">*</span>
                     </label>
                     <input
                       type="text"
@@ -2032,7 +2815,7 @@ export default function AdminPanelDrawer({
                       placeholder="ex: theocourant"
                       value={djFormUsername}
                       onChange={(e) => setDjFormUsername(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-zinc-950/80 border border-zinc-700 focus:border-cyan-400 text-white text-xs font-mono placeholder:text-zinc-600 outline-none transition-all"
+                      className="w-full px-3 py-2 rounded-xl bg-zinc-950/80 border border-zinc-700 focus:border-white text-white text-xs font-mono placeholder:text-zinc-600 outline-none transition-all"
                     />
                   </div>
 
@@ -2045,7 +2828,7 @@ export default function AdminPanelDrawer({
                       placeholder="Mot de passe streamer"
                       value={djFormPassword}
                       onChange={(e) => setDjFormPassword(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-zinc-950/80 border border-zinc-700 focus:border-cyan-400 text-white text-xs font-mono placeholder:text-zinc-600 outline-none transition-all"
+                      className="w-full px-3 py-2 rounded-xl bg-zinc-950/80 border border-zinc-700 focus:border-white text-white text-xs font-mono placeholder:text-zinc-600 outline-none transition-all"
                     />
                   </div>
 
@@ -2058,7 +2841,7 @@ export default function AdminPanelDrawer({
                       placeholder="ex: Théo Direct"
                       value={djFormDisplayName}
                       onChange={(e) => setDjFormDisplayName(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-zinc-950/80 border border-zinc-700 focus:border-cyan-400 text-white text-xs font-mono placeholder:text-zinc-600 outline-none transition-all"
+                      className="w-full px-3 py-2 rounded-xl bg-zinc-950/80 border border-zinc-700 focus:border-white text-white text-xs font-mono placeholder:text-zinc-600 outline-none transition-all"
                     />
                   </div>
 
@@ -2069,7 +2852,7 @@ export default function AdminPanelDrawer({
                     <select
                       value={djFormStation}
                       onChange={(e) => setDjFormStation(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-zinc-950/80 border border-zinc-700 focus:border-cyan-400 text-white text-xs font-mono outline-none transition-all cursor-pointer"
+                      className="w-full px-3 py-2 rounded-xl bg-zinc-950/80 border border-zinc-700 focus:border-white text-white text-xs font-mono outline-none transition-all cursor-pointer"
                     >
                       {stations.map((st) => (
                         <option key={st.id} value={st.id}>
@@ -2098,7 +2881,7 @@ export default function AdminPanelDrawer({
                       <button
                         type="submit"
                         disabled={isDjSaving}
-                        className="px-4 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-zinc-950 text-xs font-mono font-bold flex items-center gap-1.5 shadow-md shadow-cyan-500/20 cursor-pointer transition-all"
+                        className="px-4 py-1.5 rounded-xl bg-white hover:bg-zinc-200 text-black text-xs font-mono font-bold flex items-center gap-1.5 shadow-md shadow-white/10 cursor-pointer transition-all"
                       >
                         <UserCheck className="w-3.5 h-3.5" />
                         <span>{isDjSaving ? 'Enregistrement...' : 'Enregistrer & Activer DJ'}</span>
@@ -2111,7 +2894,7 @@ export default function AdminPanelDrawer({
 
             <div className="flex items-center justify-between gap-3 flex-wrap pt-1">
               <span className="text-xs font-mono text-zinc-300 font-bold flex items-center gap-2">
-                <Radio className="w-4 h-4 text-cyan-400" />
+                <Radio className="w-4 h-4 text-white" />
                 Stations Radio Configurées ({stations.length})
               </span>
               <div className="flex items-center gap-2">
@@ -2144,7 +2927,7 @@ export default function AdminPanelDrawer({
                     setStationFormStreamUrl('');
                     setIsAddingNew(!isAddingNew);
                   }}
-                  className="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/50 text-cyan-300 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/30 text-white text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Créer une Station</span>
@@ -2154,8 +2937,8 @@ export default function AdminPanelDrawer({
 
             {/* CREATE / EDIT STATION FORM */}
             {(isAddingNew || editingItem) && (
-              <form onSubmit={handleSaveStation} className="p-4 rounded-2xl bg-zinc-900/90 border border-cyan-500/30 flex flex-col gap-3 shadow-lg text-left">
-                <span className="text-xs font-mono font-bold text-cyan-400 uppercase">
+              <form onSubmit={handleSaveStation} className="p-4 rounded-2xl bg-zinc-900/90 border border-zinc-700 flex flex-col gap-3 shadow-lg text-left">
+                <span className="text-xs font-mono font-bold text-white uppercase">
                   {editingItem ? 'Éditer la Station' : 'Nouvelle Station Radio'}
                 </span>
 
@@ -2170,7 +2953,7 @@ export default function AdminPanelDrawer({
                       placeholder="Ex: 01, 88.4, 03..."
                       value={stationFormNumber}
                       onChange={(e) => setStationFormNumber(e.target.value)}
-                      className="px-3 py-2 rounded-xl bg-zinc-950 border border-white/15 text-white text-xs font-mono focus:border-cyan-400"
+                      className="px-3 py-2 rounded-xl bg-zinc-950 border border-white/15 text-white text-xs font-mono focus:border-white"
                     />
                   </div>
 
@@ -2185,7 +2968,7 @@ export default function AdminPanelDrawer({
                       placeholder="Nom (ex: Radio Synapse Jazz)"
                       value={stationFormName}
                       onChange={(e) => setStationFormName(e.target.value)}
-                      className="px-3 py-2 rounded-xl bg-zinc-950 border border-white/15 text-white text-xs font-mono focus:border-cyan-400"
+                      className="px-3 py-2 rounded-xl bg-zinc-950 border border-white/15 text-white text-xs font-mono focus:border-white"
                     />
                   </div>
 
@@ -2214,14 +2997,14 @@ export default function AdminPanelDrawer({
                       placeholder="Genre musical (ex: Jazz & Soul)"
                       value={stationFormGenre}
                       onChange={(e) => setStationFormGenre(e.target.value)}
-                      className="px-3 py-2 rounded-xl bg-zinc-950 border border-white/15 text-white text-xs font-mono focus:border-cyan-400"
+                      className="px-3 py-2 rounded-xl bg-zinc-950 border border-white/15 text-white text-xs font-mono focus:border-white"
                     />
                   </div>
 
                   {/* Lien du flux Stream MP3/AAC */}
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-mono text-cyan-400 font-bold uppercase flex items-center gap-1">
-                      <Link className="w-3 h-3 text-cyan-400" />
+                    <label className="text-[10px] font-mono text-zinc-300 font-bold uppercase flex items-center gap-1">
+                      <Link className="w-3 h-3 text-zinc-400" />
                       Lien du Flux Audio (Stream URL) :
                     </label>
                     <input
@@ -2229,7 +3012,7 @@ export default function AdminPanelDrawer({
                       placeholder="https://cast.radiosynapse.fr/listen/nom/radio.mp3"
                       value={stationFormStreamUrl}
                       onChange={(e) => setStationFormStreamUrl(e.target.value)}
-                      className="px-3 py-2 rounded-xl bg-zinc-950 border border-cyan-500/40 text-cyan-200 text-xs font-mono focus:border-cyan-400"
+                      className="px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-700 text-zinc-200 text-xs font-mono focus:border-white"
                     />
                   </div>
                 </div>
@@ -2244,7 +3027,7 @@ export default function AdminPanelDrawer({
                     placeholder="Description de la station..."
                     value={stationFormDesc}
                     onChange={(e) => setStationFormDesc(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-white/15 text-white text-xs font-mono focus:border-cyan-400 resize-none"
+                    className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-white/15 text-white text-xs font-mono focus:border-white resize-none"
                   />
                 </div>
 
@@ -2274,7 +3057,7 @@ export default function AdminPanelDrawer({
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-1.5 rounded-xl bg-cyan-500 text-black font-bold text-xs font-mono cursor-pointer"
+                    className="px-4 py-1.5 rounded-xl bg-white hover:bg-zinc-200 text-black font-bold text-xs font-mono cursor-pointer"
                   >
                     Enregistrer Station
                   </button>
@@ -2292,13 +3075,13 @@ export default function AdminPanelDrawer({
                       <div className="flex flex-col text-left">
                         <div className="flex items-center gap-1.5">
                           {st.stationNumber && (
-                            <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                            <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-white/10 text-zinc-200 border border-white/20">
                               N° {st.stationNumber}
                             </span>
                           )}
                           <span className="text-sm font-bold text-white font-futuristic">{st.name}</span>
                         </div>
-                        <span className="text-[11px] font-mono text-cyan-400">{st.genre}</span>
+                        <span className="text-[11px] font-mono text-zinc-400">{st.genre}</span>
                       </div>
                     </div>
                     <button
@@ -2319,8 +3102,8 @@ export default function AdminPanelDrawer({
                   <p className="text-xs text-zinc-400 line-clamp-2 text-left">{st.description}</p>
 
                   {(st.streamUrl || st.tracks?.[0]?.audioUrl) && (
-                    <div className="text-[10px] font-mono text-cyan-300/80 bg-zinc-900 px-2.5 py-1 rounded-lg truncate border border-white/5 flex items-center gap-1.5">
-                      <Link className="w-3 h-3 text-cyan-400 flex-shrink-0" />
+                    <div className="text-[10px] font-mono text-zinc-300/80 bg-zinc-900 px-2.5 py-1 rounded-lg truncate border border-white/5 flex items-center gap-1.5">
+                      <Link className="w-3 h-3 text-zinc-400 flex-shrink-0" />
                       <span className="truncate">{st.streamUrl || st.tracks?.[0]?.audioUrl}</span>
                     </div>
                   )}
@@ -2329,10 +3112,10 @@ export default function AdminPanelDrawer({
                     <button
                       type="button"
                       onClick={() => setSelectedStationForControlDeck(st)}
-                      className="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/50 text-cyan-300 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm hover:scale-[1.02]"
+                      className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/30 text-white text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm hover:scale-[1.02]"
                       title="Ouvrir la régie et télécommande de cette station"
                     >
-                      <Radio className="w-3.5 h-3.5 text-cyan-400" />
+                      <Radio className="w-3.5 h-3.5 text-zinc-300" />
                       <span>Régie & Télécommande</span>
                     </button>
 
@@ -2340,7 +3123,7 @@ export default function AdminPanelDrawer({
                       <span className="text-[10px] font-mono text-zinc-500 mr-1 hidden sm:inline">ID: {st.id}</span>
                       <button
                         onClick={() => handleOpenEditStation(st)}
-                        className="p-1.5 rounded-lg bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-500/30 text-cyan-300 cursor-pointer"
+                        className="p-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 cursor-pointer"
                         title="Éditer la station"
                       >
                         <Edit3 className="w-3.5 h-3.5" />
@@ -2357,12 +3140,22 @@ export default function AdminPanelDrawer({
                 </div>
               ))}
             </div>
+                </div>
+              </div>
+            )}
           </div>
+        )}
+
+        {/* TAB: GESTION DES FONCTIONNALITÉS & MODULES DU SITE (SUPER-ADMIN ONLY) */}
+        {activeTab === 'features' && (
+          <AdminFeatureFlagsView showToast={showToast} />
         )}
 
         {/* TAB: SERVICES & API (AZURACAST, POCKETBASE ET INTÉGRATIONS TIERS) */}
         {(activeTab === 'services' || activeTab === 'azuracast' || activeTab === 'database') && (
           <AdminServicesTab
+            activeSection={servicesSubTab}
+            onSectionChange={setServicesSubTab}
             stations={stations}
             onOpenControlDeck={(st) => setSelectedStationForControlDeck(st)}
             showToast={showToast}
@@ -2384,159 +3177,611 @@ export default function AdminPanelDrawer({
 
         {/* TAB 3: GESTION DES DÉFIS & QUÊTES AUDITEURS */}
         {activeTab === 'challenges' && (
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-xs font-mono text-zinc-300 font-bold flex items-center gap-2">
-                <Trophy className="w-4 h-4 text-amber-400" />
-                Défis Proposés aux Auditeurs ({challenges.length})
-              </span>
-              <button
-                onClick={() => {
-                  setChallengeTitle('');
-                  setChallengeDesc('');
-                  setChallengeReward('');
-                  setIsAddingNew(!isAddingNew);
-                }}
-                className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-300 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Créer un Défi</span>
-              </button>
+          <div className="flex flex-col w-full min-w-0">
+            {/* STICKY TOP BAR - FIRST ELEMENT, FLUSH, OPAQUE */}
+            <div className="sticky top-0 z-20 w-full bg-zinc-950 border-b border-zinc-800 px-4 sm:px-6 lg:px-8 py-3 flex flex-col lg:flex-row lg:items-center justify-between gap-3 shrink-0 shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                  <Trophy className="w-4 h-4" />
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="w-2 h-2 rounded-full synapse-star-dot shrink-0" />
+                  <h2 className="text-base sm:text-lg font-futuristic font-black tracking-wide text-white">
+                    Défis & Quêtes Auditeurs
+                  </h2>
+                </div>
+              </div>
+
+              {/* SUB-TABS NAVIGATION BAR */}
+              <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-zinc-900 border border-zinc-800 max-w-full">
+                <button
+                  onClick={() => setChallengeTab('active')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer ${
+                    challengeTab === 'active'
+                      ? 'bg-amber-500 text-black shadow-md'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  <Trophy className="w-3.5 h-3.5" />
+                  <span>Défis Actifs ({challenges.length})</span>
+                </button>
+
+                <button
+                  onClick={() => setChallengeTab('submissions')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer ${
+                    challengeTab === 'submissions'
+                      ? 'bg-amber-500 text-black shadow-md'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  <Flame className="w-3.5 h-3.5 text-orange-400" />
+                  <span>Propositions</span>
+                  <span className="px-1.5 py-0.2 rounded-full bg-orange-500/30 text-[10px]">
+                    {submissions.filter((s) => s.status === 'pending').length}
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => setChallengeTab('selected')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer ${
+                    challengeTab === 'selected'
+                      ? 'bg-emerald-500 text-black shadow-md'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  <Music className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Sélectionnés</span>
+                  <span className="px-1.5 py-0.2 rounded-full bg-emerald-500/30 text-[10px]">
+                    {submissions.filter((s) => s.status === 'selected').length}
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => setChallengeTab('archives')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer ${
+                    challengeTab === 'archives'
+                      ? 'bg-zinc-700 text-white shadow-md'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  <Archive className="w-3.5 h-3.5" />
+                  <span>Archives ({submissions.filter((s) => s.status === 'rejected').length})</span>
+                </button>
+
+                <button
+                  onClick={() => setChallengeTab('constant')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer ${
+                    challengeTab === 'constant'
+                      ? 'bg-purple-600 text-white shadow-md'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  <Award className="w-3.5 h-3.5 text-purple-300" />
+                  <span>Constants</span>
+                </button>
+              </div>
             </div>
 
-            {/* CREATE CHALLENGE FORM */}
-            {(isAddingNew || editingItem) && (
-              <form onSubmit={handleSaveChallenge} className="p-4 rounded-2xl bg-zinc-900/90 border border-amber-500/30 flex flex-col gap-3 shadow-lg">
-                <span className="text-xs font-mono font-bold text-amber-400 uppercase">Créer ou Éditer un Défi</span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <input
-                    type="text"
-                    required
-                    placeholder="Titre du défi (ex: Grand Blind Test Funk)"
-                    value={challengeTitle}
-                    onChange={(e) => setChallengeTitle(e.target.value)}
-                    className="px-3 py-2 rounded-xl bg-zinc-950 border border-white/15 text-white text-xs font-mono focus:border-amber-400"
-                  />
-                  <select
-                    value={challengeType}
-                    onChange={(e) => setChallengeType(e.target.value as ChallengeType)}
-                    className="px-3 py-2 rounded-xl bg-zinc-950 border border-white/15 text-white text-xs font-mono focus:border-amber-400"
-                  >
-                    <option value="stats">Type: Statistiques d'Écoute</option>
-                    <option value="blind_test">Type: Blind Test / Quiz</option>
-                    <option value="suggest_track">Type: Proposer un Titre</option>
-                    <option value="custom">Type: Autre / Règle Configurable</option>
-                  </select>
-                </div>
+            {/* CONTENT WRAPPER */}
+            <div className="p-4 sm:p-6 lg:p-8 flex flex-col gap-4 text-left">
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <select
-                    value={challengeStationId}
-                    onChange={(e) => setChallengeStationId(e.target.value)}
-                    className="px-3 py-2 rounded-xl bg-zinc-950 border border-white/15 text-white text-xs font-mono focus:border-amber-400"
-                  >
-                    <option value="all">Toutes les Stations</option>
-                    {stations.map((s) => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
-                  </select>
-                  <input
-                    type="number"
-                    placeholder="Points (ex: 200)"
-                    value={challengePoints}
-                    onChange={(e) => setChallengePoints(Number(e.target.value))}
-                    className="px-3 py-2 rounded-xl bg-zinc-950 border border-white/15 text-white text-xs font-mono focus:border-amber-400"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Récompense (ex: Badge VIP Gold)"
-                    value={challengeReward}
-                    onChange={(e) => setChallengeReward(e.target.value)}
-                    className="px-3 py-2 rounded-xl bg-zinc-950 border border-white/15 text-white text-xs font-mono focus:border-amber-400"
-                  />
-                </div>
-
-                <textarea
-                  rows={2}
-                  placeholder="Consignes et description du défi pour l'auditeur..."
-                  value={challengeDesc}
-                  onChange={(e) => setChallengeDesc(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-white/15 text-white text-xs font-mono focus:border-amber-400 resize-none"
-                />
-
-                <div className="flex justify-end gap-2">
+            {/* SUB-VIEW 1: DÉFIS ACTIFS & FORMULAIRE DE CRÉATION */}
+            {challengeTab === 'active' && (
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs font-mono text-zinc-300 font-bold flex items-center gap-2">
+                    <Trophy className="w-4 h-4 text-amber-400" />
+                    Quêtes et Défis Ponctuels ({challenges.length})
+                  </span>
                   <button
-                    type="button"
-                    onClick={() => { setIsAddingNew(false); setEditingItem(null); }}
-                    className="px-3 py-1.5 rounded-xl bg-zinc-800 text-zinc-400 text-xs font-mono cursor-pointer"
+                    onClick={() => {
+                      setChallengeTitle('');
+                      setChallengeDesc('');
+                      setChallengeReward('');
+                      setChallengeGenre('');
+                      setChallengeSubGenre('');
+                      setChallengeArtist('');
+                      setChallengeRefTrack('');
+                      setChallengeYear('');
+                      setChallengeEmotion('');
+                      setChallengeMinPlays(undefined);
+                      setChallengeOtherReq('');
+                      setIsAddingNew(!isAddingNew);
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-300 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
                   >
-                    Annuler
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-1.5 rounded-xl bg-amber-500 text-black font-bold text-xs font-mono cursor-pointer"
-                  >
-                    Publier Défi
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Créer un Défi</span>
                   </button>
                 </div>
-              </form>
+
+                {/* FORMULAIRE DE CRÉATION DE DÉFI */}
+                {(isAddingNew || editingItem) && (
+                  <form onSubmit={handleSaveChallenge} className="p-4 rounded-2xl bg-zinc-900/90 border border-amber-500/30 flex flex-col gap-3 shadow-lg text-left">
+                    <span className="text-xs font-mono font-bold text-amber-400 uppercase">
+                      {editingItem ? 'Modifier le Défi' : 'Créer un Nouveau Défi'}
+                    </span>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <input
+                        type="text"
+                        required
+                        placeholder="Titre du défi (ex: Pépite Indie Pop Française)"
+                        value={challengeTitle}
+                        onChange={(e) => setChallengeTitle(e.target.value)}
+                        className="px-3 py-2 rounded-xl bg-zinc-950 border border-white/15 text-white text-xs font-mono focus:border-amber-400"
+                      />
+                      <select
+                        value={challengeType}
+                        onChange={(e) => setChallengeType(e.target.value as ChallengeType)}
+                        className="px-3 py-2 rounded-xl bg-zinc-950 border border-white/15 text-white text-xs font-mono focus:border-amber-400"
+                      >
+                        <option value="suggest_music">Type: "Propose ta musique" (Critères antenne)</option>
+                        <option value="share_liked_tracks">Type: "Partage tes trouvailles" (Viralité)</option>
+                        <option value="listening_time">Type: "Écoute bien" (Temps d'antenne)</option>
+                        <option value="blind_test">Type: Blind Test / Quiz</option>
+                        <option value="stats">Type: Statistiques d'Écoute</option>
+                        <option value="custom">Type: Autre Règle Spécifique</option>
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <select
+                        value={challengeStationId}
+                        onChange={(e) => setChallengeStationId(e.target.value)}
+                        className="px-3 py-2 rounded-xl bg-zinc-950 border border-white/15 text-white text-xs font-mono focus:border-amber-400"
+                      >
+                        <option value="all">Radio concernée: Toutes les Stations</option>
+                        {stations.map((s) => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                      </select>
+                      <input
+                        type="number"
+                        placeholder="Points attribués (ex: 200)"
+                        value={challengePoints}
+                        onChange={(e) => setChallengePoints(Number(e.target.value))}
+                        className="px-3 py-2 rounded-xl bg-zinc-950 border border-white/15 text-white text-xs font-mono focus:border-amber-400"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Récompense (ex: Badge Pépiteur VIP)"
+                        value={challengeReward}
+                        onChange={(e) => setChallengeReward(e.target.value)}
+                        className="px-3 py-2 rounded-xl bg-zinc-950 border border-white/15 text-white text-xs font-mono focus:border-amber-400"
+                      />
+                    </div>
+
+                    {/* CRITÈRES SPÉCIFIQUES POUR "PROPOSE TA MUSIQUE" */}
+                    {challengeType === 'suggest_music' && (
+                      <div className="p-3 rounded-xl bg-amber-950/20 border border-amber-500/30 flex flex-col gap-2.5">
+                        <span className="text-[11px] font-mono uppercase tracking-wider text-amber-300 font-bold flex items-center gap-1.5">
+                          <Flame className="w-3.5 h-3.5 text-amber-400" />
+                          Critères Spécifiques pour la Programmation
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                          <input
+                            type="text"
+                            placeholder="Genre (ex: Synthwave, Rock)"
+                            value={challengeGenre}
+                            onChange={(e) => setChallengeGenre(e.target.value)}
+                            className="px-2.5 py-1.5 rounded-lg bg-zinc-950 border border-white/10 text-white text-xs font-mono"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Sous-genre (ex: Darksynth, Shoegaze)"
+                            value={challengeSubGenre}
+                            onChange={(e) => setChallengeSubGenre(e.target.value)}
+                            className="px-2.5 py-1.5 rounded-lg bg-zinc-950 border border-white/10 text-white text-xs font-mono"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Artiste ciblé / imposé"
+                            value={challengeArtist}
+                            onChange={(e) => setChallengeArtist(e.target.value)}
+                            className="px-2.5 py-1.5 rounded-lg bg-zinc-950 border border-white/10 text-white text-xs font-mono"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Titre de référence (inspiration)"
+                            value={challengeRefTrack}
+                            onChange={(e) => setChallengeRefTrack(e.target.value)}
+                            className="px-2.5 py-1.5 rounded-lg bg-zinc-950 border border-white/10 text-white text-xs font-mono"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Année ou période (ex: 80s, 2024)"
+                            value={challengeYear}
+                            onChange={(e) => setChallengeYear(e.target.value)}
+                            className="px-2.5 py-1.5 rounded-lg bg-zinc-950 border border-white/10 text-white text-xs font-mono"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Émotion / Mood (ex: Nuit, Énergique)"
+                            value={challengeEmotion}
+                            onChange={(e) => setChallengeEmotion(e.target.value)}
+                            className="px-2.5 py-1.5 rounded-lg bg-zinc-950 border border-white/10 text-white text-xs font-mono"
+                          />
+                          <input
+                            type="number"
+                            placeholder="Écoutes / Streams max (< 100k)"
+                            value={challengeMinPlays || ''}
+                            onChange={(e) => setChallengeMinPlays(e.target.value ? Number(e.target.value) : undefined)}
+                            className="px-2.5 py-1.5 rounded-lg bg-zinc-950 border border-white/10 text-white text-xs font-mono"
+                          />
+                          <input
+                            type="text"
+                            placeholder="Autre exigence (ex: Voix féminine)"
+                            value={challengeOtherReq}
+                            onChange={(e) => setChallengeOtherReq(e.target.value)}
+                            className="px-2.5 py-1.5 rounded-lg bg-zinc-950 border border-white/10 text-white text-xs font-mono"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* SPÉCIFIQUE "PARTAGE TES TROUVAILLES" */}
+                    {challengeType === 'share_liked_tracks' && (
+                      <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-700 flex items-center justify-between gap-3">
+                        <span className="text-xs font-mono text-zinc-200">
+                          Nombre de partages requis sur la station :
+                        </span>
+                        <input
+                          type="number"
+                          value={challengeRequiredShares}
+                          onChange={(e) => setChallengeRequiredShares(Number(e.target.value))}
+                          className="w-24 px-3 py-1.5 rounded-lg bg-zinc-950 border border-white/15 text-white text-xs font-mono text-center"
+                        />
+                      </div>
+                    )}
+
+                    {/* SPÉCIFIQUE "ÉCOUTE BIEN" */}
+                    {challengeType === 'listening_time' && (
+                      <div className="p-3 rounded-xl bg-purple-950/20 border border-purple-500/30 flex items-center justify-between gap-3">
+                        <span className="text-xs font-mono text-purple-300">
+                          Durée d'écoute requise sur la station (en minutes) :
+                        </span>
+                        <input
+                          type="number"
+                          value={challengeRequiredMinutes}
+                          onChange={(e) => setChallengeRequiredMinutes(Number(e.target.value))}
+                          className="w-24 px-3 py-1.5 rounded-lg bg-zinc-950 border border-white/15 text-white text-xs font-mono text-center"
+                        />
+                      </div>
+                    )}
+
+                    <textarea
+                      rows={2}
+                      placeholder="Consignes et description du défi pour l'auditeur..."
+                      value={challengeDesc}
+                      onChange={(e) => setChallengeDesc(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-white/15 text-white text-xs font-mono focus:border-amber-400 resize-none"
+                    />
+
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => { setIsAddingNew(false); setEditingItem(null); }}
+                        className="px-3 py-1.5 rounded-xl bg-zinc-800 text-zinc-400 text-xs font-mono cursor-pointer"
+                      >
+                        Annuler
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-4 py-1.5 rounded-xl bg-amber-500 text-black font-bold text-xs font-mono cursor-pointer"
+                      >
+                        Publier Défi
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {/* LISTE DES DÉFIS ACTIFS */}
+                <div className="flex flex-col gap-2.5">
+                  {challenges.map((c) => (
+                    <div key={c.id} className="p-4 rounded-2xl bg-zinc-950 border border-white/10 flex flex-col gap-2 text-left">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase ${
+                            c.type === 'suggest_music' ? 'bg-amber-500/20 text-amber-300' :
+                            c.type === 'share_liked_tracks' ? 'bg-zinc-800 text-zinc-200 border border-zinc-700' :
+                            c.type === 'listening_time' ? 'bg-purple-500/20 text-purple-300' :
+                            'bg-zinc-800 text-zinc-300'
+                          }`}>
+                            {c.type === 'suggest_music' ? 'Propose ta musique' :
+                             c.type === 'share_liked_tracks' ? 'Partage tes trouvailles' :
+                             c.type === 'listening_time' ? 'Écoute bien' :
+                             c.type.toUpperCase().replace('_', ' ')}
+                          </span>
+                          <h4 className="text-sm font-bold text-white font-futuristic">{c.title}</h4>
+                        </div>
+                        <span className="text-xs font-mono text-emerald-400 font-bold">+{c.points} PTS</span>
+                      </div>
+
+                      <p className="text-xs text-zinc-400">{c.desc}</p>
+
+                      {/* CRITERIA TAGS */}
+                      {c.criteria && (
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {c.criteria.genre && <span className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-700 text-[10px] font-mono text-amber-300">Genre: {c.criteria.genre}</span>}
+                          {c.criteria.artist && <span className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-700 text-[10px] font-mono text-zinc-300">Artiste: {c.criteria.artist}</span>}
+                          {c.criteria.year && <span className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-700 text-[10px] font-mono text-purple-300">Période: {c.criteria.year}</span>}
+                          {c.criteria.emotion && <span className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-700 text-[10px] font-mono text-pink-300">Mood: {c.criteria.emotion}</span>}
+                          {c.criteria.otherRequirements && <span className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-700 text-[10px] font-mono text-emerald-300">{c.criteria.otherRequirements}</span>}
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between pt-2 border-t border-white/10 text-[11px] font-mono text-zinc-500">
+                        <span>Station: {c.stationId === 'all' ? 'Globale (Toutes)' : (stations.find(s => s.id === c.stationId)?.name || c.stationId)}</span>
+                        <span>Récompense: {c.reward}</span>
+                        <button
+                          onClick={() => handleDeleteChallenge(c.id)}
+                          className="p-1.5 rounded-lg bg-red-950/40 text-red-400 cursor-pointer hover:bg-red-950"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
 
-            {/* CHALLENGES LIST */}
-            <div className="flex flex-col gap-2.5">
-              {challenges.map((c) => (
-                <div key={c.id} className="p-4 rounded-2xl bg-zinc-950 border border-white/10 flex flex-col gap-2 text-left">
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <div className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-mono font-bold uppercase">
-                        {c.type.toUpperCase().replace('_', ' ')}
-                      </span>
-                      <h4 className="text-sm font-bold text-white font-futuristic">{c.title}</h4>
-                    </div>
-                    <span className="text-xs font-mono text-emerald-400 font-bold">+{c.points} PTS</span>
-                  </div>
-
-                  <p className="text-xs text-zinc-400">{c.desc}</p>
-
-                  <div className="flex items-center justify-between pt-2 border-t border-white/10 text-[11px] font-mono text-zinc-500">
-                    <span>Station: {c.stationId === 'all' ? 'Globale (Toutes)' : c.stationId}</span>
-                    <span>Récompense: {c.reward}</span>
-                    <button
-                      onClick={() => handleDeleteChallenge(c.id)}
-                      className="p-1.5 rounded-lg bg-red-950/40 text-red-400 cursor-pointer hover:bg-red-950"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+            {/* SUB-VIEW 2: PROPOSITIONS AUDITEURS (EN ATTENTE) */}
+            {challengeTab === 'submissions' && (
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono text-zinc-300 font-bold flex items-center gap-2">
+                    <Flame className="w-4 h-4 text-orange-400" />
+                    Propositions Musicales des Auditeurs (En attente de validation)
+                  </span>
                 </div>
-              ))}
+
+                {submissions.filter((s) => s.status === 'pending').length === 0 ? (
+                  <div className="p-8 rounded-2xl bg-zinc-950 border border-white/10 text-center flex flex-col items-center gap-2">
+                    <Flame className="w-8 h-8 text-zinc-600" />
+                    <span className="text-xs font-mono text-zinc-400">Aucune proposition en attente pour le moment.</span>
+                    <span className="text-[11px] font-mono text-zinc-500">Dès qu'un auditeur propose un morceau depuis l'onglet Défis, il apparaîtra ici.</span>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-3">
+                    {submissions.filter((s) => s.status === 'pending').map((sub) => (
+                      <div key={sub.id} className="p-4 rounded-2xl bg-zinc-950 border border-orange-500/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex flex-col gap-1.5">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 text-[10px] font-mono font-bold">
+                              EN ATTENTE
+                            </span>
+                            <span className="text-sm font-bold text-white font-mono">{sub.trackTitle}</span>
+                            <span className="text-xs font-mono text-zinc-400">par <strong className="text-white">{sub.artist}</strong></span>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-3 text-[11px] font-mono text-zinc-400">
+                            <span>Radio: <strong className="text-white">{stations.find(s => s.id === sub.stationId)?.name || sub.stationId}</strong></span>
+                            <span>Proposé par: <strong className="text-amber-300">{sub.userName}</strong></span>
+                            <span>Points en jeu: <strong className="text-emerald-400">+{sub.pointsAwarded ?? 100} PTS</strong></span>
+                            <span>Date: {new Date(sub.submittedAt).toLocaleDateString('fr-FR')}</span>
+                          </div>
+
+                          {sub.notes && (
+                            <p className="text-xs text-zinc-300 bg-zinc-900/60 p-2 rounded-lg border border-white/5 font-mono italic">
+                              "{sub.notes}"
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            onClick={() => handleApproveTrackSubmission(sub.id)}
+                            className="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-mono font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-lg shadow-emerald-500/20"
+                            title="Valider et créditer les points"
+                          >
+                            <Check className="w-4 h-4" />
+                            <span>Valider (✓)</span>
+                          </button>
+                          <button
+                            onClick={() => handleRejectTrackSubmission(sub.id)}
+                            className="px-3 py-2 rounded-xl bg-zinc-900 hover:bg-red-950/80 border border-zinc-700 hover:border-red-500/50 text-zinc-400 hover:text-red-300 font-mono text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                            title="Refuser et archiver"
+                          >
+                            <X className="w-4 h-4" />
+                            <span>Refuser</span>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* SUB-VIEW 3: TITRES SÉLECTIONNÉS POUR L'ANTENNE */}
+            {challengeTab === 'selected' && (
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono text-zinc-300 font-bold flex items-center gap-2">
+                    <Music className="w-4 h-4 text-emerald-400" />
+                    Titres Validés & Sélectionnés pour la Programmation Radio
+                  </span>
+                </div>
+
+                {submissions.filter((s) => s.status === 'selected').length === 0 ? (
+                  <div className="p-8 rounded-2xl bg-zinc-950 border border-white/10 text-center flex flex-col items-center gap-2">
+                    <Music className="w-8 h-8 text-zinc-600" />
+                    <span className="text-xs font-mono text-zinc-400">Aucun titre sélectionné pour le moment.</span>
+                    <span className="text-[11px] font-mono text-zinc-500">Validez des propositions d'auditeurs pour les retrouver ici prêts pour votre grille d'antenne !</span>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-3">
+                    {submissions.filter((s) => s.status === 'selected').map((sub) => (
+                      <div key={sub.id} className="p-4 rounded-2xl bg-zinc-950 border border-emerald-500/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex flex-col gap-1.5">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-mono font-bold">
+                              SÉLECTIONNÉ ANTENNE
+                            </span>
+                            <span className="text-sm font-bold text-white font-mono">{sub.trackTitle}</span>
+                            <span className="text-xs font-mono text-zinc-400">par <strong className="text-white">{sub.artist}</strong></span>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-3 text-[11px] font-mono text-zinc-400">
+                            <span>Radio: <strong className="text-white">{stations.find(s => s.id === sub.stationId)?.name || sub.stationId}</strong></span>
+                            <span>Proposé par: <strong className="text-amber-300">{sub.userName}</strong></span>
+                            <span>Points attribués: <strong className="text-emerald-400">+{sub.pointsAwarded ?? 100} PTS</strong></span>
+                            {sub.reviewedAt && (
+                              <span>Validé le: {new Date(sub.reviewedAt).toLocaleDateString('fr-FR')}</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-xs font-mono text-emerald-400 font-bold px-3 py-1.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30">
+                            Prêt diffusion
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* SUB-VIEW 4: ARCHIVES DES PROPOSITIONS */}
+            {challengeTab === 'archives' && (
+              <div className="flex flex-col gap-3">
+                <span className="text-xs font-mono text-zinc-300 font-bold flex items-center gap-2">
+                  <Archive className="w-4 h-4 text-zinc-400" />
+                  Historique des Propositions Rejetées ou Diffusées
+                </span>
+
+                {submissions.filter((s) => s.status === 'rejected').length === 0 ? (
+                  <div className="p-8 rounded-2xl bg-zinc-950 border border-white/10 text-center flex flex-col items-center gap-2">
+                    <Archive className="w-8 h-8 text-zinc-600" />
+                    <span className="text-xs font-mono text-zinc-400">Aucune archive.</span>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-2.5">
+                    {submissions.filter((s) => s.status === 'rejected').map((sub) => (
+                      <div key={sub.id} className="p-3 rounded-xl bg-zinc-950 border border-white/5 flex items-center justify-between gap-3 text-left">
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-xs font-mono font-bold text-zinc-400 truncate">{sub.trackTitle} - {sub.artist}</span>
+                          <span className="text-[10px] font-mono text-zinc-500 truncate">Par {sub.userName} • Radio {stations.find(s => s.id === sub.stationId)?.name || sub.stationId}</span>
+                        </div>
+                        <span className="text-[10px] font-mono text-zinc-500 px-2 py-0.5 rounded bg-zinc-900 shrink-0">Archivé</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* SUB-VIEW 5: DÉFIS CONSTANTS & PODIUMS HEBDOMADAIRES */}
+            {challengeTab === 'constant' && (
+              <div className="flex flex-col gap-4">
+                <div className="p-4 rounded-2xl bg-purple-950/20 border border-purple-500/30 flex flex-col gap-2">
+                  <span className="text-xs font-mono font-bold text-purple-300 uppercase flex items-center gap-2">
+                    <Award className="w-4 h-4 text-purple-400" />
+                    Configuration des Défis Constants & Récompenses Podiums Hebdo
+                  </span>
+                  <p className="text-xs font-mono text-zinc-400">
+                    Définissez les points numériques de fidélité accordés chaque semaine aux auditeurs les plus assidus sur les différentes radios.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {constantChallenges.map((cc) => (
+                    <div key={cc.id} className="p-4 rounded-2xl bg-zinc-950 border border-white/10 flex flex-col gap-3 text-left">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono font-bold text-white uppercase">{cc.title}</span>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 font-bold uppercase">Hebdo</span>
+                      </div>
+                      <p className="text-xs text-zinc-400">{cc.description}</p>
+
+                      <div className="flex flex-col gap-2 pt-2 border-t border-white/10">
+                        <span className="text-[10px] font-mono text-zinc-400 uppercase font-bold">Barème des points par place :</span>
+                        <div className="flex items-center justify-between p-2 rounded-xl bg-zinc-900 border border-white/5 text-xs font-mono">
+                          <span className="font-bold text-amber-300">1ère Place (Or)</span>
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="number"
+                              value={cc.podium.first}
+                              onChange={(e) => handleSaveConstantChallengePodium(cc.id, 'first', Number(e.target.value))}
+                              className="w-20 px-2 py-1 rounded bg-zinc-950 border border-white/15 text-emerald-400 font-bold text-xs text-center"
+                            />
+                            <span className="text-zinc-500 text-[10px]">PTS</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between p-2 rounded-xl bg-zinc-900 border border-white/5 text-xs font-mono">
+                          <span className="font-bold text-zinc-300">2ème Place (Argent)</span>
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="number"
+                              value={cc.podium.second}
+                              onChange={(e) => handleSaveConstantChallengePodium(cc.id, 'second', Number(e.target.value))}
+                              className="w-20 px-2 py-1 rounded bg-zinc-950 border border-white/15 text-emerald-400 font-bold text-xs text-center"
+                            />
+                            <span className="text-zinc-500 text-[10px]">PTS</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between p-2 rounded-xl bg-zinc-900 border border-white/5 text-xs font-mono">
+                          <span className="font-bold text-amber-600">3ème Place (Bronze)</span>
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="number"
+                              value={cc.podium.third}
+                              onChange={(e) => handleSaveConstantChallengePodium(cc.id, 'third', Number(e.target.value))}
+                              className="w-20 px-2 py-1 rounded bg-zinc-950 border border-white/15 text-emerald-400 font-bold text-xs text-center"
+                            />
+                            <span className="text-zinc-500 text-[10px]">PTS</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             </div>
           </div>
         )}
 
         {/* TAB 4: GESTION DES PROMOTIONS */}
         {activeTab === 'promotions' && (
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-xs font-mono text-zinc-300 font-bold flex items-center gap-2">
-                <Tag className="w-4 h-4 text-emerald-400" />
-                Promotions & Codes Avantages ({promotions.length})
-              </span>
+          <div className="flex flex-col w-full min-w-0">
+            {/* STICKY TOP BAR - FIRST ELEMENT, FLUSH, OPAQUE */}
+            <div className="sticky top-0 z-20 w-full bg-zinc-950 border-b border-zinc-800 px-4 sm:px-6 lg:px-8 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shrink-0 shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                  <Tag className="w-4 h-4" />
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="w-2 h-2 rounded-full synapse-star-dot shrink-0" />
+                  <h2 className="text-base sm:text-lg font-futuristic font-black tracking-wide text-white">
+                    Promotions & Codes Avantages ({promotions.length})
+                  </h2>
+                </div>
+              </div>
+
               <button
                 onClick={() => {
                   setPromoTitle('');
                   setPromoDesc('');
                   setPromoPrice('');
                   setPromoCode('');
+                  setPromoPointsCost(150);
+                  setPromoIsStockLimited(false);
+                  setPromoInitialStock(25);
                   setIsAddingNew(!isAddingNew);
                 }}
-                className="px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/50 text-emerald-300 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                className="px-3.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Nouvelle Promo</span>
+                <span>Nouvelle Promotion</span>
               </button>
             </div>
 
+            {/* CONTENT WRAPPER */}
+            <div className="p-4 sm:p-6 lg:p-8 flex flex-col gap-4 text-left">
             {/* CREATE PROMO FORM */}
             {(isAddingNew || editingItem) && (
               <form onSubmit={handleSavePromotion} className="p-4 rounded-2xl bg-zinc-900/90 border border-emerald-500/30 flex flex-col gap-3 shadow-lg text-left">
@@ -2583,6 +3828,56 @@ export default function AdminPanelDrawer({
                   />
                 </div>
 
+                {/* FIDÉLITÉ & STOCK LIMITÉ */}
+                <div className="p-3 rounded-xl bg-zinc-950/80 border border-white/10 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-mono font-bold text-amber-300 flex items-center gap-1.5">
+                      <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                      Achat avec points de fidélité :
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        placeholder="Coût en points (ex: 150)"
+                        value={promoPointsCost || ''}
+                        onChange={(e) => setPromoPointsCost(Number(e.target.value))}
+                        className="w-full px-3 py-1.5 rounded-lg bg-zinc-900 border border-white/15 text-emerald-400 font-bold text-xs font-mono"
+                      />
+                      <span className="text-[11px] font-mono text-zinc-400 shrink-0">PTS</span>
+                    </div>
+                    <span className="text-[10px] font-mono text-zinc-500">
+                      Les auditeurs connectés peuvent débloquer le code en dépensant leurs points de fidélité.
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-mono font-bold text-zinc-200 flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={promoIsStockLimited}
+                        onChange={(e) => setPromoIsStockLimited(e.target.checked)}
+                        className="w-4 h-4 rounded bg-zinc-900 text-zinc-200 cursor-pointer"
+                      />
+                      Stock de codes limité
+                    </label>
+                    {promoIsStockLimited && (
+                      <div className="flex items-center gap-2 mt-1">
+                        <input
+                          type="number"
+                          placeholder="Nombre initial de codes (ex: 20)"
+                          value={promoInitialStock}
+                          onChange={(e) => setPromoInitialStock(Number(e.target.value))}
+                          className="w-full px-3 py-1.5 rounded-lg bg-zinc-900 border border-white/15 text-white font-bold text-xs font-mono"
+                        />
+                        <span className="text-[11px] font-mono text-zinc-400 shrink-0">codes</span>
+                      </div>
+                    )}
+                    <span className="text-[10px] font-mono text-zinc-500">
+                      Quand le stock atteint zéro, l'offre passe en statut "Épuisé".
+                    </span>
+                  </div>
+                </div>
+
                 <textarea
                   rows={2}
                   placeholder="Description..."
@@ -2613,7 +3908,7 @@ export default function AdminPanelDrawer({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {promotions.map((p) => (
                 <div key={p.id} className="p-4 rounded-2xl bg-zinc-950 border border-white/10 flex flex-col justify-between gap-2 text-left">
-                  <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
                     <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-mono font-bold">
                       {p.tag}
                     </span>
@@ -2623,8 +3918,28 @@ export default function AdminPanelDrawer({
                   <h4 className="text-sm font-bold text-white font-futuristic">{p.title}</h4>
                   <p className="text-xs text-zinc-400 line-clamp-2">{p.desc}</p>
 
+                  {/* POINTS COST & STOCK BADGES */}
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    {p.pointsCost && (
+                      <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-mono font-bold flex items-center gap-1">
+                        <Trophy className="w-3 h-3 text-amber-400" />
+                        {p.pointsCost} PTS Fidélité
+                      </span>
+                    )}
+
+                    {p.isStockLimited && (
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                        (p.remainingStock ?? p.initialStock ?? 0) <= 0
+                          ? 'bg-red-500/20 text-red-300 border border-red-500/30'
+                          : 'bg-white/10 text-zinc-200 border border-white/20'
+                      }`}>
+                        Stock: {p.remainingStock ?? p.initialStock ?? 0}/{p.initialStock ?? 0} restants
+                      </span>
+                    )}
+                  </div>
+
                   <div className="flex items-center justify-between pt-2 border-t border-white/10">
-                    <span className="text-[10px] font-mono text-zinc-500">Code: {p.codePromo || 'Aucun'}</span>
+                    <span className="text-[10px] font-mono text-zinc-500">Code: <code className="text-zinc-300 font-bold">{p.codePromo || 'Aucun'}</code></span>
                     <button
                       onClick={() => handleDeletePromotion(p.id)}
                       className="p-1.5 rounded-lg bg-red-950/40 text-red-400 cursor-pointer hover:bg-red-950"
@@ -2635,34 +3950,35 @@ export default function AdminPanelDrawer({
                 </div>
               ))}
             </div>
-          </div>
-        )}
-
-        {/* TAB 5: PROGRAMMATION & GRILLE TV/RADIO */}
-        {activeTab === 'programming' && (
-          <div className="flex flex-col gap-4 text-left">
-            <div className="p-4 rounded-2xl bg-cyan-950/30 border border-cyan-500/30 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Calendar className="w-5 h-5 text-cyan-400" />
-                <div className="flex flex-col">
-                  <span className="text-xs font-bold text-white font-futuristic">Gestion des Tranches Horaires</span>
-                  <span className="text-[11px] font-mono text-zinc-400">
-                    Les grilles d'antenne (Morning, Day, Evening, Night) sont automatiquement synchronisées selon la station sélectionnée.
-                  </span>
-                </div>
-              </div>
             </div>
           </div>
         )}
 
+        {/* TAB 5: PROGRAMMATION & GRILLE TV/RADIO (AGENDA INTERACTIF LIQUIDSOAP) */}
+        {activeTab === 'programming' && (
+          <AdminInteractiveProgrammingAgenda
+            stations={stations}
+            showToast={showToast}
+          />
+        )}
+
         {/* TAB 6: GESTION DES ÉVÉNEMENTS */}
         {activeTab === 'events' && (
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-xs font-mono text-zinc-300 font-bold flex items-center gap-2">
-                <CalendarDays className="w-4 h-4 text-purple-400" />
-                Événements Live & Retransmissions ({events.length})
-              </span>
+          <div className="flex flex-col w-full min-w-0">
+            {/* STICKY TOP BAR - FIRST ELEMENT, FLUSH, OPAQUE */}
+            <div className="sticky top-0 z-20 w-full bg-zinc-950 border-b border-zinc-800 px-4 sm:px-6 lg:px-8 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shrink-0 shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0">
+                  <CalendarDays className="w-4 h-4" />
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="w-2 h-2 rounded-full synapse-star-dot shrink-0" />
+                  <h2 className="text-base sm:text-lg font-futuristic font-black tracking-wide text-white">
+                    Événements Live & Retransmissions ({events.length})
+                  </h2>
+                </div>
+              </div>
+
               <button
                 onClick={() => {
                   setEventTitle('');
@@ -2671,13 +3987,15 @@ export default function AdminPanelDrawer({
                   setEventDesc('');
                   setIsAddingNew(!isAddingNew);
                 }}
-                className="px-3 py-1.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 border border-purple-400/50 text-purple-300 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                className="px-3.5 py-1.5 rounded-lg bg-purple-500 hover:bg-purple-400 text-black text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Nouvel Événement</span>
               </button>
             </div>
 
+            {/* CONTENT WRAPPER */}
+            <div className="p-4 sm:p-6 lg:p-8 flex flex-col gap-4 text-left">
             {/* CREATE EVENT FORM */}
             {(isAddingNew || editingItem) && (
               <form onSubmit={handleSaveEvent} className="p-4 rounded-2xl bg-zinc-900/90 border border-purple-500/30 flex flex-col gap-3 shadow-lg text-left">
@@ -2777,19 +4095,30 @@ export default function AdminPanelDrawer({
                 </div>
               ))}
             </div>
+            </div>
           </div>
         )}
 
         {/* TAB 7: GESTION DE LA MESSAGERIE & RÉGIE */}
         {activeTab === 'messages' && (
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-xs font-mono text-zinc-300 font-bold flex items-center gap-2">
-                <Mail className="w-4 h-4 text-pink-400" />
-                Boîte de Réception & Dédicaces ({messages.length})
-              </span>
+          <div className="flex flex-col w-full min-w-0">
+            {/* STICKY TOP BAR - FIRST ELEMENT, FLUSH, OPAQUE */}
+            <div className="sticky top-0 z-20 w-full bg-zinc-950 border-b border-zinc-800 px-4 sm:px-6 lg:px-8 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shrink-0 shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-pink-500/10 border border-pink-500/30 flex items-center justify-center text-pink-400 shrink-0">
+                  <Mail className="w-4 h-4" />
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="w-2 h-2 rounded-full synapse-star-dot shrink-0" />
+                  <h2 className="text-base sm:text-lg font-futuristic font-black tracking-wide text-white">
+                    Messagerie Studio & Dédicaces ({messages.length})
+                  </h2>
+                </div>
+              </div>
             </div>
 
+            {/* CONTENT WRAPPER */}
+            <div className="p-4 sm:p-6 lg:p-8 flex flex-col gap-4 text-left">
             {messages.length === 0 ? (
               <div className="p-6 rounded-2xl bg-zinc-950 border border-white/10 text-center text-zinc-500 text-xs font-mono">
                 Aucun message d'auditeur pour le moment.
@@ -2842,6 +4171,7 @@ export default function AdminPanelDrawer({
                 ))}
               </div>
             )}
+            </div>
           </div>
         )}
 
@@ -2853,13 +4183,13 @@ export default function AdminPanelDrawer({
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-left">
               
               {/* ENTITY 1: STATIONS */}
-              <div className="p-4 rounded-2xl bg-zinc-900/80 border border-cyan-500/30 flex flex-col justify-between gap-3 shadow-md">
+              <div className="p-4 rounded-2xl bg-zinc-900/80 border border-zinc-700 flex flex-col justify-between gap-3 shadow-md">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-cyan-300 text-xs font-mono font-bold">
+                  <div className="flex items-center gap-2 text-white text-xs font-mono font-bold">
                     <Radio className="w-4 h-4" />
                     <span>STATIONS RADIO</span>
                   </div>
-                  <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-[10px] font-mono border border-cyan-500/40">
+                  <span className="px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300 text-[10px] font-mono border border-zinc-700">
                     synapse_stations
                   </span>
                 </div>
@@ -3002,19 +4332,19 @@ export default function AdminPanelDrawer({
               </p>
             </div>
 
-            {/* SQLITE SCHEMA & TABLES INFO CARD */}
+            {/* SUPABASE SQL SCHEMA CARD */}
             <div className="p-5 rounded-2xl bg-zinc-900/90 border border-white/10 flex flex-col gap-3 text-left shadow-xl">
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <div className="flex items-center gap-2">
-                  <HardDrive className="w-4 h-4 text-amber-400" />
+                  <HardDrive className="w-4 h-4 text-emerald-400" />
                   <span className="text-xs font-mono font-bold text-white uppercase tracking-wider">
-                    Structure SQLite PocketBase (Documentation Technique)
+                    Structure PostgreSQL Supabase (Documentation & Tables)
                   </span>
                 </div>
 
                 <button
                   onClick={handleCopySqlSchema}
-                  className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-300 text-xs font-mono font-bold flex items-center gap-2 transition-all cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/50 text-emerald-300 text-xs font-mono font-bold flex items-center gap-2 transition-all cursor-pointer"
                 >
                   {copiedSql ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                   <span>{copiedSql ? 'Copié !' : 'Copier le script SQL'}</span>
@@ -3022,11 +4352,11 @@ export default function AdminPanelDrawer({
               </div>
 
               <p className="text-xs font-mono text-zinc-400">
-                Structure SQLite correspondante aux tables PocketBase créées dans votre instance.
+                Structure PostgreSQL correspondante aux tables Supabase et abonnements Realtime créées dans votre instance.
               </p>
 
               <pre className="p-4 rounded-xl bg-zinc-950 border border-white/10 text-[11px] font-mono text-zinc-300 overflow-x-auto max-h-60 custom-scrollbar leading-relaxed">
-                {POCKETBASE_SQLITE_SCHEMA_SQL}
+                {SUPABASE_SQL_SCHEMA}
               </pre>
             </div>
           </div>
@@ -3035,16 +4365,68 @@ export default function AdminPanelDrawer({
         </main>
       </div>
 
+      {/* MOBILE FIXED BOTTOM NAVIGATION BAR WITH HORIZONTAL SCROLL (NO SCROLLBAR) */}
+      <nav 
+        aria-label="Navigation mobile d'administration"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-zinc-950/95 border-t border-zinc-800 backdrop-blur-xl px-2 py-1.5 flex items-center gap-1.5 overflow-x-auto no-scrollbar shadow-2xl select-none"
+      >
+        {sidebarLinks.map((item) => {
+          const Icon = item.icon;
+          const isActive = activeTab === item.id || (item.id === 'services' && (activeTab === 'azuracast' || activeTab === 'database'));
+
+          return (
+            <button
+              key={item.id}
+              onClick={() => {
+                setActiveTab(item.id as AdminTab);
+                setIsAddingNew(false);
+                setEditingItem(null);
+                triggerMobileHeaderReveal(item.label);
+                if (mainContentRef.current) {
+                  mainContentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+              }}
+              className={`flex flex-col items-center justify-center min-w-[58px] min-h-[44px] py-1 px-2 rounded-xl transition-all shrink-0 relative cursor-pointer ${
+                isActive
+                  ? 'bg-zinc-800 text-white border border-zinc-700 shadow-md'
+                  : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900 border border-transparent'
+              }`}
+              title={item.label}
+              aria-label={item.label}
+            >
+              <div className="relative">
+                <Icon className="w-4 h-4" />
+                {/* Priority alert badge, else activity badge */}
+                {item.alertCount && item.alertCount > 0 ? (
+                  <span className="absolute -top-1.5 -right-2 min-w-[14px] h-3.5 px-0.5 rounded-full bg-rose-500 text-white text-[8px] font-mono font-bold flex items-center justify-center ring-1 ring-zinc-950 shadow-md animate-pulse">
+                    {item.alertCount}
+                  </span>
+                ) : item.activityCount && item.activityCount > 0 ? (
+                  <span className="absolute -top-1.5 -right-2 min-w-[12px] h-3 px-0.5 rounded-full bg-emerald-500/30 border border-emerald-500/60 text-emerald-300 text-[7.5px] font-mono font-bold flex items-center justify-center ring-1 ring-zinc-950">
+                    {item.activityCount}
+                  </span>
+                ) : null}
+              </div>
+              <span className="text-[9.5px] font-mono font-bold mt-0.5 truncate max-w-[54px]">
+                {item.label}
+              </span>
+            </button>
+          );
+        })}
+      </nav>
+
       {/* STATION CONTROL DECK MODAL */}
-      <StationControlDeckModal
-        isOpen={!!selectedStationForControlDeck}
-        onClose={() => setSelectedStationForControlDeck(null)}
-        station={selectedStationForControlDeck}
-        onRefreshData={() => {
-          loadRemoteAdminData();
-          onRefreshAppState?.();
-        }}
-      />
+      {selectedStationForControlDeck && (
+        <StationControlDeckModal
+          isOpen={!!selectedStationForControlDeck}
+          onClose={() => setSelectedStationForControlDeck(null)}
+          station={selectedStationForControlDeck}
+          onRefreshData={() => {
+            loadRemoteAdminData();
+            onRefreshAppState?.();
+          }}
+        />
+      )}
 
       {/* SIDEBAR REORDER & CUSTOMIZATION MODAL */}
       <AdminSidebarEditorModal

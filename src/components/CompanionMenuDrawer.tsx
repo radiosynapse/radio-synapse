@@ -60,7 +60,7 @@ export default function CompanionMenuDrawer({
       title={
         <div className="flex items-center gap-2.5">
           <div 
-            className="p-1.5 rounded-lg bg-cyan-500/20 border border-cyan-400/40 text-cyan-300"
+            className="p-1.5 rounded-lg bg-white/10 border border-white/20 text-white"
             style={{ borderColor: `${accentColor}60` }}
           >
             <Radio className="w-4 h-4 animate-pulse" />
@@ -87,19 +87,19 @@ export default function CompanionMenuDrawer({
               {isPlaying && (
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                   <div className="flex items-center gap-0.5">
-                    <span className="w-1 h-3 bg-cyan-400 rounded-full animate-bounce" />
-                    <span className="w-1 h-4 bg-cyan-400 rounded-full animate-bounce [animation-delay:0.15s]" />
-                    <span className="w-1 h-2.5 bg-cyan-400 rounded-full animate-bounce [animation-delay:0.3s]" />
+                    <span className="w-1 h-3 bg-white rounded-full animate-bounce" />
+                    <span className="w-1 h-4 bg-white rounded-full animate-bounce [animation-delay:0.15s]" />
+                    <span className="w-1 h-2.5 bg-white rounded-full animate-bounce [animation-delay:0.3s]" />
                   </div>
                 </div>
               )}
             </div>
             <div className="flex flex-col min-w-0 text-left">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-mono text-cyan-400 font-bold uppercase tracking-wider">
+                <span className="text-xs font-mono text-white font-bold uppercase tracking-wider">
                   FLUX ACTIF
                 </span>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="w-2 h-2 rounded-full synapse-star-dot" />
               </div>
               <span className="text-sm font-bold text-white truncate font-futuristic">
                 {activeStream.name}
@@ -115,7 +115,7 @@ export default function CompanionMenuDrawer({
               onClose();
               onOpenStations();
             }}
-            className="px-3 py-1.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/30 border border-cyan-400/40 text-cyan-300 text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-all flex-shrink-0"
+            className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-all flex-shrink-0"
           >
             <span>Stations</span>
             <ArrowRight className="w-3 h-3" />
@@ -179,14 +179,14 @@ export default function CompanionMenuDrawer({
               onClose();
               onOpenHistory();
             }}
-            className="p-3.5 rounded-2xl bg-black/40 hover:bg-cyan-950/40 border border-white/10 hover:border-cyan-500/40 transition-all cursor-pointer flex items-center justify-between group text-left"
+            className="p-3.5 rounded-2xl bg-black/40 hover:bg-sky-950/40 border border-white/10 hover:border-sky-500/40 transition-all cursor-pointer flex items-center justify-between group text-left"
           >
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 group-hover:scale-110 transition-transform">
+              <div className="p-2.5 rounded-xl bg-sky-500/15 border border-sky-500/30 text-sky-400 group-hover:scale-110 transition-transform">
                 <History className="w-5 h-5" />
               </div>
               <div className="flex flex-col">
-                <span className="text-sm font-bold text-white group-hover:text-cyan-300 transition-colors">
+                <span className="text-sm font-bold text-white group-hover:text-sky-300 transition-colors">
                   Historique & Replay
                 </span>
                 <span className="text-[11px] font-mono text-zinc-400">
@@ -194,7 +194,7 @@ export default function CompanionMenuDrawer({
                 </span>
               </div>
             </div>
-            <ArrowRight className="w-4 h-4 text-zinc-500 group-hover:text-cyan-400 transition-colors" />
+            <ArrowRight className="w-4 h-4 text-zinc-500 group-hover:text-sky-400 transition-colors" />
           </button>
 
           {/* 4. Égaliseur Audio Studio */}
@@ -305,7 +305,7 @@ export default function CompanionMenuDrawer({
         <div className="p-4 rounded-2xl bg-zinc-900/90 border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex flex-col text-left">
             <span className="text-xs font-bold text-white font-futuristic uppercase tracking-wider flex items-center gap-1.5">
-              <Volume2 className="w-3.5 h-3.5 text-cyan-400" />
+              <Volume2 className="w-3.5 h-3.5 text-white" />
               Débit & Résolution Master
             </span>
             <span className="text-[10px] font-mono text-zinc-400">
@@ -323,11 +323,11 @@ export default function CompanionMenuDrawer({
                   onClick={() => onSetQuality(qual)}
                   className={`text-[11px] font-mono font-bold px-2.5 py-1 rounded-lg transition-all uppercase cursor-pointer flex items-center gap-1 ${
                     isSelected
-                      ? 'bg-cyan-500/25 border border-cyan-400 text-cyan-300'
+                      ? 'bg-white text-black font-bold shadow'
                       : 'text-zinc-400 hover:text-white border border-transparent'
                   }`}
                 >
-                  {isSelected && <Check className="w-2.5 h-2.5 text-cyan-400" />}
+                  {isSelected && <Check className="w-2.5 h-2.5 text-black" />}
                   <span>{labels[qual]}</span>
                 </button>
               );

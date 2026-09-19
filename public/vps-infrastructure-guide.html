@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Guide d'Installation Infrastructure VPS & Manuel Admin - Radio Synapse</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #09090b;
+      color: #e4e4e7;
+    }
+    pre, code, .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .chromatic-accent {
+      background: linear-gradient(90deg, #00f2ff, #7928ca, #ff007f);
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #09090b;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #27272a;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #3f3f46;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased selection:bg-cyan-500/30 selection:text-cyan-200">
+
+  <!-- TOP HEADER -->
+  <header class="sticky top-0 z-50 bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800/80 px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-cyan-400 font-bold shadow-inner">
+        RS
+      </div>
+      <div>
+        <h1 class="text-base font-bold text-white tracking-wide flex items-center gap-2">
+          Radio Synapse <span class="text-xs px-2 py-0.5 rounded-md bg-cyan-950/60 border border-cyan-500/30 text-cyan-400 font-mono">Infrastructure VPS & Guide Admin</span>
+        </h1>
+        <p class="text-xs text-zinc-400 font-mono">Docker • Supabase • Liquidsoap • Icecast • Nginx Proxy Manager</p>
+      </div>
+    </div>
+    
+    <div class="flex items-center gap-3">
+      <a href="/" class="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-200 text-xs font-mono font-semibold transition-all">
+        ← Retour au Lecteur
+      </a>
+      <a href="#manuel-admin" class="px-4 py-2 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 text-xs font-mono font-semibold transition-all">
+        Manuel Panel Admin
+      </a>
+    </div>
+  </header>
+
+  <!-- CHROMATIC ACCENT LINE -->
+  <div class="h-[2px] chromatic-accent w-full"></div>
+
+  <!-- MAIN CONTAINER -->
+  <div class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col md:flex-row gap-8">
+
+    <!-- STICKY TABLE OF CONTENTS -->
+    <aside class="w-full md:w-64 shrink-0">
+      <div class="sticky top-24 space-y-4">
+        <div class="p-4 rounded-2xl bg-zinc-900/70 border border-zinc-800/80 backdrop-blur-sm space-y-3">
+          <span class="text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-bold block">Sommaire</span>
+          <nav class="space-y-1 text-xs">
+            <a href="#architecture" class="block px-2.5 py-1.5 rounded-lg text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors">1. Architecture & Réseau</a>
+            <a href="#prerequis" class="block px-2.5 py-1.5 rounded-lg text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors">2. Prérequis & Docker</a>
+            <a href="#supabase" class="block px-2.5 py-1.5 rounded-lg text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors">3. Supabase Self-Hosted</a>
+            <a href="#icecast" class="block px-2.5 py-1.5 rounded-lg text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors">4. Icecast 2 Streaming</a>
+            <a href="#liquidsoap" class="block px-2.5 py-1.5 rounded-lg text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors">5. Liquidsoap Regie & Harbor</a>
+            <a href="#nginx" class="block px-2.5 py-1.5 rounded-lg text-zinc-300 hover:text-white hover:bg-zinc-800 transition-colors">6. Nginx Proxy Manager</a>
+            <a href="#manuel-admin" class="block px-2.5 py-1.5 rounded-lg text-cyan-300 hover:text-cyan-200 hover:bg-cyan-950/40 transition-colors font-semibold">7. Manuel Panel Admin</a>
+          </nav>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-zinc-900/40 border border-zinc-800/50 text-xs text-zinc-400 space-y-2 font-mono">
+          <div class="flex items-center gap-2 text-emerald-400">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>Mode Temps Réel Actif</span>
+          </div>
+          <p class="text-[11px] text-zinc-400">Toutes les actions du panel sont synchronisées instantanément via Supabase Realtime & WebSockets.</p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CONTENT AREA -->
+    <main class="flex-1 min-w-0 space-y-12">
+
+      <!-- SECTION 1: ARCHITECTURE -->
+      <section id="architecture" class="space-y-4">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-cyan-950/60 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-mono font-bold text-sm">1</div>
+          <h2 class="text-xl font-bold text-white tracking-wide">Architecture Globale & Réseau Docker</h2>
+        </div>
+        <p class="text-sm text-zinc-300 leading-relaxed">
+          L'infrastructure Radio Synapse s'articule autour d'un réseau Docker unifié (<code class="text-cyan-300 bg-zinc-900 px-1.5 py-0.5 rounded border border-zinc-800">synapse-net</code>) permettant la communication interne haute performance entre la base de données, les flux audio et le proxy inverse.
+        </p>
+
+        <div class="p-4 rounded-xl bg-zinc-950 border border-zinc-800 font-mono text-xs text-zinc-300 space-y-2 overflow-x-auto">
+          <div class="text-cyan-400 font-bold">// Schéma du flux réseau :</div>
+          <div class="text-zinc-400 leading-relaxed">
+            Internet (Auditeurs / DJ / Navigateurs)<br>
+            &nbsp;&nbsp;│<br>
+            &nbsp;&nbsp;▼ Ports 80 &amp; 443 (HTTPS / SSL Let's Encrypt)<br>
+            [ NGINX PROXY MANAGER (npm) ] ── (Réseau bridge : synapse-net)<br>
+            &nbsp;&nbsp;├──► db.radiosynapse.fr  ──► [ Supabase Kong API Gateway :8000 ]<br>
+            &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── PostgREST (REST API :3000)<br>
+            &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── GoTrue (Auth :9999)<br>
+            &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── Realtime (WebSockets :4000)<br>
+            &nbsp;&nbsp;├──► stream.radiosynapse.fr ──► [ Icecast 2 Audio Server :8000 ]<br>
+            &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;▲ Sources audio internes<br>
+            &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── [ Liquidsoap Regie :8572 &amp; Harbor :8005 ]<br>
+            &nbsp;&nbsp;└──► npm.radiosynapse.fr    ──► [ NPM Web UI Admin :81 ]
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 2: PREREQUIS & DOCKER -->
+      <section id="prerequis" class="space-y-4">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-cyan-950/60 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-mono font-bold text-sm">2</div>
+          <h2 class="text-xl font-bold text-white tracking-wide">Prérequis & Installation Docker sur le VPS</h2>
+        </div>
+        <p class="text-sm text-zinc-300 leading-relaxed">
+          Connectez-vous à votre VPS en SSH avec un compte disposant des droits <code class="text-zinc-200 bg-zinc-800 px-1 rounded">sudo</code> (ex: Ubuntu 22.04 / 24.04 ou Debian 12).
+        </p>
+
+        <!-- Command Block -->
+        <div class="space-y-3">
+          <span class="text-xs font-mono text-zinc-400 font-bold block">1. Mise à jour du système & Installation universelle de Docker :</span>
+          <div class="relative group">
+            <pre class="p-4 rounded-xl bg-zinc-950 border border-zinc-800 font-mono text-xs text-cyan-300 overflow-x-auto leading-relaxed">sudo apt-get update && sudo apt-get upgrade -y
+sudo apt-get install -y curl wget git ufw htop jq net-tools ca-certificates gnupg lsb-release
+
+# Installation Docker universelle (compatible Debian 12/13 Trixie & Ubuntu)
+curl -fsSL https://get.docker.com | sudo sh
+
+# Création du réseau Docker commun
+sudo docker network create synapse-net</pre>
+            <button onclick="copyCode(this)" class="absolute top-3 right-3 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-mono font-semibold border border-zinc-700 transition-all cursor-pointer">
+              Copier
+            </button>
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          <span class="text-xs font-mono text-zinc-400 font-bold block">2. Configuration du Pare-feu UFW :</span>
+          <div class="relative group">
+            <pre class="p-4 rounded-xl bg-zinc-950 border border-zinc-800 font-mono text-xs text-cyan-300 overflow-x-auto leading-relaxed">sudo ufw allow 22/tcp    # SSH
+sudo ufw allow 80/tcp    # HTTP Let's Encrypt (NPM)
+sudo ufw allow 443/tcp   # HTTPS SSL (NPM)
+sudo ufw allow 81/tcp    # Admin Nginx Proxy Manager
+sudo ufw allow 8000/tcp  # Icecast (Radio master)
+sudo ufw allow 8005/tcp  # Direct DJ Harbor (Liquidsoap)
+sudo ufw enable</pre>
+            <button onclick="copyCode(this)" class="absolute top-3 right-3 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-mono font-semibold border border-zinc-700 transition-all cursor-pointer">
+              Copier
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 3: SUPABASE -->
+      <section id="supabase" class="space-y-4">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-emerald-950/60 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-mono font-bold text-sm">3</div>
+          <h2 class="text-xl font-bold text-white tracking-wide">Déploiement de Supabase Self-Hosted</h2>
+        </div>
+        <p class="text-sm text-zinc-300 leading-relaxed">
+          Supabase fournit l'authentification (GoTrue), l'API REST temps réel (PostgREST), les WebSockets (Realtime) et le moteur de base de données PostgreSQL 15.
+        </p>
+
+        <div class="space-y-3">
+          <span class="text-xs font-mono text-zinc-400 font-bold block">1. Cloner et configurer Supabase Docker :</span>
+          <div class="relative group">
+            <pre class="p-4 rounded-xl bg-zinc-950 border border-zinc-800 font-mono text-xs text-emerald-300 overflow-x-auto leading-relaxed"># Répertoire de travail
+sudo mkdir -p /opt/synapse-infra
+cd /opt/synapse-infra
+
+# Cloner le dépôt officiel Supabase Docker
+sudo git clone --depth 1 https://github.com/supabase/supabase
+cd supabase/docker
+
+# Copier le fichier d'environnement modèle
+sudo cp .env.example .env
+
+# Attacher Supabase au réseau commun synapse-net
+echo "
+networks:
+  default:
+    name: synapse-net
+    external: true
+" | sudo tee -a docker-compose.yml</pre>
+            <button onclick="copyCode(this)" class="absolute top-3 right-3 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-mono font-semibold border border-zinc-700 transition-all cursor-pointer">
+              Copier
+            </button>
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          <span class="text-xs font-mono text-zinc-400 font-bold block">2. Lancer Supabase et exécuter le schéma SQL :</span>
+          <div class="relative group">
+            <pre class="p-4 rounded-xl bg-zinc-950 border border-zinc-800 font-mono text-xs text-emerald-300 overflow-x-auto leading-relaxed"># Démarrage des conteneurs Supabase
+sudo docker compose up -d
+
+# Téléchargement du schéma Radio Synapse et injection directe dans PostgreSQL
+curl -fsSL https://raw.githubusercontent.com/radio-synapse/schema/main/supabase_schema.sql -o /tmp/schema.sql 2>/dev/null || true
+# Ou collez directement le contenu de public/supabase_schema.sql dans le Supabase Studio (http://IP_VPS:8000/project/default/sql)</pre>
+            <button onclick="copyCode(this)" class="absolute top-3 right-3 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-mono font-semibold border border-zinc-700 transition-all cursor-pointer">
+              Copier
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 4: ICECAST 2 -->
+      <section id="icecast" class="space-y-4">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-amber-950/60 border border-amber-500/30 flex items-center justify-center text-amber-400 font-mono font-bold text-sm">4</div>
+          <h2 class="text-xl font-bold text-white tracking-wide">Déploiement du Serveur Icecast 2</h2>
+        </div>
+        <p class="text-sm text-zinc-300 leading-relaxed">
+          Icecast 2 distribue les flux audio encodés vers les lecteurs web des auditeurs.
+        </p>
+
+        <div class="space-y-3">
+          <span class="text-xs font-mono text-zinc-400 font-bold block">Créer le conteneur Icecast 2 dans synapse-net :</span>
+          <div class="relative group">
+            <pre class="p-4 rounded-xl bg-zinc-950 border border-zinc-800 font-mono text-xs text-amber-300 overflow-x-auto leading-relaxed">sudo mkdir -p /opt/synapse-infra/icecast
+cd /opt/synapse-infra/icecast
+
+cat &lt;&lt; 'EOF' | sudo tee docker-compose.yml
+version: '3.8'
+
+services:
+  icecast:
+    image: plribeiro3000/icecast:latest
+    container_name: synapse-icecast
+    restart: always
+    environment:
+      - ICECAST_SOURCE_PASSWORD=synapse_icecast_source
+      - ICECAST_ADMIN_PASSWORD=synapse_icecast_admin
+      - ICECAST_PASSWORD=synapse_icecast_hackme
+      - ICECAST_RELAY_PASSWORD=synapse_icecast_relay
+      - ICECAST_ADMIN_USERNAME=admin
+      - ICECAST_ADMIN_EMAIL=admin@radiosynapse.fr
+      - ICECAST_LOCATION=France
+    ports:
+      - "8000:8000"
+    networks:
+      - synapse-net
+
+networks:
+  synapse-net:
+    external: true
+EOF
+
+sudo docker compose up -d</pre>
+            <button onclick="copyCode(this)" class="absolute top-3 right-3 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-mono font-semibold border border-zinc-700 transition-all cursor-pointer">
+              Copier
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 5: LIQUIDSOAP REGIE -->
+      <section id="liquidsoap" class="space-y-4">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-purple-950/60 border border-purple-500/30 flex items-center justify-center text-purple-400 font-mono font-bold text-sm">5</div>
+          <h2 class="text-xl font-bold text-white tracking-wide">Déploiement de Liquidsoap (AutoDJ, Harbor DJ & Encodage)</h2>
+        </div>
+        <p class="text-sm text-zinc-300 leading-relaxed">
+          Liquidsoap gère la lecture des playlists, les crossfades intelligents, la prise d'antenne DJ en direct (port Harbor 8005) et l'encodage MP3/AAC vers Icecast.
+        </p>
+
+        <div class="space-y-3">
+          <span class="text-xs font-mono text-zinc-400 font-bold block">Créer le script Liquidsoap et le conteneur Docker :</span>
+          <div class="relative group">
+            <pre class="p-4 rounded-xl bg-zinc-950 border border-zinc-800 font-mono text-xs text-purple-300 overflow-x-auto leading-relaxed">sudo mkdir -p /opt/synapse-infra/liquidsoap/media
+cd /opt/synapse-infra/liquidsoap
+
+# Script de diffusion multi-stations
+cat &lt;&lt; 'EOF' | sudo tee radio.liq
+set("log.level", 3)
+set("server.telnet", true)
+set("server.telnet.bind_addr", "0.0.0.0")
+set("server.telnet.port", 8572)
+
+# Harbor Live Input pour prise d'antenne DJ
+live_dj = input.harbor("/live", port=8005, password="synapse_dj_live_pass")
+
+# AutoDJ Playlist locale
+autodj = playlist(reload_mode="watch", "/music")
+fallback_track = single("/music/fallback.mp3")
+
+# Sélecteur dynamique avec transition douce
+radio_source = fallback(track_sensitive=false, [live_dj, autodj, fallback_track])
+radio_source = crossfade(duration=3.5, radio_source)
+
+# Sortie vers Icecast (synapse-icecast dans le réseau Docker)
+output.icecast(%mp3(bitrate=320, samplerate=44100),
+  host="synapse-icecast", port=8000,
+  password="synapse_icecast_source",
+  mount="/synapse_hd.mp3",
+  name="Radio Synapse HD",
+  genre="Electro, Synthwave, Pop",
+  url="https://radiosynapse.fr",
+  radio_source)
+EOF
+
+# Compose Liquidsoap
+cat &lt;&lt; 'EOF' | sudo tee docker-compose.yml
+version: '3.8'
+
+services:
+  liquidsoap:
+    image: savonet/liquidsoap:v2.2.5
+    container_name: synapse-liquidsoap
+    restart: always
+    volumes:
+      - ./radio.liq:/etc/liquidsoap/radio.liq:ro
+      - ./media:/music:rw
+    ports:
+      - "8005:8005"
+      - "8572:8572"
+    command: ["liquidsoap", "/etc/liquidsoap/radio.liq"]
+    networks:
+      - synapse-net
+
+networks:
+  synapse-net:
+    external: true
+EOF
+
+sudo docker compose up -d</pre>
+            <button onclick="copyCode(this)" class="absolute top-3 right-3 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-mono font-semibold border border-zinc-700 transition-all cursor-pointer">
+              Copier
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 6: NGINX PROXY MANAGER -->
+      <section id="nginx" class="space-y-4">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-blue-950/60 border border-blue-500/30 flex items-center justify-center text-blue-400 font-mono font-bold text-sm">6</div>
+          <h2 class="text-xl font-bold text-white tracking-wide">Déploiement de Nginx Proxy Manager & SSL</h2>
+        </div>
+        <p class="text-sm text-zinc-300 leading-relaxed">
+          Nginx Proxy Manager gère le routage de vos sous-domaines vers les bons conteneurs internes et renouvelle automatiquement vos certificats SSL Let's Encrypt.
+        </p>
+
+        <div class="space-y-3">
+          <span class="text-xs font-mono text-zinc-400 font-bold block">Installer Nginx Proxy Manager :</span>
+          <div class="relative group">
+            <pre class="p-4 rounded-xl bg-zinc-950 border border-zinc-800 font-mono text-xs text-blue-300 overflow-x-auto leading-relaxed">sudo mkdir -p /opt/synapse-infra/npm
+cd /opt/synapse-infra/npm
+
+cat &lt;&lt; 'EOF' | sudo tee docker-compose.yml
+version: '3.8'
+
+services:
+  npm:
+    image: 'jc21/nginx-proxy-manager:latest'
+    container_name: synapse-npm
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '81:81'
+      - '443:443'
+    volumes:
+      - ./data:/data
+      - ./letsencrypt:/etc/letsencrypt
+    networks:
+      - synapse-net
+
+networks:
+  synapse-net:
+    external: true
+EOF
+
+sudo docker compose up -d</pre>
+            <button onclick="copyCode(this)" class="absolute top-3 right-3 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-mono font-semibold border border-zinc-700 transition-all cursor-pointer">
+              Copier
+            </button>
+          </div>
+        </div>
+
+        <div class="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 text-xs space-y-2">
+          <span class="font-bold text-white">Configuration des Proxy Hosts dans NPM (http://VOTRE_IP:81) :</span>
+          <ul class="list-disc list-inside text-zinc-300 space-y-1">
+            <li><code class="text-cyan-300">db.radiosynapse.fr</code> ➔ Forward Host : <code class="text-white">supabase-kong</code>, Port : <code class="text-white">8000</code>, Activer WebSockets Support &amp; SSL Let's Encrypt.</li>
+            <li><code class="text-cyan-300">stream.radiosynapse.fr</code> ➔ Forward Host : <code class="text-white">synapse-icecast</code>, Port : <code class="text-white">8000</code>, Activer SSL Let's Encrypt &amp; Custom Nginx Header (<code class="text-zinc-400">proxy_buffering off;</code>).</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- SECTION 7: MANUEL D'UTILISATION PANEL ADMIN -->
+      <section id="manuel-admin" class="space-y-6 pt-6 border-t border-zinc-800">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-pink-950/60 border border-pink-500/30 flex items-center justify-center text-pink-400 font-mono font-bold text-sm">7</div>
+          <h2 class="text-xl font-bold text-white tracking-wide">Manuel & Tutoriel d'Utilisation du Panel Admin</h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Card 1: Régie Liquidsoap -->
+          <div class="p-5 rounded-2xl bg-zinc-950 border border-zinc-800/80 space-y-2.5">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-cyan-400"></span> Régie Liquidsoap & Diffusion
+            </h3>
+            <p class="text-xs text-zinc-400 leading-relaxed">
+              Supervisez les montages Icecast, l'encodage actif (MP3/AAC), les auditeurs connectés et le statut du serveur de streaming. En cas d'intervention en direct, le studio WebDJ se connecte directement au port Harbor 8005.
+            </p>
+          </div>
+
+          <!-- Card 2: Stations & Application Utilisateur -->
+          <div class="p-5 rounded-2xl bg-zinc-950 border border-zinc-800/80 space-y-2.5">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span> Stations Radio
+            </h3>
+            <p class="text-xs text-zinc-400 leading-relaxed">
+              Ajoutez, éditez ou réordonnez les stations radio diffusées sur l'application. Chaque station dispose d'une URL de flux Icecast, d'une couleur d'ambiance et d'un genre musical.
+            </p>
+          </div>
+
+          <!-- Card 3: Programmation Interactive -->
+          <div class="p-5 rounded-2xl bg-zinc-950 border border-zinc-800/80 space-y-2.5">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-amber-400"></span> Programmation & Grille Antenne
+            </h3>
+            <p class="text-xs text-zinc-400 leading-relaxed">
+              Planifiez les émissions, les playlists automatiques et les résidences DJ par créneaux horaires. Les changements sont répercutés en temps réel dans l'agenda public des auditeurs.
+            </p>
+          </div>
+
+          <!-- Card 4: Utilisateurs & Profils -->
+          <div class="p-5 rounded-2xl bg-zinc-950 border border-zinc-800/80 space-y-2.5">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-purple-400"></span> Utilisateurs & Rôles
+            </h3>
+            <p class="text-xs text-zinc-400 leading-relaxed">
+              Gérez les auditeurs, animateurs, administrateurs et super-administrateurs. Associez les identifiants DJ Harbor aux animateurs pour leur permettre d'émettre en direct depuis leur console.
+            </p>
+          </div>
+
+          <!-- Card 5: Quêtes & Défis -->
+          <div class="p-5 rounded-2xl bg-zinc-950 border border-zinc-800/80 space-y-2.5">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-pink-400"></span> Défis, Quêtes & Modération
+            </h3>
+            <p class="text-xs text-zinc-400 leading-relaxed">
+              Créez des défis auditeurs (proposer une musique, quiz en direct, temps d'écoute). Modérez les propositions de morceaux et créditez automatiquement les points aux gagnants.
+            </p>
+          </div>
+
+          <!-- Card 6: Modules du Site -->
+          <div class="p-5 rounded-2xl bg-zinc-950 border border-zinc-800/80 space-y-2.5">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-blue-400"></span> Feature Flags & Modules
+            </h3>
+            <p class="text-xs text-zinc-400 leading-relaxed">
+              Activez ou désactivez instantanément les fonctionnalités du lecteur (chat en direct, visualiseur audio 3D, égaliseur, métadonnées enrichies) sans redémarrer le serveur.
+            </p>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-zinc-900 bg-zinc-950 py-6 px-6 text-center text-xs text-zinc-400 font-mono">
+    Radio Synapse • Documentation Technique d'Infrastructure VPS & Manuel Admin • Mise à jour continue
+  </footer>
+
+  <!-- SCRIPT COPIER CODE -->
+  <script>
+    function copyCode(btn) {
+      const pre = btn.previousElementSibling;
+      const text = pre.innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        const orig = btn.innerText;
+        btn.innerText = '✓ Copié !';
+        btn.classList.add('bg-emerald-600', 'text-white');
+        setTimeout(() => {
+          btn.innerText = orig;
+          btn.classList.remove('bg-emerald-600', 'text-white');
+        }, 2000);
+      });
+    }
+  </script>
+</body>
+</html>

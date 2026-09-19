@@ -120,10 +120,10 @@ export default function CastModal({
           /* Active Cast Connection View */
           <div className="flex flex-col gap-4 text-center py-1">
             <div className="flex flex-col items-center gap-2">
-              <div className="w-12 h-12 rounded-full bg-cyan-500/10 border border-cyan-400/30 flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.15)]">
-                <Wifi className="w-6 h-6 text-cyan-400 animate-pulse" />
+              <div className="w-12 h-12 rounded-full bg-white/10 border border-white/20 flex items-center justify-center shadow-md">
+                <Wifi className="w-6 h-6 text-white animate-pulse" />
               </div>
-              <span className="text-[11px] font-mono font-bold text-cyan-400 uppercase tracking-widest mt-1">
+              <span className="text-[11px] font-mono font-bold text-white uppercase tracking-widest mt-1">
                 DIFFUSION EN COURS
               </span>
             </div>
@@ -159,9 +159,9 @@ export default function CastModal({
               type="button"
               onClick={handleDeviceTrigger}
               aria-label="Rechercher un téléviseur ou une enceinte Google Cast"
-              className="w-full p-4 rounded-2xl border text-center transition-all duration-300 cursor-pointer bg-white/[0.03] border-white/10 hover:border-cyan-500/40 hover:bg-white/[0.06] hover:shadow-[0_0_20px_rgba(6,182,212,0.12)] flex items-center justify-center gap-2.5 group active:scale-[0.98]"
+              className="w-full p-4 rounded-2xl border text-center transition-all duration-300 cursor-pointer bg-white/[0.03] border-white/10 hover:border-zinc-500 hover:bg-white/[0.06] hover:shadow-md flex items-center justify-center gap-2.5 group active:scale-[0.98]"
             >
-              <Wifi className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
+              <Wifi className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
               <span className="text-xs font-bold text-zinc-200 group-hover:text-white transition-colors uppercase tracking-wider">
                 Rechercher un appareil
               </span>
@@ -173,7 +173,7 @@ export default function CastModal({
                   ⚠️ Erreur Cast ({errorMessage})
                 </span>
                 <span className="text-[11px] text-zinc-300 leading-normal">
-                  Chrome signale que l'App ID <code className="text-amber-300">{castAppId}</code> n'a pas pu charger la page de votre Receiver TV. Vérifiez que l'URL du Receiver dans votre console Google Cast pointe bien vers <code className="text-cyan-300">https://.../receiver.html</code>.
+                  Chrome signale que l'App ID <code className="text-amber-300">{castAppId}</code> n'a pas pu charger la page de votre Receiver TV. Vérifiez que l'URL du Receiver dans votre console Google Cast pointe bien vers <code className="text-white">https://.../receiver.html</code>.
                 </span>
               </div>
             )}
@@ -184,7 +184,7 @@ export default function CastModal({
                 Astuce Google Chrome :
               </span>
               <span className="text-[11px] text-zinc-400 leading-tight">
-                Vous pouvez également cliquer sur les <strong className="text-zinc-200">trois petits points (⋮)</strong> en haut à droite de Chrome &gt; <strong className="text-cyan-400">Caster...</strong> pour sélectionner votre Freebox.
+                Vous pouvez également cliquer sur les <strong className="text-zinc-200">trois petits points (⋮)</strong> en haut à droite de Chrome &gt; <strong className="text-white">Caster...</strong> pour sélectionner votre Freebox.
               </span>
             </div>
 
@@ -194,14 +194,14 @@ export default function CastModal({
                 type="button"
                 onClick={() => setShowIdSettings(!showIdSettings)}
                 aria-label="Afficher ou masquer les paramètres du récepteur Google Cast"
-                className="text-[11px] font-mono text-zinc-400 hover:text-cyan-400 transition-colors uppercase tracking-wider block w-full text-center py-1 cursor-pointer"
+                className="text-[11px] font-mono text-zinc-400 hover:text-white transition-colors uppercase tracking-wider block w-full text-center py-1 cursor-pointer"
               >
                 {showIdSettings ? '▲ Masquer paramètres du Receiver' : '⚙️ Configurer Receiver Google Cast'}
               </button>
 
               {showIdSettings && (
                 <div className="mt-1 flex flex-col gap-2.5 p-3 bg-black/50 border border-white/10 rounded-xl">
-                  <span className="text-[11px] font-mono text-cyan-400 font-bold uppercase tracking-wide">
+                  <span className="text-[11px] font-mono text-white font-bold uppercase tracking-wide">
                     Mode de Receiver Google Cast :
                   </span>
 
@@ -212,7 +212,7 @@ export default function CastModal({
                       aria-label="Sélectionner le mode Récepteur Universel"
                       className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-mono font-bold uppercase border transition-all cursor-pointer ${
                         castAppId === 'CC1AD845' || !castAppId
-                          ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.2)]'
+                          ? 'bg-white border-white text-black shadow-md'
                           : 'bg-white/5 border-white/10 text-zinc-300 hover:text-white'
                       }`}
                     >
@@ -224,7 +224,7 @@ export default function CastModal({
                       aria-label="Sélectionner le mode Récepteur Personnalisé"
                       className={`flex-1 py-1.5 px-2 rounded-lg text-[11px] font-mono font-bold uppercase border transition-all cursor-pointer ${
                         castAppId && castAppId !== 'CC1AD845'
-                          ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.2)]'
+                          ? 'bg-white border-white text-black shadow-md'
                           : 'bg-white/5 border-white/10 text-zinc-300 hover:text-white'
                       }`}
                     >
@@ -243,7 +243,7 @@ export default function CastModal({
                         placeholder="Ex: 0E724BF5"
                         value={castAppId}
                         onChange={(e) => handleSaveAppId(e.target.value.trim().toUpperCase())}
-                        className="w-full bg-black/80 border border-white/15 focus:border-cyan-400 rounded-lg px-3 py-2 text-xs font-mono text-white placeholder:text-zinc-500 outline-none uppercase tracking-widest"
+                        className="w-full bg-black/80 border border-white/15 focus:border-white rounded-lg px-3 py-2 text-xs font-mono text-white placeholder:text-zinc-500 outline-none uppercase tracking-widest"
                       />
                     </div>
                   )}

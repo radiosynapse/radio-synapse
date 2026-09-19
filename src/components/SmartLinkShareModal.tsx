@@ -195,8 +195,8 @@ export default function SmartLinkShareModal({
       action: 'Écouter sur TIDAL',
       url: tidalLink,
       icon: 'https://cdn-icons-png.flaticon.com/512/732/732247.png',
-      badgeColor: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
-      buttonBg: 'hover:bg-cyan-950/50 hover:border-cyan-500/50',
+      badgeColor: 'bg-zinc-800 text-zinc-200 border-zinc-700',
+      buttonBg: 'hover:bg-zinc-800 hover:border-zinc-700',
     },
     {
       id: 'amazon',
@@ -286,7 +286,7 @@ export default function SmartLinkShareModal({
                 </span>
                 {track.stationName && (
                   <span className="text-[10px] font-mono text-zinc-400 mt-1 flex items-center gap-1">
-                    <Radio className="w-3 h-3 text-cyan-400" />
+                    <Radio className="w-3 h-3 text-zinc-300" />
                     Entendu sur Radio Synapse ({track.stationName})
                   </span>
                 )}
@@ -298,7 +298,7 @@ export default function SmartLinkShareModal({
               <div className="flex flex-col gap-1 pt-1">
                 <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
                   <div 
-                    className="h-full bg-gradient-to-r from-pink-500 to-cyan-400 transition-all duration-150 rounded-full"
+                    className="h-full bg-white transition-all duration-150 rounded-full"
                     style={{ width: `${previewProgress}%` }}
                   />
                 </div>
@@ -313,7 +313,7 @@ export default function SmartLinkShareModal({
           {/* Share Link Copy Box with One-Click Button */}
           <div className="p-3.5 rounded-2xl bg-zinc-950/90 border border-white/10 flex flex-col gap-2 shadow-inner">
             <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-zinc-400 text-left flex items-center gap-1.5">
-              <Disc3 className="w-3.5 h-3.5 text-cyan-400" />
+              <Disc3 className="w-3.5 h-3.5 text-white" />
               Lien de partage unique multi-plateforme :
             </span>
 
@@ -323,7 +323,7 @@ export default function SmartLinkShareModal({
                   type="text"
                   readOnly
                   value={shareUrl}
-                  className="w-full px-3 py-2 rounded-xl bg-black/80 border border-white/10 text-xs font-mono text-zinc-300 select-all focus:outline-none focus:border-cyan-400 truncate"
+                  className="w-full px-3 py-2 rounded-xl bg-black/80 border border-white/10 text-xs font-mono text-zinc-300 select-all focus:outline-none focus:border-white truncate"
                 />
               </div>
 
@@ -333,7 +333,7 @@ export default function SmartLinkShareModal({
                 className={`px-3.5 py-2 rounded-xl border text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 flex-shrink-0 active:scale-95 ${
                   copied
                     ? 'bg-emerald-500/25 border-emerald-400 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.4)]'
-                    : 'bg-white/10 hover:bg-cyan-500/20 border-white/15 hover:border-cyan-400/50 text-white'
+                    : 'bg-white/10 hover:bg-white/20 border-white/15 hover:border-white/30 text-white'
                 }`}
                 title="Copier le lien de partage"
               >
@@ -344,7 +344,7 @@ export default function SmartLinkShareModal({
                   </>
                 ) : (
                   <>
-                    <Copy className="w-3.5 h-3.5 text-cyan-400" />
+                    <Copy className="w-3.5 h-3.5 text-white" />
                     <span>Copier</span>
                   </>
                 )}
@@ -385,7 +385,7 @@ export default function SmartLinkShareModal({
                       className="w-6 h-6 object-contain flex-shrink-0"
                     />
                     <div className="flex flex-col text-left min-w-0">
-                      <span className="text-xs sm:text-sm font-bold text-white font-mono group-hover/plat:text-cyan-300 transition-colors truncate">
+                      <span className="text-xs sm:text-sm font-bold text-white font-mono group-hover/plat:text-zinc-200 transition-colors truncate">
                         {p.name}
                       </span>
                       <span className="text-[10px] text-zinc-400 font-mono">
@@ -412,9 +412,9 @@ export default function SmartLinkShareModal({
                 onClose();
                 onListenLive(track.stationName);
               }}
-              className="mt-2 w-full p-3.5 rounded-2xl bg-gradient-to-r from-cyan-950/70 to-pink-950/70 border border-cyan-500/40 hover:border-cyan-400 text-white font-futuristic font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md hover:scale-[1.01] active:scale-95"
+              className="mt-2 w-full p-3.5 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 hover:border-zinc-500 text-white font-futuristic font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md hover:scale-[1.01] active:scale-95"
             >
-              <Radio className="w-4 h-4 text-cyan-400 animate-pulse" />
+              <Radio className="w-4 h-4 text-zinc-300 animate-pulse" />
               <span>Écouter la radio en direct sur Radio Synapse</span>
             </button>
           )}

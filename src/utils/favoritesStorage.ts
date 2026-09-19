@@ -1,6 +1,6 @@
 import { LikedTrack, ConnectedAccount } from '../types';
-import { pb } from '../lib/pocketbase';
-import { getStoredSynapseUser } from './pocketbaseAuthService';
+import { supabase } from '../lib/supabase';
+import { getStoredSynapseUser } from './supabaseAuthService';
 
 const LIKED_TRACKS_KEY = 'radio_synapse_liked_tracks_v1';
 const CONNECTED_ACCOUNT_KEY = 'radio_synapse_connected_account_v1';
@@ -58,56 +58,38 @@ export function saveLikedTracks(tracks: LikedTrack[]): void {
 }
 
 /**
- * Direct sync of liked tracks to PocketBase tables
+ * Direct sync of liked tracks to Supabase tables
  */
 export async function syncUserLikesToPocketBase(userId: string, tracks: LikedTrack[]): Promise<void> {
   if (!userId) return;
   try {
     // 1. Upsert to user_synapse_data
-    try {
-      const existing = await pb.collection('user_synapse_data').getFirstListItem(`user_id = "${userId}"`).catch(() => null);
-      if (existing) {
-        await pb.collection('user_synapse_data').update(existing.id, {
-          user_id: userId,
-          liked_tracks: tracks,
-        });
-      } else {
-        await pb.collection('user_synapse_data').create({
-          user_id: userId,
-          liked_tracks: tracks,
-        });
-      }
-    } catch {}
+    await supabase.from('user_synapse_data').upsert({
+      user_id: userId,
+      liked_tracks: tracks,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id' });
 
     // 2. Also upsert to individual synapse_user_likes if needed
     if (tracks.length > 0) {
-      for (const t of tracks) {
-        try {
-          const rowPayload = {
-            like_id: `${userId}_${t.id}`,
-            user_id: userId,
-            track_id: t.id,
-            title: t.title,
-            artist: t.artist,
-            album: t.album || '',
-            cover_url: t.coverUrl,
-            station_name: t.stationName || '',
-            level: t.level || 1,
-            preview_url: t.previewUrl || '',
-            spotify_url: t.spotifyUrl || '',
-            deezer_url: t.deezerUrl || '',
-            apple_music_url: t.appleMusicUrl || '',
-            youtube_url: t.youtubeUrl || '',
-            liked_at: t.likedAt || Date.now(),
-          };
-          const existingLike = await pb.collection('synapse_user_likes').getFirstListItem(`like_id = "${rowPayload.like_id}"`).catch(() => null);
-          if (existingLike) {
-            await pb.collection('synapse_user_likes').update(existingLike.id, rowPayload);
-          } else {
-            await pb.collection('synapse_user_likes').create(rowPayload);
-          }
-        } catch {}
-      }
+      const rows = tracks.map((t) => ({
+        like_id: `${userId}_${t.id}`,
+        user_id: userId,
+        track_id: t.id,
+        title: t.title,
+        artist: t.artist,
+        album: t.album || '',
+        cover_url: t.coverUrl,
+        station_name: t.stationName || '',
+        level: t.level || 1,
+        preview_url: t.previewUrl || '',
+        spotify_url: t.spotifyUrl || '',
+        deezer_url: t.deezerUrl || '',
+        apple_music_url: t.appleMusicUrl || '',
+        youtube_url: t.youtubeUrl || '',
+        liked_at: t.likedAt || Date.now(),
+      }));
+      await supabase.from('synapse_user_likes').upsert(rows, { onConflict: 'like_id' });
     }
   } catch (err) {
     // Silent catch

@@ -6,6 +6,8 @@ import {
 import Drawer from './Drawer';
 import { StreamChannel } from '../data';
 import { getAdminSchedules, AdminScheduleShow } from '../utils/adminStore';
+import { getEventsForDate, EVENT_SCHEDULE_CHANGED } from '../utils/programmingScheduleService';
+import { LiquidsoapProgramEvent } from '../types/programming';
 
 interface ProgrammingDrawerProps {
   isOpen: boolean;
@@ -119,6 +121,11 @@ export default function ProgrammingDrawer({
   const [selectedDateKey, setSelectedDateKey] = useState<string>(todayKey);
   const isSelectedDateToday = selectedDateKey === todayKey;
 
+  const selectedDateObj = useMemo(() => {
+    const found = dateList.find((d) => d.dateKey === selectedDateKey);
+    return found ? found.date : new Date(selectedDateKey);
+  }, [dateList, selectedDateKey]);
+
   const stationsCarouselRef = useRef<HTMLDivElement>(null);
   const datesCarouselRef = useRef<HTMLDivElement>(null);
 
@@ -141,14 +148,28 @@ export default function ProgrammingDrawer({
     return 'night';
   }, [currentDecimalHour]);
 
+  // State to re-trigger memo when schedule changes
+  const [scheduleVersion, setScheduleVersion] = useState(0);
+
+  useEffect(() => {
+    const handleScheduleChanged = () => {
+      setScheduleVersion((v) => v + 1);
+    };
+    window.addEventListener(EVENT_SCHEDULE_CHANGED, handleScheduleChanged);
+    return () => {
+      window.removeEventListener(EVENT_SCHEDULE_CHANGED, handleScheduleChanged);
+    };
+  }, []);
+
   // Load schedules from real database store
   const allSchedules = useMemo(() => {
     return getAdminSchedules();
-  }, [isOpen]);
+  }, [isOpen, scheduleVersion]);
 
   const basePeriods = useMemo<SchedulePeriod[]>(() => {
     if (!selectedStationId) return [];
 
+    // 1. Fetch shows from admin generic schedules
     const stationShows = allSchedules.filter((s: AdminScheduleShow) => 
       s.stationId === selectedStationId || s.stationId === 'all'
     );
@@ -167,10 +188,37 @@ export default function ProgrammingDrawer({
       highlights: []
     });
 
-    const morningShows = stationShows.filter(s => s.period === 'morning').map(mapToShow);
-    const dayShows = stationShows.filter(s => s.period === 'day').map(mapToShow);
-    const eveningShows = stationShows.filter(s => s.period === 'evening').map(mapToShow);
-    const nightShows = stationShows.filter(s => s.period === 'night').map(mapToShow);
+    // 2. Fetch shows from Liquidsoap Agenda for the selected date
+    const agendaEvents = getEventsForDate(selectedStationId, selectedDateObj);
+    const agendaShows: ScheduleShow[] = agendaEvents.map((ev: LiquidsoapProgramEvent) => {
+      const highlights: string[] = [];
+      if (ev.features.allowLiveChat) highlights.push('💬 Chat en direct');
+      if (ev.features.allowSongRequests) highlights.push('🎵 Dédicaces & Demandes');
+      if (ev.features.allowLiveVoting) highlights.push('🗳️ Votes en direct');
+      if (ev.features.isLiveSpecial) highlights.push('🔥 Émission Spéciale');
+
+      return {
+        id: ev.id,
+        startTime: ev.startTime,
+        endTime: ev.endTime,
+        startHour: parseTimeToDecimal(ev.startTime),
+        endHour: parseTimeToDecimal(ev.endTime),
+        title: ev.title,
+        host: ev.host,
+        genre: ev.genre,
+        badge: ev.badge,
+        description: ev.description,
+        highlights
+      };
+    });
+
+    // If agenda shows are programmed for this day, prioritize them or combine
+    const allCombined = agendaShows.length > 0 ? agendaShows : stationShows.map(mapToShow);
+
+    const morningShows = allCombined.filter(s => s.startHour >= 5 && s.startHour < 10);
+    const dayShows = allCombined.filter(s => s.startHour >= 10 && s.startHour < 17);
+    const eveningShows = allCombined.filter(s => s.startHour >= 17 && s.startHour < 23);
+    const nightShows = allCombined.filter(s => s.startHour >= 23 || s.startHour < 5);
 
     return [
       {
@@ -192,9 +240,9 @@ export default function ProgrammingDrawer({
         startHour: 10,
         endHour: 17,
         icon: Sun,
-        color: 'text-cyan-400',
-        bgColor: 'bg-cyan-500/10',
-        borderColor: 'border-cyan-500/30',
+        color: 'text-zinc-200',
+        bgColor: 'bg-zinc-800',
+        borderColor: 'border-zinc-700',
         shows: dayShows
       },
       {
@@ -222,7 +270,7 @@ export default function ProgrammingDrawer({
         shows: nightShows
       }
     ];
-  }, [allSchedules, selectedStationId]);
+  }, [allSchedules, selectedStationId, selectedDateObj]);
 
   const orderedPeriods = useMemo(() => {
     if (!isSelectedDateToday || basePeriods.length === 0) {
@@ -290,7 +338,7 @@ export default function ProgrammingDrawer({
                   onClose();
                   onOpenAdminPanel();
                 }}
-                className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer shadow-lg shadow-cyan-500/20"
+                className="px-4 py-2 rounded-xl bg-white hover:bg-zinc-200 text-black text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer shadow-lg"
               >
                 Configurer une station dans l'Admin
               </button>

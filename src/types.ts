@@ -114,6 +114,16 @@ export interface AzuraDjAccount {
   linkedAt: number;
 }
 
+export interface UserNotification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'points_earned' | 'track_selected' | 'track_rejected' | 'challenge_completed' | 'promo_purchased' | 'general';
+  points?: number;
+  timestamp: number;
+  read: boolean;
+}
+
 export interface SynapseUser {
   id: string; // PocketBase user ID or email
   email: string;
@@ -130,5 +140,10 @@ export interface SynapseUser {
   isDjLinked?: boolean;
   likedTracksCount?: number;
   favoriteStationsCount?: number;
+  points?: number; // Loyalty points gained through challenges & podiums
+  level?: number;
+  badges?: string[];
+  purchasedPromoCodes?: string[]; // Array of promotion IDs unlocked with points
+  notifications?: UserNotification[]; // User in-app notifications
 }
 

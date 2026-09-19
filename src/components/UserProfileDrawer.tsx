@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import { 
   User, Sparkles, Smartphone, 
   Sliders, Star, Heart, ArrowRight, AlertCircle, Loader2,
-  Mail, Lock, ShieldCheck, Check, LogOut, Link2, X
+  Mail, Lock, ShieldCheck, Check, LogOut, Link2, X, Flame
 } from 'lucide-react';
 import { ConnectedAccount, SynapseUser } from '../types';
 import BrandLogo from './BrandLogo';
 import { authenticateWithMusicPlatform } from '../utils/musicPlatformAuth';
+import { getUserPoints } from '../utils/loyaltyStore';
 import { 
   signInWithEmail, 
   signUpWithEmail, 
@@ -14,7 +15,7 @@ import {
   authenticateOrRegisterWithSpotify,
   resetPasswordForEmail,
   getStoredSynapseUser
-} from '../utils/pocketbaseAuthService';
+} from '../utils/supabaseAuthService';
 
 // Mini 4-point Chromatic Star matching the BrandLogo star
 function ChromaticStarIcon({ className = "w-3.5 h-3.5", isAnimated = false }: { className?: string; isAnimated?: boolean }) {
@@ -97,6 +98,7 @@ export default function UserProfileDrawer({
   onOpenAdminPanel,
 }: UserProfileDrawerProps) {
   const [synapseUser, setSynapseUser] = useState<SynapseUser | null>(propSynapseUser || getStoredSynapseUser());
+  const [userPoints, setUserPoints] = useState<number>(() => getUserPoints(propSynapseUser || getStoredSynapseUser()));
   const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot'>('login');
   
   // Form fields
@@ -137,10 +139,26 @@ export default function UserProfileDrawer({
   useEffect(() => {
     if (propSynapseUser !== undefined) {
       setSynapseUser(propSynapseUser);
+      setUserPoints(getUserPoints(propSynapseUser));
     } else {
-      setSynapseUser(getStoredSynapseUser());
+      const stored = getStoredSynapseUser();
+      setSynapseUser(stored);
+      setUserPoints(getUserPoints(stored));
     }
   }, [propSynapseUser, isOpen]);
+
+  // Listen for points updates
+  useEffect(() => {
+    const handlePointsChanged = (e: any) => {
+      if (typeof e.detail?.points === 'number') {
+        setUserPoints(e.detail.points);
+      } else {
+        setUserPoints(getUserPoints(synapseUser));
+      }
+    };
+    window.addEventListener('synapse_points_changed', handlePointsChanged);
+    return () => window.removeEventListener('synapse_points_changed', handlePointsChanged);
+  }, [synapseUser]);
 
   // Keyboard Escape to close
   useEffect(() => {
@@ -174,15 +192,23 @@ export default function UserProfileDrawer({
 
     try {
       if (authMode === 'signup') {
-        const { user, message } = await signUpWithEmail(emailInput, passwordInput, usernameInput);
-        setSynapseUser(user);
-        if (onUpdateSynapseUser) onUpdateSynapseUser(user);
-        setSuccessMessage(message || 'Votre compte Radio Synapse a été créé avec succès.');
+        const result = await signUpWithEmail(emailInput, passwordInput, usernameInput);
+        if (!result.success || !result.user) {
+          setErrorMessage(result.message || result.error || 'Erreur lors de la création du compte.');
+          return;
+        }
+        setSynapseUser(result.user);
+        if (onUpdateSynapseUser) onUpdateSynapseUser(result.user);
+        setSuccessMessage(result.message || 'Votre compte Radio Synapse a été créé avec succès.');
       } else {
-        const user = await signInWithEmail(emailInput, passwordInput);
-        setSynapseUser(user);
-        if (onUpdateSynapseUser) onUpdateSynapseUser(user);
-        setSuccessMessage(`Ravi de vous revoir, ${user.username}.`);
+        const result = await signInWithEmail(emailInput, passwordInput);
+        if (!result.success || !result.user) {
+          setErrorMessage(result.message || result.error || 'Identifiants invalides.');
+          return;
+        }
+        setSynapseUser(result.user);
+        if (onUpdateSynapseUser) onUpdateSynapseUser(result.user);
+        setSuccessMessage(`Ravi de vous revoir, ${result.user.username}.`);
       }
 
       setEmailInput('');
@@ -208,9 +234,13 @@ export default function UserProfileDrawer({
 
     setIsLoading(true);
     try {
-      const msg = await resetPasswordForEmail(forgotEmailInput);
-      setSuccessMessage(msg);
-      setForgotEmailInput('');
+      const res = await resetPasswordForEmail(forgotEmailInput);
+      if (res.success) {
+        setSuccessMessage(res.message);
+        setForgotEmailInput('');
+      } else {
+        setErrorMessage(res.message);
+      }
     } catch (err: any) {
       console.error('Forgot password error:', err);
       setErrorMessage(err?.message || 'Impossible d\'envoyer le lien de réinitialisation.');
@@ -233,12 +263,14 @@ export default function UserProfileDrawer({
       const spotifyAccount = await authenticateWithMusicPlatform('spotify');
 
       const result = await authenticateOrRegisterWithSpotify(spotifyAccount);
-      setSynapseUser(result.user);
-      if (onUpdateSynapseUser) onUpdateSynapseUser(result.user);
+      if (result.user) {
+        setSynapseUser(result.user);
+        if (onUpdateSynapseUser) onUpdateSynapseUser(result.user);
+      }
 
       onConnectAccount(spotifyAccount);
 
-      setSuccessMessage(result.message);
+      setSuccessMessage(result.message || 'Compte Spotify synchronisé avec succès.');
     } catch (e: any) {
       console.error('Spotify auth error:', e);
       setErrorMessage(e?.message || 'Connexion Spotify échouée.');
@@ -413,6 +445,35 @@ export default function UserProfileDrawer({
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
+              </div>
+
+              {/* LOYALTY POINTS DIGITAL CARD */}
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/15 via-zinc-900 to-amber-500/5 border border-amber-500/30 flex items-center justify-between shadow-xl relative overflow-hidden">
+                <div className="flex items-center gap-3.5">
+                  <div className="p-2.5 rounded-xl bg-amber-500/20 border border-amber-400/40 text-amber-300 flex-shrink-0 shadow-inner">
+                    <Flame className="w-6 h-6 fill-amber-500/30 text-amber-400 animate-pulse" />
+                  </div>
+                  <div className="flex flex-col text-left">
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-amber-400/90 font-bold">
+                      Points de Fidélité Numériques
+                    </span>
+                    <div className="flex items-baseline gap-1.5 mt-0.5">
+                      <span className="text-2xl font-futuristic font-black text-amber-300 tracking-wider">
+                        {userPoints.toLocaleString('fr-FR')}
+                      </span>
+                      <span className="text-xs font-mono font-bold text-amber-400/90">PTS</span>
+                    </div>
+                    <span className="text-[11px] font-mono text-zinc-400 mt-0.5">
+                      Gagnés en relevant les défis de la station & échangeables contre des promos
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                  <span className="px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-[10px] font-mono font-bold uppercase tracking-wider shadow-sm">
+                    {userPoints >= 1000 ? 'VIP Platinum' : userPoints >= 500 ? 'VIP Gold' : 'Auditeur Actif'}
+                  </span>
+                </div>
               </div>
 
               {/* ADMIN ACCESS BUTTON (IF PRIVILEGED) */}

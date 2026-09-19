@@ -10,7 +10,7 @@ import {
   Radio, Sliders, History, ChevronDown, 
   RotateCcw, User, Play, Pause, 
   SkipBack, SkipForward, Cast, Volume2, Music2,
-  MoreVertical
+  MoreVertical, Flame
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import BrandLogo from './components/BrandLogo';
@@ -34,12 +34,12 @@ import { getAdminStations, getActiveAdminStations, loadRemoteAdminData, subscrib
 import { LikedTrack, ConnectedAccount, SynapseUser } from './types';
 import { isSuperAdmin } from './utils/adminRolePermissionsStore';
 import { 
-  restorePocketBaseAuthSession, 
+  restoreSupabaseAuthSession as restorePocketBaseAuthSession, 
   getStoredSynapseUser, 
   syncUserDataToPocketBaseCloud, 
   fetchUserDataFromPocketBaseCloud,
   linkSpotifyToSynapseUser
-} from './utils/pocketbaseAuthService';
+} from './utils/supabaseAuthService';
 import { 
   getLikedTracks, 
   saveLikedTracks,
@@ -179,17 +179,17 @@ export default function App() {
       const REF_W = 390;
       const REF_H = 710;
 
-      // Available window area with 16px safe margin
-      const availW = Math.max(280, window.innerWidth - 16);
-      const availH = Math.max(480, window.innerHeight - 16);
+      // Available window area with 24px safe margin
+      const availW = Math.max(260, window.innerWidth - 24);
+      const availH = Math.max(380, window.innerHeight - 24);
 
       // Uniform proportional containment scaling (preserving all relative positions and aspect ratios)
       const scaleX = availW / REF_W;
       const scaleY = availH / REF_H;
       const calculatedScale = Math.min(scaleX, scaleY);
 
-      // Clamped scale: seamless downscaling for small devices, capped up to 1.35x for desktop Hi-Fi console
-      const finalScale = Math.min(Math.max(calculatedScale, 0.65), 1.35);
+      // Clamped scale: seamless downscaling for small devices / iframes, capped up to 1.35x for desktop Hi-Fi console
+      const finalScale = Math.min(Math.max(calculatedScale, 0.45), 1.35);
       setViewportScale(finalScale);
     };
 
@@ -258,7 +258,7 @@ export default function App() {
           setConnectedAccount(user.spotifyAccount);
           saveConnectedAccount(user.spotifyAccount);
         }
-        fetchUserDataFromPocketBaseCloud(user.id).then((cloudData) => {
+        fetchUserDataFromPocketBaseCloud(user).then((cloudData: any) => {
           if (cloudData?.likedTracks && cloudData.likedTracks.length > 0) {
             setLikedTracks(cloudData.likedTracks);
             saveLikedTracks(cloudData.likedTracks);
@@ -288,14 +288,13 @@ export default function App() {
     };
   }, []);
 
-  // Synchronize liked tracks and favorite stations to PocketBase Database
+  // Synchronize liked tracks and favorite stations to Supabase Cloud
   useEffect(() => {
     if (synapseUser && synapseUser.id) {
-      syncUserDataToPocketBaseCloud(
-        synapseUser.id,
-        likedTracks,
-        favoriteStations.map((s) => s.stationId)
-      ).catch(() => {});
+      syncUserDataToPocketBaseCloud(synapseUser, {
+        liked_tracks: likedTracks,
+        favorite_stations: favoriteStations.map((s) => s.stationId),
+      }).catch(() => {});
     }
   }, [synapseUser, likedTracks, favoriteStations]);
 
@@ -390,6 +389,34 @@ export default function App() {
       CastService.registerAudioElement(audio);
     }
   }, [audioRef.current]);
+
+  // Audio Volume state and persistence
+  const [audioVolume, setAudioVolume] = useState<number>(() => {
+    const saved = localStorage.getItem('synapse_volume');
+    return saved ? parseFloat(saved) : 0.85;
+  });
+
+  const handleVolumeChange = useCallback((val: number) => {
+    const clamped = Math.max(0, Math.min(1, val));
+    setAudioVolume(clamped);
+    try {
+      localStorage.setItem('synapse_volume', clamped.toString());
+    } catch {
+      // ignore
+    }
+    if (audioRef.current) {
+      audioRef.current.volume = clamped;
+    }
+    if (castState.connected && castState.castType === 'chromecast') {
+      CastService.setVolumeOnCast(clamped);
+    }
+  }, [castState.connected, castState.castType]);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = audioVolume;
+    }
+  }, [audioVolume]);
 
   // Touch handlers for vertical slide on the main player to show/hide stations
   const [mainTouchStartY, setMainTouchStartY] = useState<number | null>(null);
@@ -869,8 +896,8 @@ export default function App() {
     setConnectedAccount(account);
     saveConnectedAccount(account);
 
-    if (account) {
-      const updatedUser = await linkSpotifyToSynapseUser(account);
+    if (account && synapseUser) {
+      const updatedUser = await linkSpotifyToSynapseUser(synapseUser, account);
       if (updatedUser) {
         setSynapseUser(updatedUser);
       }
@@ -2099,7 +2126,7 @@ export default function App() {
       onMouseDown={handleMainMouseDown}
       onMouseMove={handleMainMouseMove}
       onMouseUp={handleMainMouseUp}
-      className="h-screen h-[100dvh] max-h-[100dvh] w-full max-w-full bg-[#040406] text-white flex flex-col items-center justify-between p-2 sm:p-3.5 md:p-5 select-none relative overflow-hidden font-sans min-h-0"
+      className="h-screen h-[100dvh] max-h-[100dvh] w-full max-w-full bg-[#040406] text-white flex flex-col items-center justify-center p-1 sm:p-2 select-none relative overflow-hidden font-sans min-h-0"
     >
       {/* 0. Splash Screen overlay transition during boot */}
       {showSplash && (
@@ -2110,7 +2137,7 @@ export default function App() {
       )}
 
       {/* 1. Global background cover with blur and dimming layers for rich ambiance */}
-      <div className="fixed inset-0 z-0 pointer-events-none select-none overflow-hidden scale-110">
+      <div className="fixed inset-0 -z-10 pointer-events-none select-none overflow-hidden scale-110">
         {bgCoverPrevious && (
           <img 
             src={bgCoverPrevious} 
@@ -2135,7 +2162,7 @@ export default function App() {
 
       {/* Dynamic ambient background glow - Primary Color Harmony */}
       <div 
-        className="fixed top-[-250px] left-1/2 -translate-x-1/2 w-[850px] h-[850px] rounded-full opacity-20 blur-3xl pointer-events-none z-0"
+        className="fixed top-[-250px] left-1/2 -translate-x-1/2 w-[850px] h-[850px] rounded-full opacity-20 blur-3xl pointer-events-none -z-10"
         style={{
           background: `radial-gradient(circle, ${primaryColor} 0%, transparent 70%)`
         }}
@@ -2143,7 +2170,7 @@ export default function App() {
 
       {/* Dynamic ambient background glow - Secondary Color Harmony */}
       <div 
-        className="fixed bottom-[-200px] left-1/2 -translate-x-1/2 w-[750px] h-[750px] rounded-full opacity-15 blur-3xl pointer-events-none z-0"
+        className="fixed bottom-[-200px] left-1/2 -translate-x-1/2 w-[750px] h-[750px] rounded-full opacity-15 blur-3xl pointer-events-none -z-10"
         style={{
           background: `radial-gradient(circle, ${secondaryColor} 0%, transparent 70%)`
         }}
@@ -2178,7 +2205,7 @@ export default function App() {
       {/* 2. PROPORTIONALLY SCALED RETRO-FUTURISTIC MINIDISC CONSOLE CHASSIS */}
       <div 
         id="app-viewport-scaler" 
-        className="relative flex items-center justify-center w-full h-full flex-1 min-h-0 overflow-hidden z-10"
+        className="relative flex items-center justify-center w-full h-full flex-1 min-h-0 overflow-visible z-10"
       >
         <div 
           id="minidisc-console-chassis"
@@ -2188,7 +2215,7 @@ export default function App() {
             transform: `scale(${viewportScale})`,
             transformOrigin: 'center center',
           }}
-          className="relative flex flex-col items-center justify-between select-none shrink-0 w-[390px] h-[710px] p-2"
+          className="relative flex flex-col items-center justify-between select-none shrink-0 w-[390px] h-[710px] p-2 overflow-visible z-10"
         >
           {/* Top Brand & Streaming Header Bar */}
           <motion.header 
@@ -2196,7 +2223,7 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={topBarVisible ? { opacity: 1 } : { opacity: 0 }}
             transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
-            className="w-full relative flex items-center justify-between border-b border-white/10 pb-2.5 z-10 h-12 shrink-0"
+            className="w-full relative flex items-center justify-between border-b border-white/10 pb-2.5 z-50 h-12 shrink-0 overflow-visible"
           >
             {/* Left Section: User Profile Avatar (Compte connecté & Synchro Multi-appareils) */}
             <div className="flex items-center">
@@ -2238,10 +2265,10 @@ export default function App() {
               </button>
             </div>
             
-            {/* Centered Section: Brand Logo (Positioned high up near top edge of screen) */}
+            {/* Centered Section: Brand Logo (Finely adjusted optical positioning) */}
             <div 
               id="topbar-brand-logo-target"
-              className={`absolute left-1/2 top-0.5 -translate-x-1/2 z-10 flex items-center justify-center pointer-events-auto transition-opacity duration-150 ${
+              className={`absolute left-1/2 top-[18px] -translate-x-1/2 -translate-y-1/2 z-20 flex items-center justify-center pointer-events-auto transition-opacity duration-150 ${
                 showSplash ? 'opacity-0 pointer-events-none' : 'opacity-100'
               }`}
             >
@@ -2581,7 +2608,18 @@ export default function App() {
                       <SkipForward className="w-6 h-6 fill-current transition-colors duration-500" />
                     </button>
 
-                    {/* 4. EQUALIZER */}
+                    {/* 4. DÉFIS & PODIUMS (FLAME QUICK BUTTON) */}
+                    <button
+                      id="challenges-quick-btn"
+                      onClick={() => setShowChallengesDrawer(true)}
+                      className="p-2.5 hover:text-white transition-all duration-300 transform hover:scale-115 active:scale-90 cursor-pointer flex items-center justify-center drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)] group relative"
+                      style={{ color: 'var(--secondary-color)' }}
+                      title="Défis, Quêtes & Podiums de la station"
+                    >
+                      <Flame className="w-5.5 h-5.5 transition-all duration-500 group-hover:scale-110 text-amber-400 group-hover:fill-amber-400/20" />
+                    </button>
+
+                    {/* 5. EQUALIZER */}
                     <button
                       id="equalizer-quick-btn"
                       onClick={() => setShowEqualizer(true)}
@@ -2592,7 +2630,7 @@ export default function App() {
                       <Sliders className="w-5.5 h-5.5 transition-all duration-500 group-hover:scale-110" />
                     </button>
 
-                    {/* 5. GOOGLE CAST / AIRPLAY */}
+                    {/* 6. GOOGLE CAST / AIRPLAY */}
                     <button
                       id="player-navigation-cast-btn"
                       onClick={handleCastButtonClick}
@@ -3004,6 +3042,10 @@ export default function App() {
         onClose={() => setShowChallengesDrawer(false)}
         accentColor={accentColor}
         activeStationId={activeStream.id}
+        activeStationName={activeStream.name}
+        currentUser={synapseUser}
+        connectedAccount={connectedAccount}
+        onOpenConnectModal={() => setShowUserProfileDrawer(true)}
         onOpenAdminPanel={() => setShowAdminPanel(true)}
       />
 
@@ -3011,6 +3053,9 @@ export default function App() {
         isOpen={showPromotionsDrawer}
         onClose={() => setShowPromotionsDrawer(false)}
         accentColor={accentColor}
+        currentUser={synapseUser}
+        connectedAccount={connectedAccount}
+        onOpenConnectModal={() => setShowUserProfileDrawer(true)}
         onOpenAdminPanel={() => setShowAdminPanel(true)}
       />
 
@@ -3033,6 +3078,13 @@ export default function App() {
         currentStationId={activeStream.id}
         currentUser={synapseUser}
         onRefreshAppState={handleRefreshAppState}
+        activeStream={activeStream}
+        isPlaying={isPlaying}
+        onTogglePlay={() => setIsPlaying(!isPlaying)}
+        onNextStation={handleNextStation}
+        onPrevStation={handlePrevStation}
+        volume={audioVolume}
+        onVolumeChange={handleVolumeChange}
       />
 
       {/* 5. FULL-SCREEN SLIDE-UP EQUALIZER & AUDIO SETTINGS DRAWER */}

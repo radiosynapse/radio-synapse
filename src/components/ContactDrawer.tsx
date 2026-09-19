@@ -65,8 +65,8 @@ export default function ContactDrawer({
         {/* Live Studio Dedication Form */}
         <form onSubmit={handleSubmit} className="p-4 rounded-2xl bg-zinc-950/80 border border-white/10 flex flex-col gap-3 shadow-md">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-mono text-cyan-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
-              <Radio className="w-3.5 h-3.5 animate-pulse" />
+            <span className="text-xs font-mono text-white font-bold uppercase tracking-wider flex items-center gap-1.5">
+              <Radio className="w-3.5 h-3.5 animate-pulse text-zinc-300" />
               Message ou Dédicace à l'Antenne
             </span>
             <span className="text-[10px] font-mono text-emerald-400 font-bold">
@@ -84,7 +84,7 @@ export default function ContactDrawer({
                 value={authorName}
                 onChange={(e) => setAuthorName(e.target.value)}
                 placeholder="Ex: Thomas de Nantes"
-                className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-white/15 text-white text-xs font-mono focus:outline-none focus:border-cyan-400 transition-all"
+                className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-white/15 text-white text-xs font-mono focus:outline-none focus:border-white transition-all"
               />
             </div>
             <div className="flex flex-col gap-1">
@@ -96,7 +96,7 @@ export default function ContactDrawer({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="thomas@exemple.fr"
-                className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-white/15 text-white text-xs font-mono focus:outline-none focus:border-cyan-400 transition-all"
+                className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-white/15 text-white text-xs font-mono focus:outline-none focus:border-white transition-all"
               />
             </div>
           </div>
@@ -110,7 +110,7 @@ export default function ContactDrawer({
               value={dedicationMessage}
               onChange={(e) => setDedicationMessage(e.target.value)}
               placeholder="Un petit coucou pour la session Nu-Disco..."
-              className="w-full px-3.5 py-2 rounded-xl bg-zinc-900 border border-white/15 text-white text-xs font-mono focus:outline-none focus:border-cyan-400 transition-all resize-none"
+              className="w-full px-3.5 py-2 rounded-xl bg-zinc-900 border border-white/15 text-white text-xs font-mono focus:outline-none focus:border-white transition-all resize-none"
             />
           </div>
 
@@ -123,7 +123,7 @@ export default function ContactDrawer({
             <button
               type="submit"
               disabled={!dedicationMessage.trim()}
-              className="w-full py-2.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/35 border border-cyan-400/50 text-cyan-300 font-mono text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-full py-2.5 rounded-xl bg-white hover:bg-zinc-200 text-black font-mono text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed shadow-md"
             >
               <Send className="w-3.5 h-3.5" />
               <span>Transmettre au studio</span>
@@ -144,8 +144,8 @@ export default function ContactDrawer({
           </div>
 
           <div className="p-3.5 rounded-2xl bg-black/40 border border-white/10 flex flex-col gap-1 text-left">
-            <div className="flex items-center gap-2 text-cyan-400 text-xs font-mono font-bold uppercase">
-              <Globe className="w-3.5 h-3.5" />
+            <div className="flex items-center gap-2 text-zinc-300 text-xs font-mono font-bold uppercase">
+              <Globe className="w-3.5 h-3.5 text-zinc-400" />
               <span>Réseaux Sociaux</span>
             </div>
             <span className="text-sm font-mono text-white font-bold">@RadioSynapseLive</span>

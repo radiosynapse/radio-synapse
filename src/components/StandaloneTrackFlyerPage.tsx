@@ -132,7 +132,7 @@ export default function StandaloneTrackFlyerPage({
       url: flyerRecord.tidalUrl,
       icon: 'https://cdn-icons-png.flaticon.com/512/732/732247.png',
       brandColor: '#00FFFF',
-      buttonHover: 'hover:border-cyan-500/60 hover:bg-cyan-950/40',
+      buttonHover: 'hover:border-white/30 hover:bg-zinc-800',
     },
     {
       id: 'amazon',
@@ -147,7 +147,7 @@ export default function StandaloneTrackFlyerPage({
 
   return (
     <div 
-      className="min-h-screen w-full bg-[#05060b] text-white flex flex-col justify-between relative overflow-x-hidden selection:bg-cyan-500 selection:text-black font-sans"
+      className="min-h-screen w-full bg-[#05060b] text-white flex flex-col justify-between relative overflow-x-hidden selection:bg-white selection:text-black font-sans"
       style={{
         backgroundImage: `radial-gradient(circle at 50% 20%, ${coverColor}25 0%, transparent 60%), radial-gradient(circle at 80% 80%, #00f2ff12 0%, transparent 50%)`
       }}
@@ -160,7 +160,7 @@ export default function StandaloneTrackFlyerPage({
             <span className="text-xs sm:text-sm font-futuristic font-bold tracking-widest text-white uppercase">
               RADIO SYNAPSE
             </span>
-            <span className="text-[10px] font-mono text-cyan-400">
+            <span className="text-[10px] font-mono text-zinc-400">
               SMARTLINK UNIVERSEL
             </span>
           </div>
@@ -168,9 +168,9 @@ export default function StandaloneTrackFlyerPage({
 
         <button
           onClick={() => onLaunchRadioApp(track.stationName)}
-          className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-500/20 to-pink-500/20 hover:from-cyan-500/35 hover:to-pink-500/35 border border-cyan-400/40 text-white font-mono text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2 active:scale-95 shadow-md"
+          className="px-3.5 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-white font-mono text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2 active:scale-95 shadow-md"
         >
-          <Radio className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+          <Radio className="w-3.5 h-3.5 text-white animate-pulse" />
           <span className="hidden sm:inline">Écouter la radio</span>
           <span className="sm:hidden">Radio Live</span>
         </button>
@@ -242,7 +242,7 @@ export default function StandaloneTrackFlyerPage({
               <div className="w-full flex flex-col gap-1 px-1">
                 <div className="w-full h-1.5 bg-zinc-800 rounded-full overflow-hidden">
                   <div 
-                    className="h-full bg-gradient-to-r from-pink-500 to-cyan-400 transition-all duration-150 rounded-full"
+                    className="h-full bg-white transition-all duration-150 rounded-full"
                     style={{ width: `${previewProgress}%` }}
                   />
                 </div>
@@ -282,7 +282,7 @@ export default function StandaloneTrackFlyerPage({
                       />
                     </div>
                     <div className="flex flex-col text-left min-w-0">
-                      <span className="text-xs sm:text-sm font-bold text-white font-mono group-hover:text-cyan-300 transition-colors truncate">
+                      <span className="text-xs sm:text-sm font-bold text-white font-mono group-hover:text-zinc-200 transition-colors truncate">
                         {plat.name}
                       </span>
                       <span className="text-[10px] text-zinc-400 font-mono">
@@ -316,7 +316,7 @@ export default function StandaloneTrackFlyerPage({
               className={`px-3 py-1.5 rounded-xl border text-xs font-mono font-bold uppercase transition-all cursor-pointer flex items-center gap-1.5 flex-shrink-0 ${
                 copied
                   ? 'bg-emerald-500/25 border-emerald-400 text-emerald-300'
-                  : 'bg-white/10 hover:bg-cyan-500/20 border-white/15 text-white'
+                  : 'bg-white/10 hover:bg-white/20 border-white/15 text-white'
               }`}
             >
               {copied ? (
@@ -326,7 +326,7 @@ export default function StandaloneTrackFlyerPage({
                 </>
               ) : (
                 <>
-                  <Copy className="w-3.5 h-3.5 text-cyan-400" />
+                  <Copy className="w-3.5 h-3.5 text-white" />
                   <span>Copier</span>
                 </>
               )}
@@ -336,9 +336,9 @@ export default function StandaloneTrackFlyerPage({
           {/* Launch Radio Synapse Live Button */}
           <button
             onClick={() => onLaunchRadioApp(track.stationName)}
-            className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-cyan-500/20 to-pink-500/20 hover:from-cyan-500/35 hover:to-pink-500/35 border border-cyan-400/50 text-white font-futuristic text-xs sm:text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2.5 cursor-pointer shadow-lg hover:scale-[1.01] active:scale-95"
+            className="w-full py-3.5 px-4 rounded-2xl bg-white hover:bg-zinc-200 text-black border border-white text-white font-futuristic text-xs sm:text-sm font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2.5 cursor-pointer shadow-lg hover:scale-[1.01] active:scale-95"
           >
-            <Radio className="w-4 h-4 text-cyan-400 animate-pulse" />
+            <Radio className="w-4 h-4 text-black animate-pulse" />
             <span>Découvrir Radio Synapse Live</span>
             <ArrowRight className="w-4 h-4 text-pink-400" />
           </button>
@@ -349,7 +349,7 @@ export default function StandaloneTrackFlyerPage({
       {/* Footer */}
       <footer className="w-full max-w-4xl mx-auto px-4 py-4 text-center text-zinc-500 text-[11px] font-mono border-t border-white/5 relative z-10 flex flex-col sm:flex-row items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+          <Sparkles className="w-3.5 h-3.5 text-white" />
           <span>Radio Synapse • Flyer Numérique Multi-Plateformes</span>
         </div>
         <span>Propulsé par le système SmartLink Synapse</span>

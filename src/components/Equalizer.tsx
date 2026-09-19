@@ -108,7 +108,7 @@ export default function Equalizer({
       {/* Top Presets & Quick Actions Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-black/40 p-4 rounded-2xl border border-white/10">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-cyan-950/40 border border-cyan-500/30 text-cyan-400">
+          <div className="p-2.5 rounded-xl bg-white/10 border border-white/20 text-white">
             <Sliders className="w-5 h-5" style={{ color: accentColor }} />
           </div>
           <div>
@@ -147,7 +147,7 @@ export default function Equalizer({
       {/* Preset Chips Selector Bar */}
       <div className="flex flex-col gap-2">
         <span className="text-[11px] font-mono uppercase tracking-widest text-zinc-300 font-semibold flex items-center gap-1.5">
-          <Activity className="w-3.5 h-3.5 text-cyan-400" />
+          <Activity className="w-3.5 h-3.5 text-zinc-300" />
           <span>Profils Sonores Préréglés & Genres</span>
         </span>
         <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar scroll-smooth">
