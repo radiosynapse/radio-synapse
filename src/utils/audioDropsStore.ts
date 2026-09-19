@@ -12,7 +12,7 @@ export interface AudioDrop {
   name: string;
   category: AudioDropCategory;
   stationId?: string; // 'all' or specific station ID
-  audioUrl: string; // Base64 data URL, blob URL, or PocketBase file URL
+  audioUrl: string; // Base64 data URL, blob URL, or Supabase storage URL
   duration: number; // in seconds
   createdAt: number;
   createdBy?: string;
@@ -162,76 +162,26 @@ function audioBufferToWavDataUrl(buffer: AudioBuffer): string {
 /**
  * Initial starter audio drops
  */
-export const DEFAULT_AUDIO_DROPS: AudioDrop[] = [
-  {
-    id: 'drop_top_horaire',
-    name: 'Top Horaire Synapse (Bips FM)',
-    category: 'jingle',
-    stationId: 'all',
-    duration: 3,
-    createdAt: Date.now() - 3600000 * 24 * 7,
-    createdBy: 'Radio Synapse Studio',
-    notes: '3 bips de synchronisation suivis du carillon de l\'heure',
-    padColor: '#00f2ff',
-    audioUrl: generateRadioJingleAudio('top_horaire'),
-  },
-  {
-    id: 'drop_freq_drop',
-    name: 'Synapse Bass Drop & Sub Riser',
-    category: 'voice_drop',
-    stationId: 'all',
-    duration: 3.5,
-    createdAt: Date.now() - 3600000 * 24 * 6,
-    createdBy: 'Régie Master',
-    notes: 'Impact sub-basse avec balayage laser haute énergie',
-    padColor: '#bd00ff',
-    audioUrl: generateRadioJingleAudio('frequency_drop'),
-  },
-  {
-    id: 'drop_station_sweep',
-    name: 'Jingle Signature Synthétiseur',
-    category: 'jingle',
-    stationId: 'all',
-    duration: 2.5,
-    createdAt: Date.now() - 3600000 * 24 * 5,
-    createdBy: 'Design Audio',
-    notes: 'Accord cristallin signature Radio Synapse',
-    padColor: '#00ffa3',
-    audioUrl: generateRadioJingleAudio('station_sweep'),
-  },
-  {
-    id: 'drop_flash_urgent',
-    name: 'Signal Alerte Info Prioritaire',
-    category: 'emergency',
-    stationId: 'all',
-    duration: 4,
-    createdAt: Date.now() - 3600000 * 24 * 4,
-    createdBy: 'Régie Direct',
-    notes: 'Double tonalité d\'urgence avec sirène pour interruption prioritaire',
-    priority: true,
-    padColor: '#ff0055',
-    audioUrl: generateRadioJingleAudio('emergency_alert'),
-  },
-];
+export const DEFAULT_AUDIO_DROPS: AudioDrop[] = [];
 
 /**
- * Retrieve all audio drops (localStorage cache + PocketBase)
+ * Retrieve all audio drops (localStorage cache + Supabase)
  */
 export function getAudioDrops(): AudioDrop[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         return parsed;
       }
     }
   } catch {}
-  return DEFAULT_AUDIO_DROPS;
+  return [];
 }
 
 /**
- * Save audio drops locally and sync to PocketBase
+ * Save audio drops locally and sync to Supabase
  */
 export function saveAudioDrops(drops: AudioDrop[]): void {
   try {
@@ -251,7 +201,7 @@ export function saveAudioDrops(drops: AudioDrop[]): void {
 /**
  * Fetch drops from Supabase with fallback
  */
-export async function loadAudioDropsFromPocketBase(): Promise<AudioDrop[]> {
+export async function loadAudioDropsFromSupabase(): Promise<AudioDrop[]> {
   try {
     const { data: kv } = await supabase.from('synapse_admin_data').select('payload').eq('key', 'audio_drops_list').maybeSingle();
     if (kv?.payload && Array.isArray(kv.payload) && kv.payload.length > 0) {

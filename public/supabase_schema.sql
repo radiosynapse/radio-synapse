@@ -30,10 +30,6 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   dj_station TEXT DEFAULT 'synapse-main',
   dj_linked_at TIMESTAMPTZ,
   
-  -- Spotify connection
-  spotify_account JSONB,
-  is_spotify_linked BOOLEAN DEFAULT FALSE,
-  
   created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );

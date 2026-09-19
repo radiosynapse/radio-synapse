@@ -9,10 +9,10 @@ Ce guide fournit la procédure complète pour déployer l'intégralité de l'éc
 
 Dans cette architecture provisoire, tous les composants tournent sur la même machine :
 * **Application Web & Panel Admin** : Node.js (Vite / Express BFF sur le port `3000`)
-* **Base de Données & Auth** : PocketBase (binaire autonome sur le port `8090`)
+* **Base de Données & Auth Realtime** : Supabase (Stack Docker complète PostgreSQL, Kong, Realtime, GoTrue sur le port `54321`)
 * **Moteur Audio & Télécommande** : Liquidsoap 2.2+ (Telnet `8572`, Harbor DJ Live `8005`)
 * **Serveur de Diffusion Audio** : Icecast 2 (port `8000`)
-* **Reverse Proxy & SSL** : Nginx avec certificats Let's Encrypt (ports `80` et `443`)
+* **Reverse Proxy & SSL** : Nginx Proxy Manager ou Nginx classique (ports `80` et `443`)
 
 ---
 
@@ -126,42 +126,26 @@ sudo systemctl start liquidsoap@radio
 
 ---
 
-### 6. Étape 4 : Installation de PocketBase (Base de Données v0.40+)
+### 6. Étape 4 : Déploiement de Supabase (Base de Données PostgreSQL & Auth Realtime)
 
-Téléchargez et installez le binaire officiel de PocketBase :
+Vous pouvez lancer le script de déploiement automatique unifié fourni dans `/public/setup-vps-stack.sh` ou déployer manuellement la stack Docker Supabase :
 ```bash
-sudo mkdir -p /var/www/pocketbase
-cd /var/www/pocketbase
-wget https://github.com/pocketbase/pocketbase/releases/download/v0.22.20/pocketbase_0.22.20_linux_amd64.zip
-unzip pocketbase_*.zip && rm pocketbase_*.zip
-sudo chmod +x pocketbase
+# Exécution du script automatisé tout-en-un
+sudo bash /public/setup-vps-stack.sh
 ```
 
-Créez le service systemd `/etc/systemd/system/pocketbase.service` :
-```ini
-[Unit]
-Description=PocketBase Service pour Radio Synapse
-After=network.target
-
-[Service]
-Type=simple
-User=root
-WorkingDirectory=/var/www/pocketbase
-ExecStart=/var/www/pocketbase/pocketbase serve --http=127.0.0.1:8090
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-```
-Démarrez PocketBase :
+Ou déployez Supabase via Docker Compose :
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl enable pocketbase
-sudo systemctl start pocketbase
+sudo mkdir -p /opt/supabase && cd /opt/supabase
+git clone --depth 1 https://github.com/supabase/supabase
+cd supabase/docker
+cp .env.example .env
+# Configuration de Kong sur le port 54321 pour libérer le port 8000 pour Icecast
+sed -i 's/8000:8000/54321:8000/g' docker-compose.yml
+docker compose up -d
 ```
 
-Accédez à `http://VOTRE_IP:8090/_/` pour créer votre premier compte super-administrateur, puis importez le schéma fourni dans le projet (`pb_schema.json`) via **Settings > Import collections**.
+Accédez à Supabase Studio (`http://VOTRE_IP:54323`) et exécutez le script SQL `SUPABASE_SQL_SCHEMA` pour créer toutes les tables `synapse_stations`, `synapse_messages`, `synapse_challenges`, `synapse_promotions`, `synapse_events`, `synapse_admin_data` et activer le Realtime.
 
 ---
 
@@ -226,12 +210,12 @@ server {
     }
 }
 
-# 2. Base de Données PocketBase
+# 2. Passerelle Supabase Kong & API REST / Realtime
 server {
-    server_name db.radiosynapse.fr;
+    server_name api.radiosynapse.fr;
 
     location / {
-        proxy_pass http://127.0.0.1:8090;
+        proxy_pass http://127.0.0.1:54321;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';

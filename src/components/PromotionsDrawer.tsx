@@ -34,7 +34,7 @@ export default function PromotionsDrawer({
   const [purchaseSuccessId, setPurchaseSuccessId] = useState<string | null>(null);
 
   const isUserConnected = !!currentUser || !!connectedAccount;
-  const activeUserId = currentUser?.id || currentUser?.email || connectedAccount?.userId || '';
+  const activeUserId = currentUser?.id || currentUser?.email || connectedAccount?.email || connectedAccount?.username || '';
 
   const loadData = async () => {
     setIsLoading(true);

@@ -15,7 +15,7 @@ export function getOptimizedHighQualityAudioUrl(rawUrl: string): string {
 
   let clean = rawUrl.trim();
 
-  // If it is an AzuraCast HLS playlist URL (e.g. /hls/pop-variete/live.m3u8),
+  // If it is an HLS playlist URL (e.g. /hls/pop-variete/live.m3u8),
   // convert it to the direct live Icecast MP3 studio mountpoint
   if (clean.includes('/hls/')) {
     clean = clean.replace(/\/hls\/([^/]+)\/.*$/i, '/listen/$1/radio.mp3');

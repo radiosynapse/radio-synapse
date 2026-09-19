@@ -1362,7 +1362,7 @@ export function AdminRegieLiquidsoapView({ showToast }: AdminRegieLiquidsoapView
               <div>
                 <h3 className="text-base font-bold text-white">Guides de Déploiement VPS & Haute Disponibilité</h3>
                 <p className="text-xs font-mono text-zinc-400">
-                  Documentation d'infrastructure pour Liquidsoap 2.2+, Icecast2 et PocketBase sans AzuraCast
+                  Documentation d'infrastructure pour Liquidsoap 2.2+, Icecast2 et Supabase en architecture autonome
                 </p>
               </div>
             </div>
@@ -1395,7 +1395,7 @@ export function AdminRegieLiquidsoapView({ showToast }: AdminRegieLiquidsoapView
           <div className="flex items-center justify-between gap-3 p-3 bg-zinc-950/60 rounded-xl border border-zinc-800 text-xs font-mono">
             <span className="text-zinc-300">
               {selectedGuideType === 'mono'
-                ? '📌 Architecture Provisoire : 1 VPS tout-en-un (App + Régie Liquidsoap + PocketBase + Icecast)'
+                ? '📌 Architecture Provisoire : 1 VPS tout-en-un (App + Régie Liquidsoap + Supabase + Icecast)'
                 : '🚀 Architecture Finale : VPS 1 (App/Régie/BDD) + VPS 2 (Relais Icecast dédié 15 000+ auditeurs)'}
             </span>
 

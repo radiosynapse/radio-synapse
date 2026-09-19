@@ -6,176 +6,7 @@ import { getStoredSynapseUser } from './supabaseAuthService';
 const PROFILES_STORAGE_KEY = 'synapse_admin_profiles_templates_v1';
 const PB_KEY_PROFILES = 'admin_profiles_templates_v1';
 
-export const DEFAULT_ADMIN_PROFILES: AdminProfileTemplate[] = [
-  {
-    id: 'profile_super_admin',
-    name: 'Super Administrateur',
-    badge: 'SUPER ADMIN',
-    description: 'Accès total à toute la plateforme, gestion des rôles, bases de données et services.',
-    color: '#00f2ff',
-    permissions: {
-      can_access_dashboard: true,
-      can_manage_stations: true,
-      can_broadcast_live: true,
-      can_manage_services: true,
-      can_manage_users: true,
-      can_manage_messages: true,
-      can_manage_programming: true,
-      can_manage_events: true,
-      can_manage_challenges: true,
-      can_manage_promotions: true,
-      can_manage_database: true,
-      station_restriction: 'all',
-    },
-  },
-  {
-    id: 'profile_general_admin',
-    name: 'Administrateur Général',
-    badge: 'ADMIN',
-    description: 'Gestion des contenus opérationnels (stations, grille, dédicaces, événements, défis).',
-    color: '#3b82f6',
-    permissions: {
-      can_access_dashboard: true,
-      can_manage_stations: true,
-      can_broadcast_live: true,
-      can_manage_services: false,
-      can_manage_users: false,
-      can_manage_messages: true,
-      can_manage_programming: true,
-      can_manage_events: true,
-      can_manage_challenges: true,
-      can_manage_promotions: true,
-      can_manage_database: false,
-      station_restriction: 'all',
-    },
-  },
-  {
-    id: 'profile_animateur',
-    name: 'Animateur Radio / DJ',
-    badge: 'ANIMATEUR',
-    description: 'Prise d\'antenne en direct, accès régie AzuraCast, lecture des dédicaces et grille des émissions.',
-    color: '#10b981',
-    permissions: {
-      can_access_dashboard: true,
-      can_manage_stations: true,
-      can_broadcast_live: true,
-      can_manage_services: false,
-      can_manage_users: false,
-      can_manage_messages: true,
-      can_manage_programming: true,
-      can_manage_events: true,
-      can_manage_challenges: false,
-      can_manage_promotions: false,
-      can_manage_database: false,
-      station_restriction: 'all',
-    },
-  },
-  {
-    id: 'profile_podcasteur',
-    name: 'Podcasteur & Chroniqueur',
-    badge: 'PODCASTEUR',
-    description: 'Gestion des événements lives, épisodes podcast, programmation et contact auditeurs.',
-    color: '#a855f7',
-    permissions: {
-      can_access_dashboard: true,
-      can_manage_stations: false,
-      can_broadcast_live: false,
-      can_manage_services: false,
-      can_manage_users: false,
-      can_manage_messages: true,
-      can_manage_programming: true,
-      can_manage_events: true,
-      can_manage_challenges: false,
-      can_manage_promotions: false,
-      can_manage_database: false,
-      station_restriction: 'all',
-    },
-  },
-  {
-    id: 'profile_technicien',
-    name: 'Technicien Régie & Flux',
-    badge: 'RÉGIE / TECH',
-    description: 'Contrôle des flux audio, configuration AzuraCast, liaison DJ et moniteur audio en direct.',
-    color: '#f59e0b',
-    permissions: {
-      can_access_dashboard: true,
-      can_manage_stations: true,
-      can_broadcast_live: true,
-      can_manage_services: true,
-      can_manage_users: false,
-      can_manage_messages: false,
-      can_manage_programming: true,
-      can_manage_events: false,
-      can_manage_challenges: false,
-      can_manage_promotions: false,
-      can_manage_database: false,
-      station_restriction: 'all',
-    },
-  },
-  {
-    id: 'profile_moderateur',
-    name: 'Modérateur Messagerie & Défis',
-    badge: 'MODÉRATEUR',
-    description: 'Gestion des dédicaces reçues au studio, validation des messages et animation des défis auditeurs.',
-    color: '#ec4899',
-    permissions: {
-      can_access_dashboard: true,
-      can_manage_stations: false,
-      can_broadcast_live: false,
-      can_manage_services: false,
-      can_manage_users: false,
-      can_manage_messages: true,
-      can_manage_programming: false,
-      can_manage_events: false,
-      can_manage_challenges: true,
-      can_manage_promotions: false,
-      can_manage_database: false,
-      station_restriction: 'all',
-    },
-  },
-  {
-    id: 'profile_programmateur',
-    name: 'Programmateur Musical',
-    badge: 'PROGRAMMATEUR',
-    description: 'Gestion des stations radios, de la grille des programmes et des partenariats / promotions.',
-    color: '#6366f1',
-    permissions: {
-      can_access_dashboard: true,
-      can_manage_stations: true,
-      can_broadcast_live: false,
-      can_manage_services: false,
-      can_manage_users: false,
-      can_manage_messages: false,
-      can_manage_programming: true,
-      can_manage_events: true,
-      can_manage_challenges: true,
-      can_manage_promotions: true,
-      can_manage_database: false,
-      station_restriction: 'all',
-    },
-  },
-  {
-    id: 'profile_invite',
-    name: 'Invité Antenne',
-    badge: 'INVITÉ',
-    description: 'Accès restreint au micro et direct régie lors d\'un passage à l\'antenne.',
-    color: '#14b8a6',
-    permissions: {
-      can_access_dashboard: true,
-      can_manage_stations: false,
-      can_broadcast_live: true,
-      can_manage_services: false,
-      can_manage_users: false,
-      can_manage_messages: false,
-      can_manage_programming: false,
-      can_manage_events: false,
-      can_manage_challenges: false,
-      can_manage_promotions: false,
-      can_manage_database: false,
-      station_restriction: 'all',
-    },
-  },
-];
+export const DEFAULT_ADMIN_PROFILES: AdminProfileTemplate[] = [];
 
 /**
  * Get all configured admin profile templates
@@ -183,20 +14,11 @@ export const DEFAULT_ADMIN_PROFILES: AdminProfileTemplate[] = [
 export function getAdminProfileTemplates(): AdminProfileTemplate[] {
   try {
     const raw = localStorage.getItem(PROFILES_STORAGE_KEY);
-    if (!raw) return DEFAULT_ADMIN_PROFILES;
+    if (!raw) return [];
     const parsed = JSON.parse(raw) as AdminProfileTemplate[];
-    
-    // Ensure all default templates exist
-    const existingIds = new Set(parsed.map(p => p.id));
-    const merged = [...parsed];
-    DEFAULT_ADMIN_PROFILES.forEach(def => {
-      if (!existingIds.has(def.id)) {
-        merged.push(def);
-      }
-    });
-    return merged;
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return DEFAULT_ADMIN_PROFILES;
+    return [];
   }
 }
 
@@ -303,9 +125,26 @@ export function getUserEffectivePermissions(user: SynapseUser | null): AdminPerm
   // For Admin role: look up associated profile template
   const templates = getAdminProfileTemplates();
   const profileId = user.adminProfileId || 'profile_general_admin';
-  const matchedTemplate = templates.find(t => t.id === profileId) || templates[1] || DEFAULT_ADMIN_PROFILES[1];
+  const matchedTemplate = templates.find(t => t.id === profileId);
 
-  const basePermissions: AdminPermissions = { ...matchedTemplate.permissions };
+  const defaultAdminPermissions: AdminPermissions = {
+    can_access_dashboard: true,
+    can_manage_stations: true,
+    can_broadcast_live: true,
+    can_manage_services: false,
+    can_manage_users: false,
+    can_manage_messages: true,
+    can_manage_programming: true,
+    can_manage_events: true,
+    can_manage_challenges: true,
+    can_manage_promotions: true,
+    can_manage_database: false,
+    station_restriction: 'all',
+  };
+
+  const basePermissions: AdminPermissions = matchedTemplate
+    ? { ...matchedTemplate.permissions }
+    : defaultAdminPermissions;
 
   // Apply custom permissions overrides if present
   if (user.customPermissions) {
@@ -320,20 +159,80 @@ export function getUserEffectivePermissions(user: SynapseUser | null): AdminPerm
 }
 
 /**
+ * Get the list of stations accessible to a user.
+ * - Super-Admin: Has unrestricted access to all stations.
+ * - Delegated Admin: Only has access to stations assigned to them by Super-Admin (single or multiple).
+ */
+export function getUserAssignedStations<T extends { id: string }>(user: SynapseUser | null, allStations: T[]): T[] {
+  if (isSuperAdmin(user)) {
+    return allStations;
+  }
+  if (!user || user.role === 'user') {
+    return [];
+  }
+
+  // Check array of assigned station IDs first, fallback to legacy single string
+  const assignedIds = new Set<string>();
+  if (Array.isArray(user.assignedStationIds) && user.assignedStationIds.length > 0) {
+    user.assignedStationIds.forEach(id => assignedIds.add(id));
+  } else if (user.assignedStationId && user.assignedStationId !== 'none') {
+    assignedIds.add(user.assignedStationId);
+  }
+
+  // If set to 'all' or no restriction specified on an admin account, return all stations
+  if (assignedIds.has('all') || assignedIds.size === 0) {
+    return allStations;
+  }
+
+  const filtered = allStations.filter(st => assignedIds.has(st.id));
+  return filtered.length > 0 ? filtered : (allStations.slice(0, 1));
+}
+
+/**
+ * Check if the user is allowed to switch between stations.
+ * - Super Admin can always switch between all stations.
+ * - Delegated Admin with multiple assigned stations can switch between their assigned stations only.
+ * - Delegated Admin with 1 station is locked to that single station.
+ */
+export function canUserSwitchStations<T extends { id: string }>(user: SynapseUser | null, allStations: T[]): boolean {
+  if (isSuperAdmin(user)) return true;
+  const accessible = getUserAssignedStations(user, allStations);
+  return accessible.length > 1;
+}
+
+/**
+ * Check if the user has permission to create, edit core infrastructure, or delete stations.
+ * Strictly reserved to Super-Admin!
+ */
+export function canUserManageStationInfrastructure(user: SynapseUser | null): boolean {
+  return isSuperAdmin(user);
+}
+
+/**
  * Check if a user has access to a specific admin tab
  */
 export function canUserAccessTab(user: SynapseUser | null, tab: AdminTab): boolean {
-  if (tab === 'features') {
-    return isSuperAdmin(user);
-  }
   if (isSuperAdmin(user)) return true;
   if (!isAdminOrAbove(user)) return false;
+
+  // Tabs strictly reserved for super-admin
+  if (tab === 'features' || tab === 'stations_management') {
+    return false;
+  }
 
   const perms = getUserEffectivePermissions(user);
 
   switch (tab) {
     case 'dashboard':
       return perms.can_access_dashboard;
+    case 'regie_animation':
+      return perms.can_broadcast_live || perms.can_manage_stations;
+    case 'music_library':
+      return perms.can_manage_stations || perms.can_manage_programming || perms.can_broadcast_live;
+    case 'playlists':
+      return perms.can_manage_stations || perms.can_manage_programming;
+    case 'emission_prep':
+      return perms.can_manage_programming || perms.can_broadcast_live;
     case 'stations':
       return perms.can_manage_stations || perms.can_broadcast_live;
     case 'services':
@@ -350,7 +249,7 @@ export function canUserAccessTab(user: SynapseUser | null, tab: AdminTab): boole
       return perms.can_manage_challenges;
     case 'promotions':
       return perms.can_manage_promotions;
-    case 'azuracast':
+    case 'streaming':
       return perms.can_manage_services || perms.can_broadcast_live;
     case 'database':
       return perms.can_manage_database;

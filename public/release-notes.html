@@ -588,13 +588,13 @@
     <header class="hero-header">
       <div class="hero-title-group">
         <span class="hero-badge">Production Stable • Build 2026.09</span>
-        <span class="hero-badge" style="background: rgba(168, 85, 247, 0.12); color: var(--purple); border-color: rgba(168, 85, 247, 0.3);">PocketBase v0.40.2+</span>
+        <span class="hero-badge" style="background: rgba(16, 185, 129, 0.12); color: var(--emerald); border-color: rgba(16, 185, 129, 0.3);">Supabase PostgreSQL Realtime</span>
         <span class="hero-badge" style="background: rgba(16, 185, 129, 0.12); color: var(--emerald); border-color: rgba(16, 185, 129, 0.3);">10-Band EQ Web Audio</span>
         <span class="hero-badge" style="background: rgba(245, 158, 11, 0.12); color: var(--amber); border-color: rgba(245, 158, 11, 0.3);">Google Cast SDK v3</span>
       </div>
       <h1>Radio Synapse — Dossier d'Architecture & Spécifications Intégrales</h1>
       <p class="hero-subtitle">
-        Document de référence exhaustif : cartographie complète des 31 composants React, 25 modules utilitaires et stores, 14 collections PocketBase v0.40+, flux audio AzuraCast/Icecast, chaîne de traitement sonore Web Audio API, régie Web DJ Live, générateur de Stories Instagram 9:16 Canvas 2D et récepteur TV Chromecast.
+        Document de référence exhaustif : cartographie complète des 31 composants React, 25 modules utilitaires et stores, tables Supabase PostgreSQL Realtime, flux audio Icecast / Liquidsoap, chaîne de traitement sonore Web Audio API, régie Web DJ Live, générateur de Stories Instagram 9:16 Canvas 2D et récepteur TV Chromecast.
       </p>
 
       <div class="meta-grid">
@@ -604,11 +604,11 @@
         </div>
         <div class="meta-card">
           <div class="meta-card-label">Base de Données & Auth</div>
-          <div class="meta-card-val">PocketBase VPS v0.40.2 (REST / Realtime)</div>
+          <div class="meta-card-val">Supabase PostgreSQL & Realtime (REST / WebSocket)</div>
         </div>
         <div class="meta-card">
           <div class="meta-card-label">Flux Audio & Métadonnées</div>
-          <div class="meta-card-val">AzuraCast AutoDJ / Live Icecast (HQ/MQ/LQ)</div>
+          <div class="meta-card-val">Serveur de Streaming AutoDJ / Live Icecast (HQ/MQ/LQ)</div>
         </div>
         <div class="meta-card">
           <div class="meta-card-label">Traitement Sonore & DSP</div>
@@ -630,7 +630,7 @@
         <li><a href="#section-4"><span class="num">04.</span> Menu Plein Écran & 8 Modules Métiers Dédiés</a></li>
         <li><a href="#section-5"><span class="num">05.</span> Outils Spéciaux (Story Canvas, SmartLinks, DSP 10-Band EQ, Cast TV)</a></li>
         <li><a href="#section-6"><span class="num">06.</span> Régie Admin, Web DJ Live & Studio Audio Drops</a></li>
-        <li><a href="#section-7"><span class="num">07.</span> Architecture PocketBase VPS v0.40+ (14 Collections)</a></li>
+        <li><a href="#section-7"><span class="num">07.</span> Architecture Supabase PostgreSQL & Realtime</a></li>
         <li><a href="#section-8"><span class="num">08.</span> Inventaire Exhaustif des Composants & Modules Codebase</a></li>
         <li><a href="#section-9"><span class="num">09.</span> Matrice des Services & Guide des États Fonctionnels</a></li>
       </ul>
@@ -742,8 +742,8 @@ const viewportScale = Math.min(Math.max(Math.min(scaleW, scaleH), 0.65), 1.35);<
             <tr>
               <td><strong>Avatar Utilisateur</strong></td>
               <td>Gauche</td>
-              <td>Ouvre le tiroir <code>UserProfileDrawer</code>. Affiche la photo de profil PocketBase ou Spotify avec un voyant vert/violet indiquant l'état de connexion.</td>
-              <td>PocketBase Auth, Spotify API</td>
+              <td>Ouvre le tiroir <code>UserProfileDrawer</code>. Affiche la photo de profil Supabase ou Spotify avec un voyant vert/violet indiquant l'état de connexion.</td>
+              <td>Supabase Auth, Spotify API</td>
             </tr>
             <tr>
               <td><strong>Logo Officiel Synapse</strong></td>
@@ -931,37 +931,37 @@ const viewportScale = Math.min(Math.max(Math.min(scaleW, scaleH), 0.65), 1.35);<
               <td><strong>1. Titres Likés & Favoris</strong></td>
               <td><code>LikedTracksDrawer.tsx</code>, <code>favoritesStorage.ts</code>, <code>spotifyPlaylistSync.ts</code></td>
               <td>Filtrage Like / Super-Like, lecteur d'extrait 30s, export Spotify PKCE, génération de story Instagram MiniDisc 9:16.</td>
-              <td>LocalStorage + PocketBase + Spotify Web API</td>
+              <td>LocalStorage + Supabase + Spotify Web API</td>
             </tr>
             <tr>
               <td><strong>2. Grille des Programmes</strong></td>
               <td><code>ProgrammingDrawer.tsx</code>, <code>synapse_events</code></td>
               <td>Planning hebdomadaire par jour, fiches des animateurs et résidents, compte à rebours live, synchronisation Google Calendar & iCal.</td>
-              <td>PocketBase REST <code>synapse_events</code></td>
+              <td>Supabase REST / Realtime <code>synapse_events</code></td>
             </tr>
             <tr>
               <td><strong>3. Défis & Quêtes Auditeurs</strong></td>
               <td><code>ChallengesDrawer.tsx</code>, <code>userDatabase.ts</code></td>
               <td>Gamification : séries d'écoute quotidienne (Streaks), quêtes journalières, points XP et rangs (Novice, Mélomane, Élite, Légende Synapse).</td>
-              <td>LocalStorage + PocketBase User Sync</td>
+              <td>LocalStorage + Supabase User Sync</td>
             </tr>
             <tr>
               <td><strong>4. Bons Plans & Réductions</strong></td>
               <td><code>PromotionsDrawer.tsx</code>, <code>synapse_promotions</code></td>
               <td>Offres partenaires exclusives : codes de réduction festivals, pass VIP clubs, promotions équipement audio avec copie en un clic.</td>
-              <td>PocketBase REST <code>synapse_promotions</code></td>
+              <td>Supabase REST / Realtime <code>synapse_promotions</code></td>
             </tr>
             <tr>
               <td><strong>5. Événements & Soirées Club</strong></td>
               <td><code>EventsDrawer.tsx</code>, <code>synapse_events</code></td>
               <td>Agenda clubbing et concerts, affichage des flyers, liens de billetterie en ligne, géolocalisation et itinéraires Google Maps.</td>
-              <td>PocketBase REST <code>synapse_events</code></td>
+              <td>Supabase REST / Realtime <code>synapse_events</code></td>
             </tr>
             <tr>
               <td><strong>6. Nous Contacter & Dédicaces</strong></td>
               <td><code>ContactDrawer.tsx</code>, <code>synapse_messages</code></td>
               <td>Formulaire de dédicace en direct pour les auditeurs et contact régie avec validation instantanée et enregistrement immédiat.</td>
-              <td>PocketBase REST <code>synapse_messages</code></td>
+              <td>Supabase REST / Realtime <code>synapse_messages</code></td>
             </tr>
             <tr>
               <td><strong>7. Studio Web DJ Live</strong></td>
@@ -973,7 +973,7 @@ const viewportScale = Math.min(Math.max(Math.min(scaleW, scaleH), 0.65), 1.35);<
               <td><strong>8. Espace Administration</strong></td>
               <td><code>AdminDashboardView.tsx</code>, <code>AdminPanelDrawer.tsx</code>, <code>AdminServicesTab.tsx</code></td>
               <td>Régie centrale de pilotage : gestion des stations, monitoring des flux en temps réel, modération des dédicaces, rôles RBAC et studio de thèmes.</td>
-              <td>PocketBase Admin SDK + AzuraCast Admin API</td>
+              <td>Supabase Admin Client + Streaming Admin API</td>
             </tr>
           </tbody>
         </table>
@@ -1058,8 +1058,8 @@ const viewportScale = Math.min(Math.max(Math.min(scaleW, scaleH), 0.65), 1.35);<
             </tr>
             <tr>
               <td><strong>2. Santé & Logs Serveur</strong></td>
-              <td><code>AdminServicesTab.tsx</code>, <code>synapse_station_logs</code></td>
-              <td>Télémétrie en direct de PocketBase, AzuraCast, temps de réponse HTTP, perte de paquets et historique d'écoute.</td>
+              <td><code>AdminServicesTab.tsx</code>, <code>synapse_admin_data</code></td>
+              <td>Télémétrie en direct de Supabase, serveurs de flux, temps de réponse HTTP, perte de paquets et historique d'écoute.</td>
             </tr>
             <tr>
               <td><strong>3. Modération Dédicaces</strong></td>
@@ -1078,17 +1078,17 @@ const viewportScale = Math.min(Math.max(Math.min(scaleW, scaleH), 0.65), 1.35);<
             </tr>
             <tr>
               <td><strong>6. Boîte à Jingles (Audio Drops)</strong></td>
-              <td><code>audioDropsStore.ts</code>, <code>synapse_audio_drops</code></td>
+              <td><code>audioDropsStore.ts</code>, <code>synapse_admin_data</code></td>
               <td>Bibliothèque de sons courts (sweep, drop, voice ID), assignation de raccourcis clavier, pré-écoute et ducking.</td>
             </tr>
             <tr>
               <td><strong>7. Rôles & Permissions (RBAC)</strong></td>
-              <td><code>adminRolePermissionsStore.ts</code>, <code>synapse_roles</code></td>
+              <td><code>adminRolePermissionsStore.ts</code>, <code>synapse_admin_data</code></td>
               <td>Gestion des accès : Administrateur, Web DJ, Modérateur, Animateur avec matrice de permissions granulaires.</td>
             </tr>
             <tr>
               <td><strong>8. Studio Personnalisation</strong></td>
-              <td><code>adminCustomizationStore.ts</code>, <code>synapse_customization</code></td>
+              <td><code>adminCustomizationStore.ts</code>, <code>synapse_admin_data</code></td>
               <td>Personnalisation des thèmes, ordre des tiroirs du menu, bannières d'annonces et variables CSS dynamiques.</td>
             </tr>
             <tr>
@@ -1097,133 +1097,90 @@ const viewportScale = Math.min(Math.max(Math.min(scaleW, scaleH), 0.65), 1.35);<
               <td>Double platine audio, crossfader, micro live en duplex avec noise gate et broadcast Icecast en direct.</td>
             </tr>
             <tr>
-              <td><strong>10. Sauvegarde & Schéma</strong></td>
-              <td><code>public/pb_schema.json</code></td>
-              <td>Export/Import JSON de l'intégralité de la base de données pour synchronisation VPS.</td>
+              <td><strong>10. Sauvegarde & Schéma SQL</strong></td>
+              <td><code>src/utils/supabaseSqlSchema.ts</code></td>
+              <td>Script SQL DDL complet pour initialiser PostgreSQL, les politiques RLS et les réplications Realtime Supabase.</td>
             </tr>
           </tbody>
         </table>
       </div>
     </section>
 
-    <!-- SECTION 7: ARCHITECTURE POCKETBASE -->
+    <!-- SECTION 7: ARCHITECTURE SUPABASE -->
     <section class="doc-section" id="section-7">
       <div class="section-header">
         <div class="section-icon">07</div>
-        <h2>Architecture PocketBase VPS v0.40+ (14 Collections)</h2>
+        <h2>Architecture Supabase PostgreSQL & Realtime (Tables & RLS)</h2>
       </div>
 
       <div class="callout warning">
-        <div class="callout-title">Règles Strictes de Schéma PocketBase v0.40.2+</div>
-        PocketBase v0.40+ a banni la syntaxe obsolète <code>"schema": [...]</code>. Toutes les collections doivent impérativement déclarer leurs champs dans le tableau <code>"fields": [...]</code> comprenant les métadonnées de colonnes (<code>id</code>, <code>name</code>, <code>type</code>, <code>required</code>, <code>system</code>, <code>hidden</code>).
+        <div class="callout-title">Règles de Sécurité RLS et Abonnements Realtime</div>
+        Toutes les tables bénéficient du Row Level Security (RLS) avec politiques de lecture publique et modifications restreintes aux administrateurs. Les mutations sur les stations et les dédicaces sont propagées en WebSocket Realtime à tous les auditeurs connectés sans nécessiter de rafraîchissement manuel.
       </div>
 
       <div class="table-container">
         <table>
           <thead>
             <tr>
-              <th>Nom Collection</th>
-              <th>ID Collection</th>
-              <th>Type</th>
+              <th>Nom Table PostgreSQL</th>
+              <th>Clé Primaire</th>
+              <th>Realtime</th>
               <th>Description & Rôle Métier</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td><code>users</code></td>
-              <td><code>_pb_users_auth_</code></td>
-              <td>Auth (Système)</td>
-              <td>Comptes auditeurs, avatars, préférences et synchronisation multi-appareils.</td>
-            </tr>
-            <tr>
-              <td><code>_superusers</code></td>
-              <td><code>pbc_3142635823</code></td>
-              <td>Auth (Système)</td>
-              <td>Comptes super-administrateurs avec accès complet à la console PocketBase.</td>
-            </tr>
-            <tr>
-              <td><code>_authOrigins</code></td>
-              <td><code>pbc_4275539003</code></td>
-              <td>Auth (Système)</td>
-              <td>Origines OAuth et domaines autorisés pour l'authentification externe.</td>
-            </tr>
-            <tr>
-              <td><code>_externalAuths</code></td>
-              <td><code>pbc_2281828961</code></td>
-              <td>Auth (Système)</td>
-              <td>Liaisons de comptes tiers (Google, Apple, Spotify).</td>
-            </tr>
-            <tr>
-              <td><code>_mfas</code></td>
-              <td><code>pbc_2279338944</code></td>
-              <td>Auth (Système)</td>
-              <td>Tokens et statuts d'authentification multifacteur.</td>
-            </tr>
-            <tr>
-              <td><code>_otps</code></td>
-              <td><code>pbc_1638494021</code></td>
-              <td>Auth (Système)</td>
-              <td>Mots de passe à usage unique pour connexion sans mot de passe.</td>
-            </tr>
-            <tr>
               <td><code>synapse_stations</code></td>
-              <td><code>pbc_synapse_stat</code></td>
-              <td>Base</td>
-              <td>Configuration des 5 radios, noms, descriptions, couleurs néon et URLs de flux Icecast.</td>
-            </tr>
-            <tr>
-              <td><code>synapse_station_logs</code></td>
-              <td><code>pbc_synapse_logs</code></td>
-              <td>Base</td>
-              <td>Logs d'écoute, audits de connexion et télémétrie des flux.</td>
+              <td><code>id (TEXT)</code></td>
+              <td>Actif (REPLICA FULL)</td>
+              <td>Configuration des radios, noms, descriptions, couleurs néon, URLs Icecast et métadonnées.</td>
             </tr>
             <tr>
               <td><code>synapse_messages</code></td>
-              <td><code>pbc_synapse_msgs</code></td>
-              <td>Base</td>
-              <td>Dédicaces en direct et formulaires de contact auditeurs avec statut de modération.</td>
+              <td><code>id (TEXT)</code></td>
+              <td>Actif (REPLICA FULL)</td>
+              <td>Dédicaces en direct et formulaires de contact auditeurs avec statut de modération instantanée.</td>
             </tr>
             <tr>
               <td><code>synapse_events</code></td>
-              <td><code>pbc_synapse_evts</code></td>
-              <td>Base</td>
+              <td><code>id (TEXT)</code></td>
+              <td>Actif (REPLICA FULL)</td>
               <td>Événements clubbing, concerts, émissions résidents et billetteries.</td>
             </tr>
             <tr>
               <td><code>synapse_promotions</code></td>
-              <td><code>pbc_synapse_prom</code></td>
-              <td>Base</td>
+              <td><code>id (TEXT)</code></td>
+              <td>Actif (REPLICA FULL)</td>
               <td>Codes promo et réductions partenaires négociées pour les auditeurs.</td>
             </tr>
             <tr>
-              <td><code>synapse_audio_drops</code></td>
-              <td><code>pbc_synapse_adps</code></td>
-              <td>Base</td>
-              <td>Fichiers audio de jingles, sweepers, virgules sonores et drops d'antenne.</td>
+              <td><code>synapse_challenges</code></td>
+              <td><code>id (TEXT)</code></td>
+              <td>Actif (REPLICA FULL)</td>
+              <td>Gamification : quêtes journalières, XP, badges et paliers de fidélité.</td>
             </tr>
             <tr>
-              <td><code>synapse_customization</code></td>
-              <td><code>pbc_synapse_cust</code></td>
-              <td>Base</td>
-              <td>Thèmes graphiques personnalisés, couleurs d'accentuation et ordre des menus.</td>
+              <td><code>synapse_admin_data</code></td>
+              <td><code>key (TEXT)</code></td>
+              <td>Actif (REPLICA FULL)</td>
+              <td>Store K/V sécurisé pour drops audio, profils de rôles RBAC, personnalisations et presets.</td>
             </tr>
             <tr>
-              <td><code>synapse_roles</code></td>
-              <td><code>pbc_synapse_role</code></td>
-              <td>Base</td>
-              <td>Définition des rôles RBAC (Admin, DJ, Modérateur, Animateur).</td>
+              <td><code>user_synapse_data</code></td>
+              <td><code>id (TEXT)</code></td>
+              <td>Inactif</td>
+              <td>Coups de cœur (Likes / Super-likes) synchronisés par compte utilisateur.</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <h3>7.1 Procédure d'Importation VPS PocketBase</h3>
+      <h3>7.1 Procédure de Déploiement VPS Supabase</h3>
       <ol style="padding-left: 24px; color: var(--text-muted); margin-bottom: 20px;">
-        <li style="margin-bottom: 8px;">Accéder à la console PocketBase sur votre VPS (ex: <code>https://db.radiosynapse.fr/_/</code>).</li>
-        <li style="margin-bottom: 8px;">Aller dans <strong>Settings &gt; Import collections</strong>.</li>
-        <li style="margin-bottom: 8px;">Coller ou uploader le fichier <code>public/pb_schema.json</code>.</li>
-        <li style="margin-bottom: 8px;"><strong>Ne pas cocher</strong> "Merge with existing collections" si vous remplacez des tables.</li>
-        <li style="margin-bottom: 8px;">Si un avertissement orange s'affiche indiquant des différences d'identifiants, cliquer sur <strong>"Replace with original IDs"</strong> avant de valider.</li>
+        <li style="margin-bottom: 8px;">Exécuter le script automatisé sur votre VPS : <code>sudo bash /public/setup-vps-stack.sh</code>.</li>
+        <li style="margin-bottom: 8px;">Accéder à Supabase Studio sur <code>http://VOTRE_IP:54323</code> (ou via votre sous-domaine <code>api.radiosynapse.fr</code>).</li>
+        <li style="margin-bottom: 8px;">Ouvrir l'onglet <strong>SQL Editor</strong> et coller le script SQL fourni dans le Panel Admin (bouton <em>Copier le script SQL</em>).</li>
+        <li style="margin-bottom: 8px;">Exécuter le script pour créer automatiquement toutes les tables, les index et activer le Realtime PostgreSQL.</li>
       </ol>
     </section>
 
@@ -1244,17 +1201,17 @@ const viewportScale = Math.min(Math.max(Math.min(scaleW, scaleH), 0.65), 1.35);<
             </tr>
           </thead>
           <tbody>
-            <tr><td><code>AccountConnectModal.tsx</code></td><td>Modal de connexion PocketBase / OAuth (Spotify, Google, Apple) avec gestion du profil et avatar.</td></tr>
+            <tr><td><code>AccountConnectModal.tsx</code></td><td>Modal de connexion Supabase / OAuth (Spotify, Google, Apple) avec gestion du profil et avatar.</td></tr>
             <tr><td><code>AdminDashboardView.tsx</code></td><td>Dashboard administrateur plein écran 10 onglets (Stations, Logs, Messages, Événements, Promos, Drops, Rôles, Thèmes, Web DJ, Export).</td></tr>
             <tr><td><code>AdminPanelDrawer.tsx</code></td><td>Tiroir d'administration rapide pour actions courantes sur les radios et modération.</td></tr>
-            <tr><td><code>AdminServicesTab.tsx</code></td><td>Tableau de bord de diagnostic des services (PocketBase, AzuraCast, Icecast, Spotify API, Web Audio latency, Cast).</td></tr>
+            <tr><td><code>AdminServicesTab.tsx</code></td><td>Tableau de bord de diagnostic des services (Supabase, Icecast, Liquidsoap, Web Audio latency, Cast).</td></tr>
             <tr><td><code>AdminSidebarEditorModal.tsx</code></td><td>Éditeur d'ordonnancement dynamique des éléments de navigation et tiroirs de l'application.</td></tr>
             <tr><td><code>BrandLogo.tsx</code></td><td>Logo officiel animé Radio Synapse avec étoile néon chromatique et effets de survol.</td></tr>
             <tr><td><code>CastModal.tsx</code></td><td>Modal de contrôle de diffusion sans fil Google Cast & AirPlay avec réglage du volume.</td></tr>
             <tr><td><code>ChallengesDrawer.tsx</code></td><td>Module de quêtes quotidiennes, streaks d'écoute, gains d'XP et badges d'auditeur.</td></tr>
             <tr><td><code>ChromaticStationsLabel.tsx</code></td><td>Bouton bas "STATIONS" chromé avec flèche pulsante et onde réactive.</td></tr>
             <tr><td><code>CompanionMenuDrawer.tsx</code></td><td>Menu tiroir compagnon pour accès rapide aux thèmes, sélection de qualité de flux et minuteur de veille.</td></tr>
-            <tr><td><code>ContactDrawer.tsx</code></td><td>Formulaire de dédicace auditeur en direct et contact régie avec envoi PocketBase.</td></tr>
+            <tr><td><code>ContactDrawer.tsx</code></td><td>Formulaire de dédicace auditeur en direct et contact régie avec envoi Supabase Realtime.</td></tr>
             <tr><td><code>DigitalTrackFlyer.tsx</code></td><td>Flyer musical interactif avec pochette HD, extrait 30s et liens profonds de streaming.</td></tr>
             <tr><td><code>DoubleHeartIcon.tsx</code></td><td>Icône SVG personnalisée pour Like simple (rouge) et Super-Like doré (double cœur avec lueur).</td></tr>
             <tr><td><code>Drawer.tsx</code></td><td>Conteneur tiroir accessible avec physique Framer Motion, fermeture au swipe et flou d'arrière-plan.</td></tr>
@@ -1262,7 +1219,7 @@ const viewportScale = Math.min(Math.max(Math.min(scaleW, scaleH), 0.65), 1.35);<
             <tr><td><code>EventsDrawer.tsx</code></td><td>Agenda des soirées clubbing, concerts, festivals, billetteries et cartes d'accès.</td></tr>
             <tr><td><code>FavoriteStationsDrawer.tsx</code></td><td>Tiroir des stations de radio favorites épinglées par l'auditeur.</td></tr>
             <tr><td><code>FullscreenNavMenu.tsx</code></td><td>Grand menu de navigation hub ouvrant les 8 modules métier complets.</td></tr>
-            <tr><td><code>LikedTracksDrawer.tsx</code></td><td>Gestionnaire des coups de cœur, export de playlists Spotify et déclenchement de story Instagram.</td></tr>
+            <tr><td><code>LikedTracksDrawer.tsx</code></td><td>Gestionnaire des coups de cœur, favoris et déclenchement de story Instagram.</td></tr>
             <tr><td><code>MarqueeText.tsx</code></td><td>Composant de texte défilant continu avec masque de fondu pour titres et artistes longs.</td></tr>
             <tr><td><code>MiniDiscPlayer.tsx</code></td><td>Composant central modélisant la cartouche Sony NetMD MiniDisc et le deck de commande.</td></tr>
             <tr><td><code>MiniDiscStoryGenerator.tsx</code></td><td>Moteur graphique Canvas 2D exportant des stories Instagram/TikTok 9:16 Ultra-HD.</td></tr>
@@ -1290,12 +1247,12 @@ const viewportScale = Math.min(Math.max(Math.min(scaleW, scaleH), 0.65), 1.35);<
             </tr>
           </thead>
           <tbody>
-            <tr><td><code>src/lib/pocketbase.ts</code></td><td>Instance PocketBase singleton, auto-reconnexion, requêtes typées et fallback local.</td></tr>
-            <tr><td><code>src/lib/azuracast.ts</code></td><td>Client API AzuraCast pour NowPlaying, historique, requêtes et statuts de direct.</td></tr>
+            <tr><td><code>src/lib/supabaseClient.ts</code></td><td>Client Supabase singleton, gestion d'erreurs, requêtes typées et abonnements Realtime PostgreSQL.</td></tr>
+            <tr><td><code>src/lib/streamServer.ts</code></td><td>Client API Streaming pour NowPlaying, historique, requêtes et statuts de direct.</td></tr>
             <tr><td><code>src/utils/adminCustomizationStore.ts</code></td><td>Store des réglages graphiques, thèmes personnalisés et bannières.</td></tr>
             <tr><td><code>src/utils/adminRolePermissionsStore.ts</code></td><td>Store RBAC des permissions utilisateurs (Admin, DJ, Modérateur, Animateur).</td></tr>
-            <tr><td><code>src/utils/adminStore.ts</code></td><td>Store central de régie (CRUD stations, logs, messages, télémétrie).</td></tr>
-            <tr><td><code>src/utils/artworkFetcher.ts</code></td><td>Résolveur de pochettes multi-sources (AzuraCast, iTunes API, Deezer API).</td></tr>
+            <tr><td><code>src/utils/adminStore.ts</code></td><td>Store central de régie avec synchronisation Supabase Realtime (CRUD stations, messages, télémétrie).</td></tr>
+            <tr><td><code>src/utils/artworkFetcher.ts</code></td><td>Résolveur de pochettes multi-sources (Stream API, iTunes API, Deezer API).</td></tr>
             <tr><td><code>src/utils/audioAnalyzerManager.ts</code></td><td>Gestionnaire singleton de l'AudioContext Web Audio et de l'AnalyserNode FFT.</td></tr>
             <tr><td><code>src/utils/audioDropsStore.ts</code></td><td>Store de la boîte à jingles avec cache audio, raccourcis et réglage du gain.</td></tr>
             <tr><td><code>src/utils/audioStreamPlayer.ts</code></td><td>Contrôleur de lecture des flux radio HTML5 Audio avec qualité adaptative (HQ/MQ/LQ).</td></tr>
@@ -1307,12 +1264,11 @@ const viewportScale = Math.min(Math.max(Math.min(scaleW, scaleH), 0.65), 1.35);<
             <tr><td><code>src/utils/favoriteStationsStorage.ts</code></td><td>Persistance locale et cloud des radios favorites.</td></tr>
             <tr><td><code>src/utils/favoritesStorage.ts</code></td><td>Moteur de stockage des titres likés et super-likés avec horodatage.</td></tr>
             <tr><td><code>src/utils/fullAudioCatalog.ts</code> / <code>fullAudioResolver.ts</code></td><td>Extraction des extraits musicaux 30 secondes haute fidélité.</td></tr>
-            <tr><td><code>src/utils/liveBroadcastEngine.ts</code></td><td>Moteur d'encodage et de streaming direct vers Icecast/AzuraCast WebDJ.</td></tr>
-            <tr><td><code>src/utils/musicPlatformAuth.ts</code> / <code>realMusicOAuth.ts</code></td><td>Gestionnaire OAuth 2.0 PKCE pour Spotify, Deezer et Apple Music.</td></tr>
-            <tr><td><code>src/utils/pocketbaseAuthService.ts</code></td><td>Service d'authentification PocketBase (Email, OAuth2, synchronisation de profil).</td></tr>
+            <tr><td><code>src/utils/liveBroadcastEngine.ts</code></td><td>Moteur d'encodage et de streaming direct vers Icecast/Liquidsoap WebDJ.</td></tr>
+            <tr><td><code>src/utils/musicPlatformAuth.ts</code> / <code>realMusicOAuth.ts</code></td><td>Gestionnaire d'intégration pour plateformes musicales.</td></tr>
+            <tr><td><code>src/utils/supabaseSqlSchema.ts</code></td><td>Schéma SQL de déploiement Supabase avec tables, RLS et Realtime.</td></tr>
             <tr><td><code>src/utils/sharedFlyersRegistry.ts</code></td><td>Registre de cache des flyers numériques partagés.</td></tr>
-            <tr><td><code>src/utils/spotifyPlaylistSync.ts</code></td><td>Synchronisation et création automatique de playlists Spotify.</td></tr>
-            <tr><td><code>src/utils/streamMetadataFetcher.ts</code></td><td>Sondage temps réel des métadonnées de diffusion AzuraCast.</td></tr>
+            <tr><td><code>src/utils/streamMetadataFetcher.ts</code></td><td>Sondage temps réel des métadonnées de diffusion.</td></tr>
             <tr><td><code>src/utils/timeshiftBuffer.ts</code></td><td>Buffer circulaire audio de 15 minutes pour écoute en différé et retour au direct.</td></tr>
             <tr><td><code>src/utils/userDatabase.ts</code></td><td>Base locale des points d'expérience (XP), niveaux et badges débloqués.</td></tr>
           </tbody>
@@ -1340,21 +1296,21 @@ const viewportScale = Math.min(Math.max(Math.min(scaleW, scaleH), 0.65), 1.35);<
           </thead>
           <tbody>
             <tr>
-              <td><strong>PocketBase REST / Realtime</strong></td>
-              <td>Serveur VPS</td>
-              <td>Auth, stations, messages de dédicaces, événements, promos et rôles.</td>
+              <td><strong>Supabase REST / Realtime</strong></td>
+              <td>Base de données Cloud / VPS</td>
+              <td>Auth, stations, messages de dédicaces, événements, promos, synchronisation temps réel sans rafraîchissement manuel.</td>
               <td><span class="status-badge functional">100% Opérationnel</span></td>
-              <td>Connexion instantanée au serveur VPS. Si hors ligne, bascule automatiquement sur le cache <code>localStorage</code> sans bloquer l'application.</td>
+              <td>Connexion instantanée au serveur Supabase. Si hors ligne, bascule automatiquement sur le cache <code>localStorage</code> sans bloquer l'application.</td>
             </tr>
             <tr>
-              <td><strong>AzuraCast AutoDJ / Icecast</strong></td>
+              <td><strong>Serveur de Flux AutoDJ / Icecast</strong></td>
               <td>Streaming Audio</td>
               <td>Diffusion continue des flux audio MP3/AAC (320k / 192k / 64k).</td>
               <td><span class="status-badge functional">100% Opérationnel</span></td>
               <td>Lecture via élément HTML5 Audio avec reconnexion automatique en cas de coupure.</td>
             </tr>
             <tr>
-              <td><strong>AzuraCast NowPlaying API</strong></td>
+              <td><strong>NowPlaying API</strong></td>
               <td>API Métadonnées</td>
               <td>Récupération en direct des morceaux, artistes, pochettes et historique 15 min.</td>
               <td><span class="status-badge functional">100% Opérationnel</span></td>
@@ -1366,13 +1322,6 @@ const viewportScale = Math.min(Math.max(Math.min(scaleW, scaleH), 0.65), 1.35);<
               <td>Extraction des pochettes HD et extraits 30s pour likes et flyers.</td>
               <td><span class="status-badge functional">100% Opérationnel</span></td>
               <td>Recherche automatique sans clé d'API requise, avec repli immédiat sur Unsplash Music.</td>
-            </tr>
-            <tr>
-              <td><strong>Spotify Web API (OAuth PKCE)</strong></td>
-              <td>API Tierce</td>
-              <td>Création automatique de playlists Spotify à partir des coups de cœur.</td>
-              <td><span class="status-badge partial">Prêt (Clé Client requise)</span></td>
-              <td>Le flux d'autorisation PKCE est codé. Fonctionne dès qu'un <code>Client ID</code> Spotify est renseigné dans les réglages.</td>
             </tr>
             <tr>
               <td><strong>Web Audio API Engine</strong></td>
@@ -1407,9 +1356,9 @@ const viewportScale = Math.min(Math.max(Math.min(scaleW, scaleH), 0.65), 1.35);<
           </div>
           <div class="feature-desc">
             • Moteur MiniDisc Sony complet (Volet animé, rotation du disque, boutons physiques).<br/>
-            • Écoute des 5 stations en direct avec sélection de qualité adaptative.<br/>
+            • Écoute des stations en direct avec sélection de qualité adaptative.<br/>
             • Récupération et affichage des métadonnées et pochettes temps réel.<br/>
-            • Système Like et Super-Like double cœur avec mémorisation locale et PocketBase.<br/>
+            • Système Like et Super-Like double cœur avec mémorisation locale et Supabase.<br/>
             • Égaliseur 10 bandes connecté au flux sonore Web Audio API.<br/>
             • Formulaire de contact et dédicaces enregistrant dans <code>synapse_messages</code>.<br/>
             • Générateur de stories Instagram et SmartLinks musicaux.
@@ -1422,8 +1371,7 @@ const viewportScale = Math.min(Math.max(Math.min(scaleW, scaleH), 0.65), 1.35);<
             <span class="status-badge partial">Paramétrage Requis</span>
           </div>
           <div class="feature-desc">
-            • <strong>Export Playlist Spotify :</strong> Nécessite de déclarer votre URL de redirection dans le portail Spotify Developer.<br/>
-            • <strong>Web DJ Live Broadcast :</strong> Nécessite de renseigner les identifiants de streaming source Icecast/AzuraCast du DJ.<br/>
+            • <strong>Web DJ Live Broadcast :</strong> Nécessite de renseigner les identifiants de streaming source Icecast/Liquidsoap du DJ.<br/>
             • <strong>Diffusion Google Cast :</strong> Nécessite la présence physique d'un appareil Chromecast sur le réseau local Wi-Fi.
           </div>
         </div>
@@ -1435,7 +1383,7 @@ const viewportScale = Math.min(Math.max(Math.min(scaleW, scaleH), 0.65), 1.35);<
           </div>
           <div class="feature-desc">
             • <strong>Politique Autoplay Navigateurs :</strong> Sur iOS et Android, la lecture audio nécessite une première interaction tactile de l'utilisateur (clic sur PLAY).<br/>
-            • <strong>CORS sur les Flux Audio :</strong> Pour que l'analyseur de spectre et l'égaliseur fonctionnent sans erreur, le serveur Icecast/AzuraCast doit renvoyer l'en-tête <code>Access-Control-Allow-Origin: *</code>.
+            • <strong>CORS sur les Flux Audio :</strong> Pour que l'analyseur de spectre et l'égaliseur fonctionnent sans erreur, le serveur de flux Icecast doit renvoyer l'en-tête <code>Access-Control-Allow-Origin: *</code>.
           </div>
         </div>
       </div>
@@ -1452,7 +1400,7 @@ const viewportScale = Math.min(Math.max(Math.min(scaleW, scaleH), 0.65), 1.35);<
         <strong style="color: var(--text-main);">Radio Synapse</strong> — Note de Version Officielle & Architecture Technique
       </div>
       <div style="font-family: 'JetBrains Mono', monospace;">
-        Version 2.4-Production • Build 2026.09 • VPS PocketBase v0.40.2+
+        Version 2.4-Production • Build 2026.09 • Supabase PostgreSQL Realtime
       </div>
     </footer>
 

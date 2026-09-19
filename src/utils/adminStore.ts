@@ -1,8 +1,8 @@
 import { StreamChannel } from '../data';
 import { SynapseUser, UserRole } from '../types';
 import { supabase } from '../lib/supabase';
-import { updateUserRoleInSupabase as updateUserRoleInPocketBase } from './supabaseAuthService';
-export { updateUserRoleInPocketBase };
+import { updateUserRoleInSupabase } from './supabaseAuthService';
+export { updateUserRoleInSupabase };
 
 export type ChallengeType = 
   | 'suggest_music'       // Propose ta musique
@@ -121,7 +121,7 @@ const STORAGE_KEYS = {
 // Guard to prevent local administrative writes from triggering recursive realtime echo loops
 let isLocalAdminWriteInProgress = false;
 
-// Dedicated local cache setters (Used by fetchers/readers - NEVER writes back to PocketBase)
+// Dedicated local cache setters (Used by fetchers/readers - NEVER writes back to Supabase)
 export function setLocalAdminStations(stations: StreamChannel[]): void {
   const uniqueMap = new Map<string, StreamChannel>();
   for (const s of stations) {
@@ -195,7 +195,7 @@ export function saveAdminStations(stations: StreamChannel[]): void {
   }
   const deduplicated = Array.from(uniqueMap.values());
   setLocalAdminStations(deduplicated);
-  syncAdminStoreToPocketBase('stations', deduplicated).catch(() => {});
+  syncAdminStoreToSupabase('stations', deduplicated).catch(() => {});
 }
 
 export function getAdminSchedules(): AdminScheduleShow[] {
@@ -211,7 +211,7 @@ export function getAdminSchedules(): AdminScheduleShow[] {
 
 export function saveAdminSchedules(schedules: AdminScheduleShow[]): void {
   localStorage.setItem(STORAGE_KEYS.SCHEDULES, JSON.stringify(schedules));
-  syncAdminStoreToPocketBase('schedules', schedules).catch(() => {});
+  syncAdminStoreToSupabase('schedules', schedules).catch(() => {});
 }
 
 export function getAdminChallenges(): AdminChallenge[] {
@@ -226,7 +226,7 @@ export function getAdminChallenges(): AdminChallenge[] {
 
 export function saveAdminChallenges(challenges: AdminChallenge[]): void {
   localStorage.setItem(STORAGE_KEYS.CHALLENGES, JSON.stringify(challenges));
-  syncAdminStoreToPocketBase('challenges', challenges).catch(() => {});
+  syncAdminStoreToSupabase('challenges', challenges).catch(() => {});
 }
 
 export function getAdminPromotions(): AdminPromotion[] {
@@ -241,7 +241,7 @@ export function getAdminPromotions(): AdminPromotion[] {
 
 export function saveAdminPromotions(promotions: AdminPromotion[]): void {
   localStorage.setItem(STORAGE_KEYS.PROMOTIONS, JSON.stringify(promotions));
-  syncAdminStoreToPocketBase('promotions', promotions).catch(() => {});
+  syncAdminStoreToSupabase('promotions', promotions).catch(() => {});
 }
 
 export function getAdminEvents(): AdminEvent[] {
@@ -256,7 +256,7 @@ export function getAdminEvents(): AdminEvent[] {
 
 export function saveAdminEvents(events: AdminEvent[]): void {
   localStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(events));
-  syncAdminStoreToPocketBase('events', events).catch(() => {});
+  syncAdminStoreToSupabase('events', events).catch(() => {});
 }
 
 export function getAdminMessages(): AdminMessage[] {
@@ -271,7 +271,7 @@ export function getAdminMessages(): AdminMessage[] {
 
 export function saveAdminMessages(messages: AdminMessage[]): void {
   localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(messages));
-  syncAdminStoreToPocketBase('messages', messages).catch(() => {});
+  syncAdminStoreToSupabase('messages', messages).catch(() => {});
 }
 
 export function getAdminUsers(): SynapseUser[] {
@@ -287,7 +287,7 @@ export function getAdminUsers(): SynapseUser[] {
 
 export function saveAdminUsers(users: SynapseUser[]): void {
   localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users));
-  syncAdminStoreToPocketBase('users', users).catch(() => {});
+  syncAdminStoreToSupabase('users', users).catch(() => {});
 }
 
 /**
@@ -320,14 +320,14 @@ export function addListenerMessage(
 /**
  * Deduplicate and purge redundant duplicate station rows
  */
-export async function cleanupPocketBaseStationDuplicates(): Promise<{ removedCount: number; remainingCount: number }> {
+export async function cleanupSupabaseStationDuplicates(): Promise<{ removedCount: number; remainingCount: number }> {
   return { removedCount: 0, remainingCount: 0 };
 }
 
 /**
  * Helper to sync store item arrays to Supabase Key-Value table `synapse_admin_data` and specific tables
  */
-export async function syncAdminStoreToPocketBase(key: string, data: any): Promise<void> {
+export async function syncAdminStoreToSupabase(key: string, data: any): Promise<void> {
   isLocalAdminWriteInProgress = true;
   try {
     // 1. Primary fast Key-Value store in Supabase
@@ -456,7 +456,7 @@ export async function syncAdminStoreToPocketBase(key: string, data: any): Promis
 }
 
 /**
- * Convert a PocketBase station record into a complete StreamChannel
+ * Convert a Supabase station record into a complete StreamChannel
  */
 export function mapRecordToStreamChannel(r: any): StreamChannel {
   const stationId = r.station_id || r.id || `st-${Date.now()}`;
@@ -610,7 +610,7 @@ export async function loadRemoteAdminData(): Promise<boolean> {
 /**
  * Direct asynchronous Supabase table fetchers with error handling & cache fallback
  */
-export async function fetchPocketBaseStations(): Promise<{ data: StreamChannel[]; error: string | null }> {
+export async function fetchSupabaseStations(): Promise<{ data: StreamChannel[]; error: string | null }> {
   try {
     const { data: list, error } = await supabase.from('synapse_stations').select('*').order('station_number', { ascending: true });
     if (!error && list && list.length > 0) {
@@ -649,7 +649,7 @@ export async function fetchPocketBaseStations(): Promise<{ data: StreamChannel[]
   }
 }
 
-export async function fetchPocketBaseChallenges(): Promise<{ data: AdminChallenge[]; error: string | null }> {
+export async function fetchSupabaseChallenges(): Promise<{ data: AdminChallenge[]; error: string | null }> {
   try {
     const { data: list, error } = await supabase.from('synapse_challenges').select('*').order('created_at', { ascending: false });
     if (!error && list && list.length > 0) {
@@ -685,7 +685,7 @@ export async function fetchPocketBaseChallenges(): Promise<{ data: AdminChalleng
   }
 }
 
-export async function fetchPocketBasePromotions(): Promise<{ data: AdminPromotion[]; error: string | null }> {
+export async function fetchSupabasePromotions(): Promise<{ data: AdminPromotion[]; error: string | null }> {
   try {
     const { data: list, error } = await supabase.from('synapse_promotions').select('*').order('created_at', { ascending: false });
     if (!error && list && list.length > 0) {
@@ -721,7 +721,7 @@ export async function fetchPocketBasePromotions(): Promise<{ data: AdminPromotio
   }
 }
 
-export async function fetchPocketBaseEvents(): Promise<{ data: AdminEvent[]; error: string | null }> {
+export async function fetchSupabaseEvents(): Promise<{ data: AdminEvent[]; error: string | null }> {
   try {
     const { data: list, error } = await supabase.from('synapse_events').select('*').order('created_at', { ascending: false });
     if (!error && list && list.length > 0) {
@@ -754,7 +754,7 @@ export async function fetchPocketBaseEvents(): Promise<{ data: AdminEvent[]; err
   }
 }
 
-export async function fetchPocketBaseSchedules(): Promise<{ data: AdminScheduleShow[]; error: string | null }> {
+export async function fetchSupabaseSchedules(): Promise<{ data: AdminScheduleShow[]; error: string | null }> {
   try {
     const { data: list, error } = await supabase.from('synapse_schedules').select('*').order('start_time', { ascending: true });
     if (!error && list && list.length > 0) {
@@ -786,7 +786,7 @@ export async function fetchPocketBaseSchedules(): Promise<{ data: AdminScheduleS
   }
 }
 
-export async function fetchPocketBaseMessages(): Promise<{ data: AdminMessage[]; error: string | null }> {
+export async function fetchSupabaseMessages(): Promise<{ data: AdminMessage[]; error: string | null }> {
   try {
     const { data: list, error } = await supabase.from('synapse_messages').select('*').order('created_at', { ascending: false });
     if (!error && list && list.length > 0) {
@@ -817,7 +817,7 @@ export async function fetchPocketBaseMessages(): Promise<{ data: AdminMessage[];
   }
 }
 
-export async function fetchPocketBaseUsers(): Promise<{ data: SynapseUser[]; error: string | null }> {
+export async function fetchSupabaseUsers(): Promise<{ data: SynapseUser[]; error: string | null }> {
   try {
     const { data: userRecords, error } = await supabase.from('synapse_users').select('*').order('created_at', { ascending: false });
     if (!error && userRecords && userRecords.length > 0) {
@@ -828,8 +828,6 @@ export async function fetchPocketBaseUsers(): Promise<{ data: SynapseUser[]; err
         role: (r.role === 'admin' || r.role === 'super-admin' ? r.role : 'user') as UserRole,
         avatarUrl: r.avatar_url || undefined,
         createdAt: new Date(r.created_at || Date.now()).getTime(),
-        spotifyAccount: r.spotify_account || null,
-        isSpotifyLinked: !!r.is_spotify_linked,
       }));
       setLocalAdminUsers(mapped);
       return { data: mapped, error: null };
@@ -851,7 +849,7 @@ export async function fetchPocketBaseUsers(): Promise<{ data: SynapseUser[]; err
 /**
  * Force a complete bidirectional sync between local cache & Supabase
  */
-export async function syncAllDataWithPocketBase(): Promise<{ success: boolean; message: string }> {
+export async function syncAllDataWithSupabase(): Promise<{ success: boolean; message: string }> {
   try {
     const stations = getAdminStations();
     const schedules = getAdminSchedules();
@@ -862,13 +860,13 @@ export async function syncAllDataWithPocketBase(): Promise<{ success: boolean; m
     const users = getAdminUsers();
 
     await Promise.all([
-      syncAdminStoreToPocketBase('stations', stations),
-      syncAdminStoreToPocketBase('schedules', schedules),
-      syncAdminStoreToPocketBase('challenges', challenges),
-      syncAdminStoreToPocketBase('promotions', promotions),
-      syncAdminStoreToPocketBase('events', events),
-      syncAdminStoreToPocketBase('messages', messages),
-      syncAdminStoreToPocketBase('users', users),
+      syncAdminStoreToSupabase('stations', stations),
+      syncAdminStoreToSupabase('schedules', schedules),
+      syncAdminStoreToSupabase('challenges', challenges),
+      syncAdminStoreToSupabase('promotions', promotions),
+      syncAdminStoreToSupabase('events', events),
+      syncAdminStoreToSupabase('messages', messages),
+      syncAdminStoreToSupabase('users', users),
     ]);
 
     return { success: true, message: 'Synchronisation complète avec Supabase réussie !' };
@@ -880,7 +878,7 @@ export async function syncAllDataWithPocketBase(): Promise<{ success: boolean; m
 /**
  * Realtime listener for live Supabase changes
  */
-export function subscribeToPocketBaseRealtime(onUpdate: () => void): () => void {
+export function subscribeToSupabaseRealtime(onUpdate: () => void): () => void {
   try {
     let debounceTimer: any = null;
     const triggerUpdate = () => {
@@ -909,13 +907,3 @@ export function subscribeToPocketBaseRealtime(onUpdate: () => void): () => void 
     return () => {};
   }
 }
-
-// Backwards compatibility aliases
-export const syncAllDataWithSupabase = syncAllDataWithPocketBase;
-export const subscribeToSupabaseRealtime = subscribeToPocketBaseRealtime;
-export const fetchSupabaseStations = fetchPocketBaseStations;
-export const fetchSupabaseChallenges = fetchPocketBaseChallenges;
-export const fetchSupabasePromotions = fetchPocketBasePromotions;
-export const fetchSupabaseEvents = fetchPocketBaseEvents;
-export const fetchSupabaseSchedules = fetchPocketBaseSchedules;
-export const fetchSupabaseMessages = fetchPocketBaseMessages;

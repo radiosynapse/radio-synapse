@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { StreamChannel } from '../data';
 import { 
-  getAzuraCastConfig, 
+  getStreamServerConfig, 
   fetchStationNowPlaying, 
   skipStationCurrentTrack, 
   stopStationBackend,
@@ -19,10 +19,10 @@ import {
   uploadAndInjectPriorityAudio,
   getStationWebDjUrl,
   slugifyStationName,
-  AzuraNowPlayingData, 
-  AzuraQueueItem, 
-  AzuraHistoryItem 
-} from '../lib/azuracast';
+  StreamNowPlayingData, 
+  StreamQueueItem, 
+  StreamHistoryItem 
+} from '../lib/streamServer';
 import { 
   getAudioDrops, 
   createAudioDrop, 
@@ -58,10 +58,10 @@ export default function StationControlDeckModal({
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  // AzuraCast live data
-  const [nowPlaying, setNowPlaying] = useState<AzuraNowPlayingData | null>(null);
-  const [queue, setQueue] = useState<AzuraQueueItem[]>([]);
-  const [history, setHistory] = useState<AzuraHistoryItem[]>([]);
+  // Stream server live data
+  const [nowPlaying, setNowPlaying] = useState<StreamNowPlayingData | null>(null);
+  const [queue, setQueue] = useState<StreamQueueItem[]>([]);
+  const [history, setHistory] = useState<StreamHistoryItem[]>([]);
   const [isLoadingMetadata, setIsLoadingMetadata] = useState<boolean>(false);
   const [isSkipping, setIsSkipping] = useState<boolean>(false);
   const [isRestarting, setIsRestarting] = useState<boolean>(false);
@@ -111,14 +111,14 @@ export default function StationControlDeckModal({
   const [musicBedVolume, setMusicBedVolume] = useState<number>(0.35);
   const musicBedSynthRef = useRef<{ stop: () => void; setGain: (g: number) => void } | null>(null);
 
-  const azuraConfig = getAzuraCastConfig();
-  const stationMapping = station ? (azuraConfig.stationMappings[station.id] || 
-    azuraConfig.stationMappings[station.name] || {
-      azuraStationId: station.stationNumber ? parseInt(station.stationNumber, 10) || 1 : 1,
-      azuraShortcode: slugifyStationName(station.name),
-    }) : { azuraStationId: 1, azuraShortcode: '' };
-  const targetAzuraId = Number(stationMapping.azuraStationId) || 1;
-  const currentShortcode = nowPlaying?.station?.shortcode || stationMapping.azuraShortcode || (station ? slugifyStationName(station.name) : '');
+  const streamConfig = getStreamServerConfig();
+  const stationMapping = station ? (streamConfig.stationMappings[station.id] || 
+    streamConfig.stationMappings[station.name] || {
+      streamStationId: station.stationNumber ? parseInt(station.stationNumber, 10) || 1 : 1,
+      streamShortcode: slugifyStationName(station.name),
+    }) : { streamStationId: 1, streamShortcode: '' };
+  const targetStationId = Number(stationMapping.streamStationId) || 1;
+  const currentShortcode = nowPlaying?.station?.shortcode || stationMapping.streamShortcode || (station ? slugifyStationName(station.name) : '');
   const webDjUrl = getStationWebDjUrl(currentShortcode);
 
   // Show Toast
@@ -148,13 +148,13 @@ export default function StationControlDeckModal({
       if (!isMounted) return;
       setIsLoadingMetadata(true);
       try {
-        const np = await fetchStationNowPlaying(targetAzuraId);
+        const np = await fetchStationNowPlaying(targetStationId);
         if (isMounted && np) setNowPlaying(np);
 
-        const q = await fetchStationQueue(targetAzuraId);
+        const q = await fetchStationQueue(targetStationId);
         if (isMounted) setQueue(q);
 
-        const h = await fetchStationHistory(targetAzuraId);
+        const h = await fetchStationHistory(targetStationId);
         if (isMounted) setHistory(h);
       } catch {}
       if (isMounted) setIsLoadingMetadata(false);
@@ -167,7 +167,7 @@ export default function StationControlDeckModal({
       isMounted = false;
       clearInterval(pollInterval);
     };
-  }, [station?.id, targetAzuraId]);
+  }, [station?.id, targetStationId]);
 
   // 2. WebRTC Live Broadcast Engine Subscriptions
   useEffect(() => {
@@ -226,11 +226,11 @@ export default function StationControlDeckModal({
   const handleSkipTrack = async () => {
     setIsSkipping(true);
     try {
-      const res = await skipStationCurrentTrack(targetAzuraId);
+      const res = await skipStationCurrentTrack(targetStationId);
       showToast(res.message);
       // Refresh nowplaying immediately
       setTimeout(async () => {
-        const np = await fetchStationNowPlaying(targetAzuraId);
+        const np = await fetchStationNowPlaying(targetStationId);
         if (np) setNowPlaying(np);
         setIsSkipping(false);
         onRefreshData?.();
@@ -245,7 +245,7 @@ export default function StationControlDeckModal({
   const handleRestartAutoDj = async () => {
     setIsRestarting(true);
     try {
-      const res = await restartStationBackend(targetAzuraId);
+      const res = await restartStationBackend(targetStationId);
       showToast(res.message);
       onRefreshData?.();
     } catch (err: any) {
@@ -388,17 +388,17 @@ export default function StationControlDeckModal({
     if (broadcastState === 'on_air') {
       liveBroadcastEngine.switchToCue();
       // Reprendre automatiquement l'AutoDJ dès que le micro est coupé
-      await startStationBackend(targetAzuraId);
+      await startStationBackend(targetStationId);
       showToast('🎧 Micro coupé. L\'AutoDJ a repris l\'antenne.');
     } else {
       // Désactiver l'AutoDJ pour laisser le champ libre au micro direct
-      await stopStationBackend(targetAzuraId);
+      await stopStationBackend(targetStationId);
       const ok = await liveBroadcastEngine.setMode('on_air');
       if (ok) {
         showToast('🔴 MICRO EN DIRECT ! L\'AutoDJ est en pause, vous êtes à l\'antenne.');
       } else {
         // En cas d'erreur, restaurer l'AutoDJ
-        await startStationBackend(targetAzuraId);
+        await startStationBackend(targetStationId);
         showToast(broadcastError || 'Impossible d\'activer le flux micro direct');
       }
     }
@@ -407,17 +407,17 @@ export default function StationControlDeckModal({
   // Push-To-Talk Mouse down / up handlers
   const handlePttMouseDown = async () => {
     if (micMode !== 'ptt') return;
-    await stopStationBackend(targetAzuraId);
+    await stopStationBackend(targetStationId);
     await liveBroadcastEngine.setMode('on_air');
   };
 
   const handlePttMouseUp = async () => {
     if (micMode !== 'ptt') return;
     liveBroadcastEngine.switchToCue();
-    await startStationBackend(targetAzuraId);
+    await startStationBackend(targetStationId);
   };
 
-  // Inject recorded intervention into AzuraCast live stream
+  // Inject recorded intervention into live stream
   const handleInjectIntervention = async (mode: 'immediate' | 'next') => {
     if (!lastInterventionBlob) return;
     setIsInjectingIntervention(true);
@@ -428,7 +428,7 @@ export default function StationControlDeckModal({
       } else {
         showToast(`Programmation de l'intervention pour le prochain titre...`);
       }
-      const res = await uploadAndInjectPriorityAudio(targetAzuraId, lastInterventionBlob, title, mode);
+      const res = await uploadAndInjectPriorityAudio(targetStationId, lastInterventionBlob, title, mode);
       showToast(res.message);
       onRefreshData?.();
     } catch (err: any) {
@@ -555,7 +555,7 @@ export default function StationControlDeckModal({
     }, 2000);
   };
 
-  // Deploy voice drop (Immediate vs Next Track) using REAL AzuraCast & Live Engine injection
+  // Deploy voice drop (Immediate vs Next Track) using REAL Live Stream injection
   const handleDeployVoiceDrop = async (mode: 'immediate' | 'next') => {
     if (!recordedAudioUrl) return;
     setIsInjectingAudio(true);
@@ -572,11 +572,11 @@ export default function StationControlDeckModal({
 
       if (mode === 'immediate') {
         showToast(`🔴 Envoi prioritaire de votre annonce vocale "${title}"...`);
-        const res = await uploadAndInjectPriorityAudio(targetAzuraId, blob, title, 'immediate');
+        const res = await uploadAndInjectPriorityAudio(targetStationId, blob, title, 'immediate');
         showToast(res.message);
       } else {
         showToast(`Programmation de l'annonce "${title}" pour le prochain titre...`);
-        const res = await uploadAndInjectPriorityAudio(targetAzuraId, blob, title, 'next');
+        const res = await uploadAndInjectPriorityAudio(targetStationId, blob, title, 'next');
         showToast(res.message);
       }
 
@@ -598,9 +598,9 @@ export default function StationControlDeckModal({
 
       // Refresh nowplaying & queue
       setTimeout(async () => {
-        const np = await fetchStationNowPlaying(targetAzuraId);
+        const np = await fetchStationNowPlaying(targetStationId);
         if (np) setNowPlaying(np);
-        const q = await fetchStationQueue(targetAzuraId);
+        const q = await fetchStationQueue(targetStationId);
         if (q) setQueue(q);
         onRefreshData?.();
       }, 1200);
@@ -617,19 +617,19 @@ export default function StationControlDeckModal({
     try {
       if (mode === 'immediate') {
         showToast(`🔥 Envoi prioritaire du jingle "${drop.name}" sur la station...`);
-        const res = await uploadAndInjectPriorityAudio(targetAzuraId, drop.audioUrl, drop.name, 'immediate');
+        const res = await uploadAndInjectPriorityAudio(targetStationId, drop.audioUrl, drop.name, 'immediate');
         showToast(res.message);
       } else {
         showToast(`Programmation du jingle "${drop.name}" pour le prochain titre...`);
-        const res = await uploadAndInjectPriorityAudio(targetAzuraId, drop.audioUrl, drop.name, 'next');
+        const res = await uploadAndInjectPriorityAudio(targetStationId, drop.audioUrl, drop.name, 'next');
         showToast(res.message);
       }
 
       // Refresh nowplaying & queue
       setTimeout(async () => {
-        const np = await fetchStationNowPlaying(targetAzuraId);
+        const np = await fetchStationNowPlaying(targetStationId);
         if (np) setNowPlaying(np);
-        const q = await fetchStationQueue(targetAzuraId);
+        const q = await fetchStationQueue(targetStationId);
         if (q) setQueue(q);
         onRefreshData?.();
       }, 1200);
@@ -728,7 +728,7 @@ export default function StationControlDeckModal({
                 )}
               </div>
               <p className="text-xs text-zinc-400 flex items-center gap-2 font-mono">
-                <span>Azura ID: #{targetAzuraId}</span>
+                <span>ID Serveur: #{targetStationId}</span>
                 <span>•</span>
                 <span className="text-zinc-400">{station.genre}</span>
                 <span>•</span>
@@ -828,7 +828,7 @@ export default function StationControlDeckModal({
                   </span>
                   <button
                     onClick={() => {
-                      fetchStationNowPlaying(targetAzuraId).then((np) => {
+                      fetchStationNowPlaying(targetStationId).then((np) => {
                         if (np) setNowPlaying(np);
                         showToast('Métadonnées actualisées');
                       });
@@ -949,7 +949,7 @@ export default function StationControlDeckModal({
 
                   <div className="flex items-center justify-between p-2.5 rounded-lg bg-zinc-950 border border-zinc-800">
                     <span className="text-zinc-400">Serveur Backend :</span>
-                    <span className="text-zinc-300 truncate max-w-[130px]">AzuraCast Icecast</span>
+                    <span className="text-zinc-300 truncate max-w-[130px]">Synapse Icecast</span>
                   </div>
 
                   <div className="flex items-center justify-between p-2.5 rounded-lg bg-zinc-950 border border-zinc-800">
@@ -1065,7 +1065,7 @@ export default function StationControlDeckModal({
           {activeTab === 'webrtc' && (
             <WebDjStudioDeck
               station={station}
-              targetAzuraId={targetAzuraId}
+              targetStationId={targetStationId}
               currentShortcode={currentShortcode}
               webDjUrl={webDjUrl}
               nowPlaying={nowPlaying}
@@ -1124,7 +1124,7 @@ export default function StationControlDeckModal({
                   </span>
 
                   <p className="text-xs text-zinc-400 mb-4">
-                    Enregistrez un message ou une annonce flash, pré-écoutez, puis injectez-le directement sur le flux AzuraCast en priorité absolue !
+                    Enregistrez un message ou une annonce flash, pré-écoutez, puis injectez-le directement sur le flux en direct en priorité absolue !
                   </p>
 
                   <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 flex flex-col items-center gap-4 text-center">
@@ -1173,7 +1173,7 @@ export default function StationControlDeckModal({
                         {isInjectingAudio ? (
                           <div className="p-3 rounded-xl bg-purple-950/40 border border-purple-600/50 flex items-center justify-center gap-2 text-xs font-mono text-purple-200">
                             <Sparkles className="w-4 h-4 text-purple-400 animate-spin" />
-                            <span>Injection sur le flux AzuraCast en cours...</span>
+                            <span>Injection sur le flux d'antenne en cours...</span>
                           </div>
                         ) : (
                           <div className="grid grid-cols-2 gap-2 font-mono text-xs">
@@ -1287,7 +1287,7 @@ export default function StationControlDeckModal({
                           </p>
                         </div>
 
-                        {/* Bottom: Injection triggers to REAL AzuraCast stream */}
+                        {/* Bottom: Injection triggers to REAL stream */}
                         <div className="flex items-center gap-1.5 pt-1.5 border-t border-zinc-800/80 font-mono text-[10px]">
                           <button
                             disabled={isInjecting}
@@ -1333,9 +1333,9 @@ export default function StationControlDeckModal({
         {/* FOOTER BAR */}
         <div className="px-5 py-3 bg-zinc-900/90 border-t border-zinc-800 flex items-center justify-between text-xs font-mono text-zinc-500 flex-wrap gap-2">
           <div className="flex items-center gap-3">
-            <span>Serveur AzuraCast : <span className="text-zinc-300">{azuraConfig.baseUrl}</span></span>
+            <span>Serveur de Diffusion : <span className="text-zinc-300">{streamConfig.baseUrl}</span></span>
             <span>•</span>
-            <span>PocketBase DB : <span className="text-emerald-400">db.radiosynapse.fr</span></span>
+            <span>Supabase DB : <span className="text-emerald-400">api.radiosynapse.fr</span></span>
           </div>
           <button
             onClick={onClose}

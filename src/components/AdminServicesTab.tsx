@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { 
   Database, CheckCircle2, Radio, 
   HardDrive, Copy, Check,
-  Globe, Music2, Webhook, Zap,
+  Globe, Webhook, Zap,
   Play, Pause, ExternalLink, Activity
 } from 'lucide-react';
 import { StreamChannel } from '../data';
@@ -95,9 +95,6 @@ export default function AdminServicesTab({
   const [discordWebhookUrl, setDiscordWebhookUrl] = useState(() => {
     return localStorage.getItem('synapse_discord_webhook_url') || '';
   });
-  const [spotifyClientId, setSpotifyClientId] = useState(() => {
-    return localStorage.getItem('synapse_spotify_client_id') || '';
-  });
   const [lastFmApiKey, setLastFmApiKey] = useState(() => {
     return localStorage.getItem('synapse_lastfm_api_key') || '';
   });
@@ -183,7 +180,6 @@ export default function AdminServicesTab({
 
   const handleSaveExternalServices = () => {
     localStorage.setItem('synapse_discord_webhook_url', discordWebhookUrl.trim());
-    localStorage.setItem('synapse_spotify_client_id', spotifyClientId.trim());
     localStorage.setItem('synapse_lastfm_api_key', lastFmApiKey.trim());
     showToast('Intégrations tierces enregistrées avec succès.');
   };
@@ -193,7 +189,7 @@ export default function AdminServicesTab({
       {/* STICKY TOP SUB-BAR */}
       <div className="sticky top-0 z-20 bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800/80 px-4 sm:px-6 lg:px-8 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-cyan-400">
+          <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-300">
             <Radio className="w-4 h-4" />
           </div>
           <div>
@@ -212,11 +208,11 @@ export default function AdminServicesTab({
             onClick={() => setActiveSection('liquidsoap_icecast')}
             className={`py-1.5 px-3.5 rounded-lg font-mono text-xs font-bold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
               currentSection === 'liquidsoap_icecast'
-                ? 'bg-zinc-800 text-cyan-300 border border-cyan-500/40 shadow-sm'
+                ? 'bg-zinc-800 text-white border border-zinc-700 shadow-sm'
                 : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50 border border-transparent'
             }`}
           >
-            <Radio className="w-3.5 h-3.5 text-cyan-400" />
+            <Radio className="w-3.5 h-3.5 text-zinc-300" />
             <span>Liquidsoap & Icecast</span>
           </button>
 
@@ -224,11 +220,11 @@ export default function AdminServicesTab({
             onClick={() => setActiveSection('supabase')}
             className={`py-1.5 px-3.5 rounded-lg font-mono text-xs font-bold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
               currentSection === 'supabase'
-                ? 'bg-zinc-800 text-emerald-300 border border-emerald-500/30 shadow-sm'
+                ? 'bg-zinc-800 text-white border border-zinc-700 shadow-sm'
                 : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50 border border-transparent'
             }`}
           >
-            <Database className="w-3.5 h-3.5 text-emerald-400" />
+            <Database className="w-3.5 h-3.5 text-zinc-300" />
             <span>Supabase & Realtime</span>
           </button>
 
@@ -236,11 +232,11 @@ export default function AdminServicesTab({
             onClick={() => setActiveSection('external')}
             className={`py-1.5 px-3.5 rounded-lg font-mono text-xs font-bold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
               currentSection === 'external'
-                ? 'bg-zinc-800 text-purple-300 border border-purple-500/30 shadow-sm'
+                ? 'bg-zinc-800 text-white border border-zinc-700 shadow-sm'
                 : 'text-zinc-400 hover:text-white hover:bg-zinc-800/50 border border-transparent'
             }`}
           >
-            <Zap className="w-3.5 h-3.5 text-purple-400" />
+            <Zap className="w-3.5 h-3.5 text-zinc-300" />
             <span>Services Tiers</span>
           </button>
         </div>
@@ -253,17 +249,17 @@ export default function AdminServicesTab({
         <div className="p-3.5 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 flex flex-wrap items-center justify-between gap-3 text-xs font-mono">
           <div className="flex items-center gap-3 flex-wrap">
             <div className="px-3 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#10b981]" />
               <span className="text-zinc-400">Icecast :</span>
               <span className="text-zinc-200 font-bold">{serverConfig.icecastHost}:{serverConfig.icecastPort}</span>
             </div>
             <div className="px-3 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#10b981]" />
               <span className="text-zinc-400">Supabase :</span>
               <span className="text-emerald-400 font-bold">Connecté (Realtime Live)</span>
             </div>
             <div className="px-3 py-1.5 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-purple-400" />
+              <span className="w-2 h-2 rounded-full bg-zinc-400" />
               <span className="text-zinc-400">Harbor Live :</span>
               <span className="text-zinc-200 font-bold">Port {serverConfig.harborLivePort}</span>
             </div>
@@ -273,9 +269,9 @@ export default function AdminServicesTab({
             href="/vps-infrastructure-guide.html"
             target="_blank"
             rel="noopener noreferrer"
-            className="px-3 py-1.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex items-center gap-1.5 text-xs transition-colors"
+            className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 text-zinc-200 border border-zinc-750 flex items-center gap-1.5 text-xs transition-colors"
           >
-            <ExternalLink className="w-3.5 h-3.5" />
+            <ExternalLink className="w-3.5 h-3.5 text-zinc-400" />
             <span>Guide Infrastructure & Manuel</span>
           </a>
         </div>
@@ -288,7 +284,7 @@ export default function AdminServicesTab({
             <div className="p-5 rounded-2xl bg-zinc-900/50 border border-zinc-800/80 flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-mono font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                  <Radio className="w-4 h-4 text-cyan-400" />
+                  <Radio className="w-4 h-4 text-zinc-300" />
                   Configuration Serveur Liquidsoap & Icecast
                 </span>
                 <span className="text-xs font-mono text-zinc-400">Réseau Docker unifié</span>
@@ -301,7 +297,7 @@ export default function AdminServicesTab({
                     type="text"
                     value={serverConfig.vpsHost}
                     onChange={(e) => setServerConfig({ ...serverConfig, vpsHost: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-white font-mono text-xs focus:border-cyan-400 focus:outline-none"
+                    className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-white font-mono text-xs focus:border-zinc-500 focus:outline-none"
                     placeholder="127.0.0.1 ou db.radiosynapse.fr"
                   />
                 </div>
@@ -312,7 +308,7 @@ export default function AdminServicesTab({
                     type="number"
                     value={serverConfig.telnetPort}
                     onChange={(e) => setServerConfig({ ...serverConfig, telnetPort: parseInt(e.target.value) || 8572 })}
-                    className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-white font-mono text-xs focus:border-cyan-400 focus:outline-none"
+                    className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-white font-mono text-xs focus:border-zinc-500 focus:outline-none"
                     placeholder="8572"
                   />
                 </div>
@@ -323,7 +319,7 @@ export default function AdminServicesTab({
                     type="number"
                     value={serverConfig.harborLivePort}
                     onChange={(e) => setServerConfig({ ...serverConfig, harborLivePort: parseInt(e.target.value) || 8005 })}
-                    className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-white font-mono text-xs focus:border-cyan-400 focus:outline-none"
+                    className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-white font-mono text-xs focus:border-zinc-500 focus:outline-none"
                     placeholder="8005"
                   />
                 </div>
@@ -334,7 +330,7 @@ export default function AdminServicesTab({
                     type="text"
                     value={serverConfig.icecastHost}
                     onChange={(e) => setServerConfig({ ...serverConfig, icecastHost: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-white font-mono text-xs focus:border-cyan-400 focus:outline-none"
+                    className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-white font-mono text-xs focus:border-zinc-500 focus:outline-none"
                     placeholder="127.0.0.1 ou stream.radiosynapse.fr"
                   />
                 </div>
@@ -345,7 +341,7 @@ export default function AdminServicesTab({
                     type="number"
                     value={serverConfig.icecastPort}
                     onChange={(e) => setServerConfig({ ...serverConfig, icecastPort: parseInt(e.target.value) || 8000 })}
-                    className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-white font-mono text-xs focus:border-cyan-400 focus:outline-none"
+                    className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-white font-mono text-xs focus:border-zinc-500 focus:outline-none"
                     placeholder="8000"
                   />
                 </div>
@@ -356,7 +352,7 @@ export default function AdminServicesTab({
                     type="password"
                     value={serverConfig.icecastSourcePassword}
                     onChange={(e) => setServerConfig({ ...serverConfig, icecastSourcePassword: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-white font-mono text-xs focus:border-cyan-400 focus:outline-none"
+                    className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-white font-mono text-xs focus:border-zinc-500 focus:outline-none"
                     placeholder="••••••••"
                   />
                 </div>
@@ -364,7 +360,7 @@ export default function AdminServicesTab({
                 <div className="md:col-span-3 flex justify-end">
                   <button
                     type="submit"
-                    className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-mono font-bold text-xs transition-colors cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-zinc-200 hover:bg-white text-zinc-950 font-mono font-bold text-xs transition-colors cursor-pointer"
                   >
                     Enregistrer la configuration serveur
                   </button>
@@ -376,7 +372,7 @@ export default function AdminServicesTab({
             <div className="p-5 rounded-2xl bg-zinc-900/50 border border-zinc-800/80 flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-mono font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-cyan-400" />
+                  <Activity className="w-4 h-4 text-zinc-300" />
                   Flux & Stations Radio Synapse Actives
                 </span>
                 <span className="text-xs font-mono text-zinc-400">{regieStations.length} flux configurés</span>
@@ -393,13 +389,13 @@ export default function AdminServicesTab({
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />
+                            <span className={`w-2.5 h-2.5 rounded-full ${station.isEncodingActive ? 'bg-emerald-400 shadow-[0_0_8px_#10b981]' : 'bg-zinc-600'}`} />
                             <span className="text-xs font-bold text-white">{station.name}</span>
                             <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400 font-mono">
                               {station.genre}
                             </span>
                           </div>
-                          <p className="text-xs font-mono text-cyan-300 mt-1">
+                          <p className="text-xs font-mono text-zinc-300 mt-1">
                             {streamUrl}
                           </p>
                         </div>
@@ -408,8 +404,8 @@ export default function AdminServicesTab({
                           onClick={() => handleToggleStationEncoding(station.id)}
                           className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
                             station.isEncodingActive
-                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                              : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
+                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                              : 'bg-zinc-900 text-zinc-400 border border-zinc-800'
                           }`}
                         >
                           {station.isEncodingActive ? 'Actif' : 'Pause'}
@@ -423,7 +419,7 @@ export default function AdminServicesTab({
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleCopy(streamUrl, 'Lien Icecast')}
-                            className="px-2 py-1 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 text-xs flex items-center gap-1 transition-colors cursor-pointer"
+                            className="px-2 py-1 rounded-lg bg-zinc-900 hover:bg-zinc-850 text-zinc-300 border border-zinc-800 text-xs flex items-center gap-1 transition-colors cursor-pointer"
                           >
                             {copiedUrl === streamUrl ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
                             <span>Copier</span>
@@ -432,8 +428,8 @@ export default function AdminServicesTab({
                             onClick={() => handleTestAudioStream(streamUrl)}
                             className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer ${
                               testingStreamUrl === streamUrl && isPlayingTestAudio
-                                ? 'bg-cyan-500 text-black'
-                                : 'bg-zinc-900 hover:bg-zinc-800 text-cyan-300 border border-cyan-500/30'
+                                ? 'bg-zinc-100 text-zinc-950 font-bold'
+                                : 'bg-zinc-900 hover:bg-zinc-850 text-zinc-200 border border-zinc-750'
                             }`}
                           >
                             {testingStreamUrl === streamUrl && isPlayingTestAudio ? (
@@ -460,12 +456,12 @@ export default function AdminServicesTab({
             <div className="p-5 rounded-2xl bg-zinc-900/50 border border-zinc-800/80 flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-mono font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                  <Radio className="w-4 h-4 text-purple-400" />
+                  <Radio className="w-4 h-4 text-zinc-300" />
                   Prise d'Antenne Direct Harbor DJ (Liquidsoap)
                 </span>
                 <button
                   onClick={() => setIsCreatingDj(!isCreatingDj)}
-                  className="px-3 py-1 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/30 text-xs font-mono font-bold transition-all cursor-pointer"
+                  className="px-3 py-1 rounded-xl bg-zinc-900 hover:bg-zinc-850 text-zinc-200 border border-zinc-750 text-xs font-mono font-bold transition-all cursor-pointer"
                 >
                   {isCreatingDj ? 'Fermer' : '+ Associer un animateur DJ'}
                 </button>
@@ -480,7 +476,7 @@ export default function AdminServicesTab({
                       value={djUsername}
                       onChange={(e) => setDjUsername(e.target.value)}
                       placeholder="dj_animateur"
-                      className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-white font-mono text-xs focus:border-purple-400 focus:outline-none"
+                      className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-white font-mono text-xs focus:border-zinc-500 focus:outline-none"
                     />
                   </div>
                   <div>
@@ -490,7 +486,7 @@ export default function AdminServicesTab({
                       value={djPassword}
                       onChange={(e) => setDjPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-white font-mono text-xs focus:border-purple-400 focus:outline-none"
+                      className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-white font-mono text-xs focus:border-zinc-500 focus:outline-none"
                     />
                   </div>
                   <div>
@@ -500,7 +496,7 @@ export default function AdminServicesTab({
                       value={djDisplayName}
                       onChange={(e) => setDjDisplayName(e.target.value)}
                       placeholder="DJ Max"
-                      className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-white font-mono text-xs focus:border-purple-400 focus:outline-none"
+                      className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-white font-mono text-xs focus:border-zinc-500 focus:outline-none"
                     />
                   </div>
                   <div>
@@ -508,7 +504,7 @@ export default function AdminServicesTab({
                     <select
                       value={djTargetStationId}
                       onChange={(e) => setDjTargetStationId(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-white font-mono text-xs focus:border-purple-400 focus:outline-none"
+                      className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-white font-mono text-xs focus:border-zinc-500 focus:outline-none"
                     >
                       {regieStations.map((st) => (
                         <option key={st.id} value={st.id}>{st.name}</option>
@@ -518,7 +514,7 @@ export default function AdminServicesTab({
                   <div className="md:col-span-4 flex justify-end">
                     <button
                       type="submit"
-                      className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-mono font-bold text-xs transition-colors cursor-pointer"
+                      className="px-4 py-2 rounded-xl bg-zinc-200 hover:bg-white text-zinc-950 font-mono font-bold text-xs transition-colors cursor-pointer"
                     >
                       Enregistrer les identifiants DJ
                     </button>
@@ -539,7 +535,7 @@ export default function AdminServicesTab({
               <div className="lg:col-span-7 p-5 rounded-2xl bg-zinc-900/50 border border-zinc-800/80 flex flex-col gap-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Database className="w-4 h-4 text-emerald-400" />
+                    <Database className="w-4 h-4 text-zinc-300" />
                     <span className="text-xs font-mono font-bold text-white uppercase tracking-wider">
                       État Supabase PostgreSQL & Realtime
                     </span>
@@ -562,17 +558,20 @@ export default function AdminServicesTab({
 
                   <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800/80 flex items-center justify-between">
                     <span className="text-zinc-400">Moteur Base de Données :</span>
-                    <span className="text-emerald-400 font-bold">PostgreSQL 15 (Supabase Self-Hosted)</span>
+                    <span className="text-white font-bold">PostgreSQL 15 (Supabase Self-Hosted)</span>
                   </div>
 
                   <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800/80 flex items-center justify-between">
                     <span className="text-zinc-400">Canal Temps Réel :</span>
-                    <span className="text-emerald-400 font-bold">WebSockets Realtime Actifs</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="text-emerald-400 font-bold">WebSockets Realtime Actifs</span>
+                    </div>
                   </div>
 
                   <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800/80 flex items-center justify-between">
                     <span className="text-zinc-400">Sécurité & Permissions :</span>
-                    <span className="text-cyan-400 font-bold">Row Level Security (RLS) Activé</span>
+                    <span className="text-zinc-300 font-bold">Row Level Security (RLS) Activé</span>
                   </div>
                 </div>
 
@@ -605,17 +604,17 @@ export default function AdminServicesTab({
 
                   <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800/80 flex flex-col">
                     <span className="text-xs text-zinc-400">UTILISATEURS</span>
-                    <span className="text-lg font-bold text-emerald-400 mt-1">{usersCount}</span>
+                    <span className="text-lg font-bold text-white mt-1">{usersCount}</span>
                   </div>
 
                   <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800/80 flex flex-col">
                     <span className="text-xs text-zinc-400">DÉFIS & QUÊTES</span>
-                    <span className="text-lg font-bold text-amber-400 mt-1">{challengesCount}</span>
+                    <span className="text-lg font-bold text-white mt-1">{challengesCount}</span>
                   </div>
 
                   <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800/80 flex flex-col">
                     <span className="text-xs text-zinc-400">PROMOTIONS</span>
-                    <span className="text-lg font-bold text-purple-400 mt-1">{promotionsCount}</span>
+                    <span className="text-lg font-bold text-white mt-1">{promotionsCount}</span>
                   </div>
                 </div>
 
@@ -630,7 +629,7 @@ export default function AdminServicesTab({
             <div className="p-5 rounded-2xl bg-zinc-900/50 border border-zinc-800/80 flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-mono font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                  <Database className="w-4 h-4 text-emerald-400" />
+                  <Database className="w-4 h-4 text-zinc-300" />
                   Initialisation SQL Supabase
                 </span>
                 <div className="flex items-center gap-2">
@@ -638,17 +637,17 @@ export default function AdminServicesTab({
                     href="/vps-infrastructure-guide.html"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-cyan-300 text-xs font-mono font-bold flex items-center gap-1.5 transition-all"
+                    className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 text-xs font-mono font-bold flex items-center gap-1.5 transition-all"
                   >
-                    <ExternalLink className="w-3.5 h-3.5" />
+                    <ExternalLink className="w-3.5 h-3.5 text-zinc-400" />
                     <span>Ouvrir le Guide VPS & SQL</span>
                   </a>
                   <button
                     type="button"
                     onClick={onCopySqlSchema}
-                    className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                    className="px-3 py-1.5 rounded-xl bg-zinc-100 hover:bg-white text-zinc-950 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
                   >
-                    {copiedSql ? <Check className="w-3.5 h-3.5 text-white" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copiedSql ? <Check className="w-3.5 h-3.5 text-zinc-950" /> : <Copy className="w-3.5 h-3.5 text-zinc-950" />}
                     <span>{copiedSql ? 'SQL Copié !' : 'Copier supabase_schema.sql'}</span>
                   </button>
                 </div>
@@ -666,11 +665,11 @@ export default function AdminServicesTab({
         {currentSection === 'external' && (
           <div className="flex flex-col gap-5 animate-in fade-in duration-200">
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* DISCORD WEBHOOK */}
               <div className="p-5 rounded-2xl bg-zinc-900/50 border border-zinc-800/80 flex flex-col gap-3.5">
                 <div className="flex items-center gap-2">
-                  <Webhook className="w-4 h-4 text-indigo-400" />
+                  <Webhook className="w-4 h-4 text-zinc-300" />
                   <span className="text-xs font-mono font-bold text-white uppercase tracking-wider">
                     Webhook Discord Studio
                   </span>
@@ -680,31 +679,14 @@ export default function AdminServicesTab({
                   value={discordWebhookUrl}
                   onChange={(e) => setDiscordWebhookUrl(e.target.value)}
                   placeholder="https://discord.com/api/webhooks/..."
-                  className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-white font-mono text-xs focus:border-indigo-400 focus:outline-none"
-                />
-              </div>
-
-              {/* SPOTIFY DEVELOPER API */}
-              <div className="p-5 rounded-2xl bg-zinc-900/50 border border-zinc-800/80 flex flex-col gap-3.5">
-                <div className="flex items-center gap-2">
-                  <Music2 className="w-4 h-4 text-emerald-400" />
-                  <span className="text-xs font-mono font-bold text-white uppercase tracking-wider">
-                    Spotify Client ID
-                  </span>
-                </div>
-                <input
-                  type="text"
-                  value={spotifyClientId}
-                  onChange={(e) => setSpotifyClientId(e.target.value)}
-                  placeholder="Spotify Client ID"
-                  className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-white font-mono text-xs focus:border-emerald-400 focus:outline-none"
+                  className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-white font-mono text-xs focus:border-zinc-500 focus:outline-none"
                 />
               </div>
 
               {/* LAST.FM API KEY */}
               <div className="p-5 rounded-2xl bg-zinc-900/50 border border-zinc-800/80 flex flex-col gap-3.5">
                 <div className="flex items-center gap-2">
-                  <Globe className="w-4 h-4 text-red-400" />
+                  <Globe className="w-4 h-4 text-zinc-300" />
                   <span className="text-xs font-mono font-bold text-white uppercase tracking-wider">
                     Last.fm API Key
                   </span>
@@ -714,7 +696,7 @@ export default function AdminServicesTab({
                   value={lastFmApiKey}
                   onChange={(e) => setLastFmApiKey(e.target.value)}
                   placeholder="Clé API Last.fm"
-                  className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-white font-mono text-xs focus:border-red-400 focus:outline-none"
+                  className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-white font-mono text-xs focus:border-zinc-500 focus:outline-none"
                 />
               </div>
             </div>
@@ -723,7 +705,7 @@ export default function AdminServicesTab({
               <button
                 type="button"
                 onClick={handleSaveExternalServices}
-                className="px-4 py-2 rounded-xl bg-white hover:bg-zinc-200 text-black font-mono font-bold text-xs transition-colors cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-zinc-100 hover:bg-white text-zinc-950 font-mono font-bold text-xs transition-colors cursor-pointer"
               >
                 Enregistrer les intégrations tierces
               </button>

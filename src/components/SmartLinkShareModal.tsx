@@ -65,7 +65,6 @@ export default function SmartLinkShareModal({
     if (track.stationName) params.set('station', track.stationName);
     if (track.previewUrl) params.set('preview', track.previewUrl);
     if (track.deezerUrl) params.set('deezer', track.deezerUrl);
-    if (track.spotifyUrl) params.set('spotify', track.spotifyUrl);
     if (track.appleMusicUrl) params.set('apple', track.appleMusicUrl);
     if (track.youtubeUrl) params.set('yt', track.youtubeUrl);
 
@@ -146,7 +145,6 @@ export default function SmartLinkShareModal({
   };
 
   const deezerLink = track.deezerUrl || `https://www.deezer.com/search/${encodeURIComponent(`${track.artist} ${track.title}`)}`;
-  const spotifyLink = track.spotifyUrl || `https://open.spotify.com/search/${encodeURIComponent(`${track.artist} ${track.title}`)}`;
   const appleMusicLink = track.appleMusicUrl || `https://music.apple.com/fr/search?term=${encodeURIComponent(`${track.artist} ${track.title}`)}`;
   const youtubeMusicLink = track.youtubeUrl || `https://music.youtube.com/search?q=${encodeURIComponent(`${track.artist} ${track.title}`)}`;
   const tidalLink = `https://listen.tidal.com/search?q=${encodeURIComponent(`${track.artist} ${track.title}`)}`;
@@ -161,15 +159,6 @@ export default function SmartLinkShareModal({
       icon: 'https://cdn-icons-png.flaticon.com/512/5968/5968856.png',
       badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
       buttonBg: 'hover:bg-purple-950/50 hover:border-purple-500/50',
-    },
-    {
-      id: 'spotify',
-      name: 'Spotify',
-      action: 'Écouter sur Spotify',
-      url: spotifyLink,
-      icon: 'https://cdn-icons-png.flaticon.com/512/174/174872.png',
-      badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
-      buttonBg: 'hover:bg-emerald-950/50 hover:border-emerald-500/50',
     },
     {
       id: 'apple',

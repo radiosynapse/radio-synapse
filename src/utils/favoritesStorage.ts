@@ -47,10 +47,10 @@ export function getTrackLikeLevel(title: string, artist: string): 0 | 1 | 2 {
 export function saveLikedTracks(tracks: LikedTrack[]): void {
   try {
     localStorage.setItem(LIKED_TRACKS_KEY, JSON.stringify(tracks));
-    // Trigger background sync to PocketBase if user is logged in
+    // Trigger background sync to Supabase if user is logged in
     const user = getStoredSynapseUser();
     if (user && user.id) {
-      syncUserLikesToPocketBase(user.id, tracks).catch(() => {});
+      syncUserLikesToSupabase(user.id, tracks).catch(() => {});
     }
   } catch (e) {
     console.error('Failed to save liked tracks', e);
@@ -60,7 +60,7 @@ export function saveLikedTracks(tracks: LikedTrack[]): void {
 /**
  * Direct sync of liked tracks to Supabase tables
  */
-export async function syncUserLikesToPocketBase(userId: string, tracks: LikedTrack[]): Promise<void> {
+export async function syncUserLikesToSupabase(userId: string, tracks: LikedTrack[]): Promise<void> {
   if (!userId) return;
   try {
     // 1. Upsert to user_synapse_data
@@ -83,7 +83,6 @@ export async function syncUserLikesToPocketBase(userId: string, tracks: LikedTra
         station_name: t.stationName || '',
         level: t.level || 1,
         preview_url: t.previewUrl || '',
-        spotify_url: t.spotifyUrl || '',
         deezer_url: t.deezerUrl || '',
         apple_music_url: t.appleMusicUrl || '',
         youtube_url: t.youtubeUrl || '',
@@ -95,9 +94,6 @@ export async function syncUserLikesToPocketBase(userId: string, tracks: LikedTra
     // Silent catch
   }
 }
-
-// Legacy alias for backwards compatibility
-export const syncUserLikesToSupabase = syncUserLikesToPocketBase;
 
 export async function addOrCycleLikedTrack(
   title: string,
@@ -245,7 +241,7 @@ export function getConnectedAccount(): ConnectedAccount | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     // Discard any broken fallback fake accounts that lack a real userId
-    if (parsed && parsed.provider === 'spotify' && (!parsed.userId || parsed.username === 'Auditeur Spotify' || parsed.username === 'Membre Spotify')) {
+    if (parsed && !parsed.userId) {
       localStorage.removeItem(CONNECTED_ACCOUNT_KEY);
       return null;
     }

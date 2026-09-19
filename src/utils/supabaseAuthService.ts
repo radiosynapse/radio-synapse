@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { SynapseUser, UserRole, ConnectedAccount } from '../types';
+import { SynapseUser, UserRole } from '../types';
 
 const LOCAL_USER_KEY = 'radio_synapse_auth_user_v1';
 
@@ -51,8 +51,6 @@ export async function testSupabaseConnection(): Promise<{ success: boolean; mess
     return { success: false, message: err?.message || 'Erreur de connexion Supabase' };
   }
 }
-
-export const testPocketBaseConnection = testSupabaseConnection;
 
 /**
  * Login user using Supabase Auth (GoTrue)
@@ -106,6 +104,9 @@ export async function loginWithSupabase(
       id: authUser.id,
       email: cleanEmail,
       username: profile?.display_name || profile?.username || authUser.user_metadata?.username || cleanEmail.split('@')[0],
+      firstName: profile?.first_name || authUser.user_metadata?.first_name,
+      lastName: profile?.last_name || authUser.user_metadata?.last_name,
+      displayName: profile?.display_name || `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || profile?.username || cleanEmail.split('@')[0],
       role: role,
       adminProfileId: profile?.admin_profile_id || (role === 'super-admin' ? 'profile_super_admin' : (role === 'admin' ? 'profile_general_admin' : 'profile_animateur')),
       assignedStationId: profile?.assigned_station_id || 'all',
@@ -114,9 +115,9 @@ export async function loginWithSupabase(
       createdAt: new Date(authUser.created_at || Date.now()).getTime(),
       points: profile?.points ?? 100,
       badges: profile?.badges || [],
-      spotifyAccount: profile?.spotify_account || null,
-      isSpotifyLinked: !!profile?.is_spotify_linked,
-      azuraDjAccount: djAccount,
+      authMethod: (profile?.auth_method as any) || 'password',
+      passkeyCredentialId: profile?.passkey_credential_id,
+      djAccount: djAccount,
       isDjLinked: !!djAccount,
     };
 
@@ -130,18 +131,21 @@ export async function loginWithSupabase(
 export const signInWithEmail = loginWithSupabase;
 
 /**
- * Register a new user in Supabase
+ * Register a new user in Supabase with email + password
  */
 export async function registerWithSupabase(
   email: string,
   pass: string,
   username: string,
-  displayName?: string
+  firstName?: string,
+  lastName?: string
 ): Promise<{ success: boolean; user?: SynapseUser; message?: string; error?: string }> {
   try {
     const cleanEmail = email.trim().toLowerCase();
     const cleanUsername = username.trim() || cleanEmail.split('@')[0];
-    const finalDisplayName = (displayName || cleanUsername).trim();
+    const cleanFirstName = (firstName || '').trim();
+    const cleanLastName = (lastName || '').trim();
+    const finalDisplayName = `${cleanFirstName} ${cleanLastName}`.trim() || cleanUsername;
 
     const { data, error } = await supabase.auth.signUp({
       email: cleanEmail,
@@ -149,6 +153,8 @@ export async function registerWithSupabase(
       options: {
         data: {
           username: cleanUsername,
+          first_name: cleanFirstName,
+          last_name: cleanLastName,
           display_name: finalDisplayName,
         },
       },
@@ -164,13 +170,16 @@ export async function registerWithSupabase(
     const synapseUser: SynapseUser = {
       id: authUser.id,
       email: cleanEmail,
-      username: finalDisplayName,
+      username: cleanUsername,
+      firstName: cleanFirstName,
+      lastName: cleanLastName,
+      displayName: finalDisplayName,
       role,
       adminProfileId: role === 'super-admin' ? 'profile_super_admin' : 'profile_animateur',
       assignedStationId: 'all',
       createdAt: Date.now(),
       points: 100,
-      isSpotifyLinked: false,
+      authMethod: 'password',
       isDjLinked: false,
     };
 
@@ -179,9 +188,12 @@ export async function registerWithSupabase(
       await supabase.from('profiles').upsert({
         id: authUser.id,
         email: cleanEmail,
+        first_name: cleanFirstName,
+        last_name: cleanLastName,
         username: cleanUsername,
         display_name: finalDisplayName,
         role,
+        auth_method: 'password',
         points: 100,
         updated_at: new Date().toISOString(),
       });
@@ -212,86 +224,9 @@ export async function resetPasswordForEmail(email: string): Promise<{ success: b
 }
 
 /**
- * Authenticate or register user with Spotify connected account
- */
-export async function authenticateOrRegisterWithSpotify(
-  spotifyAccount: ConnectedAccount
-): Promise<{ success: boolean; user?: SynapseUser; message?: string }> {
-  try {
-    const email = spotifyAccount.email || `${spotifyAccount.userId || spotifyAccount.username}@spotify.radiosynapse.local`;
-    const username = spotifyAccount.username || 'Auditeur Spotify';
-
-    let stored = getStoredSynapseUser();
-    if (!stored) {
-      stored = {
-        id: spotifyAccount.userId || `user_${Date.now()}`,
-        email,
-        username,
-        role: 'user',
-        avatarUrl: spotifyAccount.avatarUrl,
-        createdAt: Date.now(),
-        spotifyAccount,
-        isSpotifyLinked: true,
-        points: 100,
-      };
-    } else {
-      stored.spotifyAccount = spotifyAccount;
-      stored.isSpotifyLinked = true;
-      if (spotifyAccount.avatarUrl && !stored.avatarUrl) {
-        stored.avatarUrl = spotifyAccount.avatarUrl;
-      }
-    }
-
-    saveStoredSynapseUser(stored);
-
-    // Sync to Supabase profiles
-    try {
-      await supabase.from('profiles').upsert({
-        id: stored.id,
-        email: stored.email,
-        username: stored.username,
-        avatar_url: stored.avatarUrl,
-        spotify_account: spotifyAccount,
-        is_spotify_linked: true,
-        updated_at: new Date().toISOString(),
-      });
-    } catch {}
-
-    return { success: true, user: stored };
-  } catch (err: any) {
-    return { success: false, message: err?.message || 'Erreur lors de la liaison Spotify' };
-  }
-}
-
-/**
- * Link Spotify account to active user
- */
-export async function linkSpotifyToSynapseUser(
-  user: SynapseUser,
-  spotifyAccount: ConnectedAccount
-): Promise<SynapseUser> {
-  const updated: SynapseUser = {
-    ...user,
-    spotifyAccount,
-    isSpotifyLinked: true,
-  };
-  saveStoredSynapseUser(updated);
-
-  try {
-    await supabase.from('profiles').update({
-      spotify_account: spotifyAccount,
-      is_spotify_linked: true,
-      updated_at: new Date().toISOString(),
-    }).eq('id', user.id);
-  } catch {}
-
-  return updated;
-}
-
-/**
  * Sync user favorites and points to Supabase Cloud
  */
-export async function syncUserDataToPocketBaseCloud(user: SynapseUser, data: any): Promise<void> {
+export async function syncUserDataToSupabaseCloud(user: SynapseUser, data: any): Promise<void> {
   if (!user?.id) return;
   try {
     await supabase.from('profiles').update({
@@ -301,12 +236,10 @@ export async function syncUserDataToPocketBaseCloud(user: SynapseUser, data: any
   } catch {}
 }
 
-export const syncUserDataToSupabaseCloud = syncUserDataToPocketBaseCloud;
-
 /**
  * Fetch user data from Supabase Cloud
  */
-export async function fetchUserDataFromPocketBaseCloud(user: SynapseUser): Promise<any> {
+export async function fetchUserDataFromSupabaseCloud(user: SynapseUser): Promise<any> {
   if (!user?.id) return null;
   try {
     const { data } = await supabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
@@ -315,8 +248,6 @@ export async function fetchUserDataFromPocketBaseCloud(user: SynapseUser): Promi
     return null;
   }
 }
-
-export const fetchUserDataFromSupabaseCloud = fetchUserDataFromPocketBaseCloud;
 
 /**
  * Restore user session from Supabase client
@@ -357,6 +288,9 @@ export async function restoreSupabaseAuthSession(): Promise<SynapseUser | null> 
       id: authUser.id,
       email: cleanEmail,
       username: profile?.display_name || profile?.username || cleanEmail.split('@')[0],
+      firstName: profile?.first_name,
+      lastName: profile?.last_name,
+      displayName: profile?.display_name || `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim() || profile?.username || cleanEmail.split('@')[0],
       role,
       adminProfileId: profile?.admin_profile_id || (role === 'super-admin' ? 'profile_super_admin' : (role === 'admin' ? 'profile_general_admin' : 'profile_animateur')),
       assignedStationId: profile?.assigned_station_id || 'all',
@@ -365,9 +299,9 @@ export async function restoreSupabaseAuthSession(): Promise<SynapseUser | null> 
       createdAt: new Date(authUser.created_at).getTime(),
       points: profile?.points ?? 100,
       badges: profile?.badges || [],
-      spotifyAccount: profile?.spotify_account || null,
-      isSpotifyLinked: !!profile?.is_spotify_linked,
-      azuraDjAccount: djAccount,
+      authMethod: (profile?.auth_method as any) || 'password',
+      passkeyCredentialId: profile?.passkey_credential_id,
+      djAccount: djAccount,
       isDjLinked: !!djAccount,
     };
 
@@ -435,7 +369,7 @@ export async function saveAdminDjAccount(
 
   const updatedUser: SynapseUser = {
     ...user,
-    azuraDjAccount: djAccount,
+    djAccount: djAccount,
     isDjLinked: true,
   };
 
@@ -463,7 +397,7 @@ export async function saveAdminDjAccount(
 export async function unlinkAdminDjAccount(user: SynapseUser): Promise<SynapseUser> {
   const updatedUser: SynapseUser = {
     ...user,
-    azuraDjAccount: null,
+    djAccount: null,
     isDjLinked: false,
   };
 
@@ -489,7 +423,7 @@ export async function unlinkAdminDjAccount(user: SynapseUser): Promise<SynapseUs
  * Get linked DJ account
  */
 export function getLinkedAdminDjAccount(user?: SynapseUser | null) {
-  if (user?.azuraDjAccount) return user.azuraDjAccount;
+  if (user?.djAccount) return user.djAccount;
   try {
     const raw = localStorage.getItem('synapse_admin_dj_account');
     if (raw) return JSON.parse(raw);
@@ -532,6 +466,9 @@ export async function fetchSupabaseUsers(): Promise<{ data: SynapseUser[]; error
         id: rec.id,
         email: cleanEmail,
         username: rec.display_name || rec.username || cleanEmail.split('@')[0],
+        firstName: rec.first_name,
+        lastName: rec.last_name,
+        displayName: rec.display_name || `${rec.first_name || ''} ${rec.last_name || ''}`.trim() || rec.username || cleanEmail.split('@')[0],
         role,
         adminProfileId: rec.admin_profile_id || (role === 'super-admin' ? 'profile_super_admin' : (role === 'admin' ? 'profile_general_admin' : 'profile_animateur')),
         assignedStationId: rec.assigned_station_id || 'all',
@@ -540,9 +477,9 @@ export async function fetchSupabaseUsers(): Promise<{ data: SynapseUser[]; error
         createdAt: new Date(rec.created_at || Date.now()).getTime(),
         points: rec.points ?? 0,
         badges: rec.badges || [],
-        spotifyAccount: rec.spotify_account || null,
-        isSpotifyLinked: !!rec.is_spotify_linked,
-        azuraDjAccount: djAccount,
+        authMethod: (rec.auth_method as any) || 'password',
+        passkeyCredentialId: rec.passkey_credential_id,
+        djAccount: djAccount,
         isDjLinked: !!djAccount,
       };
     });
@@ -552,14 +489,3 @@ export async function fetchSupabaseUsers(): Promise<{ data: SynapseUser[]; error
     return { data: [], error: err?.message || 'Erreur réseau' };
   }
 }
-
-/**
- * Backward compatibility aliases
- */
-export const fetchPocketBaseUsers = fetchSupabaseUsers;
-export const updateUserRoleInPocketBase = updateUserRoleInSupabase;
-export const restorePocketBaseAuthSession = restoreSupabaseAuthSession;
-export const loginWithPocketBase = loginWithSupabase;
-export const registerWithPocketBase = registerWithSupabase;
-export const logoutPocketBase = logoutSupabase;
-export const syncAllDataWithPocketBase = async () => ({ success: true, message: 'Synchronisation temps réel Supabase active.' });

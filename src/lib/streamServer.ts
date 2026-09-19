@@ -1,14 +1,14 @@
 /**
- * AzuraCast Integration Client for Radio Synapse
+ * Synapse Streaming & Broadcast Server Integration Client
  * Target Instance: https://cast.radiosynapse.fr
  */
 
-import { pb } from './pocketbase';
+import { supabase } from './supabase';
 import { convertBlobToWav } from '../utils/audioWavEncoder';
 
-export const DEFAULT_AZURACAST_URL = 'https://cast.radiosynapse.fr';
+export const DEFAULT_STREAM_SERVER_URL = 'https://cast.radiosynapse.fr';
 
-export interface AzuraSong {
+export interface StreamSong {
   id: string;
   text: string;
   title: string;
@@ -20,41 +20,46 @@ export interface AzuraSong {
   custom_fields?: Record<string, any>;
 }
 
-export interface AzuraNowPlayingCurrent {
+export interface StreamNowPlayingCurrent {
   elapsed: number;
   remaining: number;
   sh_id?: number;
   played_at: number;
   duration: number;
   is_request: boolean;
-  song: AzuraSong;
+  song: StreamSong;
 }
 
-export interface AzuraQueueItem {
+export interface StreamQueueItem {
   cued_at: number;
   played_at?: number;
   duration: number;
   is_request?: boolean;
-  song: AzuraSong;
+  song: StreamSong;
 }
 
-export interface AzuraHistoryItem {
+export interface StreamHistoryItem {
   sh_id: number;
   played_at: number;
   duration: number;
   is_request?: boolean;
-  song: AzuraSong;
+  song: StreamSong;
 }
 
-export interface AzuraStreamer {
-  id: number;
-  streamer_username: string;
-  display_name: string;
+export interface StreamDjAccount {
+  id?: number;
+  streamer_username?: string;
+  display_name?: string;
   comments?: string;
-  is_active: boolean;
+  is_active?: boolean;
+  username?: string;
+  password?: string;
+  displayName?: string;
+  stationShortcode?: string;
+  linkedAt?: number;
 }
 
-export interface AzuraStationSummary {
+export interface StreamStationSummary {
   id: number;
   name: string;
   shortcode: string;
@@ -66,8 +71,8 @@ export interface AzuraStationSummary {
   is_public?: boolean;
 }
 
-export interface AzuraNowPlayingData {
-  station: AzuraStationSummary;
+export interface StreamNowPlayingData {
+  station: StreamStationSummary;
   listeners: {
     total: number;
     unique: number;
@@ -78,15 +83,15 @@ export interface AzuraNowPlayingData {
     streamer_name: string;
     broadcast_start?: number;
   };
-  now_playing: AzuraNowPlayingCurrent;
-  playing_next?: AzuraQueueItem | null;
-  song_history?: AzuraHistoryItem[];
+  now_playing: StreamNowPlayingCurrent;
+  playing_next?: StreamQueueItem | null;
+  song_history?: StreamHistoryItem[];
   is_online: boolean;
 }
 
-export interface StationAzuraMapping {
-  azuraStationId: string | number;
-  azuraShortcode?: string;
+export interface StationStreamMapping {
+  streamStationId: string | number;
+  streamShortcode?: string;
   djUsername?: string;
   djPassword?: string;
   djMount?: string;
@@ -94,28 +99,28 @@ export interface StationAzuraMapping {
   djWsUrl?: string;
 }
 
-export interface AzuraCastConfig {
+export interface StreamServerConfig {
   baseUrl: string;
   apiKey: string;
-  stationMappings: Record<string, StationAzuraMapping>;
+  stationMappings: Record<string, StationStreamMapping>;
   defaultDjPort: number;
   defaultDjMount: string;
   defaultDjWsUrl: string;
 }
 
-const STORAGE_KEY = 'synapse_azuracast_config_v1';
+const STORAGE_KEY = 'synapse_stream_server_config_v1';
 
-export const DEFAULT_AZURACAST_CONFIG: AzuraCastConfig = {
-  baseUrl: DEFAULT_AZURACAST_URL,
+export const DEFAULT_STREAM_SERVER_CONFIG: StreamServerConfig = {
+  baseUrl: DEFAULT_STREAM_SERVER_URL,
   apiKey: '335fc51a8ff906f4:c5d3eae2295ef642fa1d042397c0eafc',
   stationMappings: {
-    'station-1': { azuraStationId: 1, azuraShortcode: 'pop-variete', djUsername: 'theocourant', djPassword: 'SynapseDj2026!', djMount: '/', djPort: 8005, djWsUrl: 'wss://cast.radiosynapse.fr/webdj/pop-variete/' },
-    '1': { azuraStationId: 1, azuraShortcode: 'pop-variete', djUsername: 'theocourant', djPassword: 'SynapseDj2026!', djMount: '/', djPort: 8005, djWsUrl: 'wss://cast.radiosynapse.fr/webdj/pop-variete/' },
-    'pop-variete': { azuraStationId: 1, azuraShortcode: 'pop-variete', djUsername: 'theocourant', djPassword: 'SynapseDj2026!', djMount: '/', djPort: 8005, djWsUrl: 'wss://cast.radiosynapse.fr/webdj/pop-variete/' },
-    'pop_variete': { azuraStationId: 1, azuraShortcode: 'pop-variete', djUsername: 'theocourant', djPassword: 'SynapseDj2026!', djMount: '/', djPort: 8005, djWsUrl: 'wss://cast.radiosynapse.fr/webdj/pop-variete/' },
-    'pop_vari_t_': { azuraStationId: 1, azuraShortcode: 'pop-variete', djUsername: 'theocourant', djPassword: 'SynapseDj2026!', djMount: '/', djPort: 8005, djWsUrl: 'wss://cast.radiosynapse.fr/webdj/pop-variete/' },
-    'station-2': { azuraStationId: 2, azuraShortcode: 'synapse_techno', djUsername: 'theocourant', djPassword: 'SynapseDj2026!', djMount: '/', djPort: 8005, djWsUrl: 'wss://cast.radiosynapse.fr/webdj/synapse_techno/' },
-    'station-3': { azuraStationId: 3, azuraShortcode: 'synapse_chill', djUsername: 'theocourant', djPassword: 'SynapseDj2026!', djMount: '/', djPort: 8005, djWsUrl: 'wss://cast.radiosynapse.fr/webdj/synapse_chill/' },
+    'station-1': { streamStationId: 1, streamShortcode: 'pop-variete', djUsername: 'theocourant', djPassword: 'SynapseDj2026!', djMount: '/', djPort: 8005, djWsUrl: 'wss://cast.radiosynapse.fr/webdj/pop-variete/' },
+    '1': { streamStationId: 1, streamShortcode: 'pop-variete', djUsername: 'theocourant', djPassword: 'SynapseDj2026!', djMount: '/', djPort: 8005, djWsUrl: 'wss://cast.radiosynapse.fr/webdj/pop-variete/' },
+    'pop-variete': { streamStationId: 1, streamShortcode: 'pop-variete', djUsername: 'theocourant', djPassword: 'SynapseDj2026!', djMount: '/', djPort: 8005, djWsUrl: 'wss://cast.radiosynapse.fr/webdj/pop-variete/' },
+    'pop_variete': { streamStationId: 1, streamShortcode: 'pop-variete', djUsername: 'theocourant', djPassword: 'SynapseDj2026!', djMount: '/', djPort: 8005, djWsUrl: 'wss://cast.radiosynapse.fr/webdj/pop-variete/' },
+    'pop_vari_t_': { streamStationId: 1, streamShortcode: 'pop-variete', djUsername: 'theocourant', djPassword: 'SynapseDj2026!', djMount: '/', djPort: 8005, djWsUrl: 'wss://cast.radiosynapse.fr/webdj/pop-variete/' },
+    'station-2': { streamStationId: 2, streamShortcode: 'synapse_techno', djUsername: 'theocourant', djPassword: 'SynapseDj2026!', djMount: '/', djPort: 8005, djWsUrl: 'wss://cast.radiosynapse.fr/webdj/synapse_techno/' },
+    'station-3': { streamStationId: 3, streamShortcode: 'synapse_chill', djUsername: 'theocourant', djPassword: 'SynapseDj2026!', djMount: '/', djPort: 8005, djWsUrl: 'wss://cast.radiosynapse.fr/webdj/synapse_chill/' },
   },
   defaultDjPort: 8005,
   defaultDjMount: '/',
@@ -123,55 +128,50 @@ export const DEFAULT_AZURACAST_CONFIG: AzuraCastConfig = {
 };
 
 /**
- * Retrieve AzuraCast config from localStorage or fallback defaults
+ * Retrieve Stream Server config from localStorage or fallback defaults
  */
-export function getAzuraCastConfig(): AzuraCastConfig {
+export function getStreamServerConfig(): StreamServerConfig {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       return {
-        ...DEFAULT_AZURACAST_CONFIG,
+        ...DEFAULT_STREAM_SERVER_CONFIG,
         ...parsed,
         stationMappings: {
-          ...DEFAULT_AZURACAST_CONFIG.stationMappings,
+          ...DEFAULT_STREAM_SERVER_CONFIG.stationMappings,
           ...(parsed.stationMappings || {}),
         },
       };
     }
   } catch {}
-  return DEFAULT_AZURACAST_CONFIG;
+  return DEFAULT_STREAM_SERVER_CONFIG;
 }
 
 /**
- * Save AzuraCast config locally and mirror to PocketBase
+ * Save Stream Server config locally and mirror to Supabase
  */
-export function saveAzuraCastConfig(cfg: AzuraCastConfig): void {
+export function saveStreamServerConfig(cfg: StreamServerConfig): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
   } catch {}
 
-  // Sync asynchronously to PocketBase
+  // Sync asynchronously to Supabase
   try {
-    pb.collection('synapse_admin_data').getFirstListItem('key = "azuracast_config"')
-      .then((existing) => {
-        pb.collection('synapse_admin_data').update(existing.id, { payload: cfg }).catch(() => {});
-      })
-      .catch(() => {
-        pb.collection('synapse_admin_data').create({
-          key: 'azuracast_config',
-          payload: cfg,
-        }).catch(() => {});
-      });
+    void supabase.from('synapse_admin_data').upsert({
+      key: 'stream_server_config',
+      payload: cfg,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'key' });
   } catch {}
 }
 
 /**
- * Apply linked admin DJ credentials to all station mappings
+ * Apply linked admin DJ credentials to all station mappings in server config
  */
-export function applyAdminDjCredentialsToStations(djUsername: string, djPassword?: string): AzuraCastConfig {
-  const cfg = getAzuraCastConfig();
-  const updatedMappings: Record<string, StationAzuraMapping> = {};
+export function applyAdminDjCredentialsToConfig(djUsername: string, djPassword?: string): StreamServerConfig {
+  const cfg = getStreamServerConfig();
+  const updatedMappings: Record<string, StationStreamMapping> = {};
 
   Object.entries(cfg.stationMappings).forEach(([key, mapping]) => {
     updatedMappings[key] = {
@@ -181,27 +181,27 @@ export function applyAdminDjCredentialsToStations(djUsername: string, djPassword
     };
   });
 
-  const updatedConfig: AzuraCastConfig = {
+  const updatedConfig: StreamServerConfig = {
     ...cfg,
     stationMappings: updatedMappings,
   };
 
-  saveAzuraCastConfig(updatedConfig);
+  saveStreamServerConfig(updatedConfig);
   return updatedConfig;
 }
 
 /**
- * Sync config from PocketBase on app start
+ * Sync config from Supabase on app start
  */
-export async function loadAzuraCastConfigFromPocketBase(): Promise<AzuraCastConfig> {
+export async function loadStreamServerConfigFromSupabase(): Promise<StreamServerConfig> {
   try {
-    const rec = await pb.collection('synapse_admin_data').getFirstListItem('key = "azuracast_config"').catch(() => null);
+    const { data: rec } = await supabase.from('synapse_admin_data').select('payload').eq('key', 'stream_server_config').maybeSingle();
     if (rec?.payload && typeof rec.payload === 'object') {
-      const merged: AzuraCastConfig = {
-        ...DEFAULT_AZURACAST_CONFIG,
+      const merged: StreamServerConfig = {
+        ...DEFAULT_STREAM_SERVER_CONFIG,
         ...rec.payload,
         stationMappings: {
-          ...DEFAULT_AZURACAST_CONFIG.stationMappings,
+          ...DEFAULT_STREAM_SERVER_CONFIG.stationMappings,
           ...(rec.payload.stationMappings || {}),
         },
       };
@@ -209,14 +209,14 @@ export async function loadAzuraCastConfigFromPocketBase(): Promise<AzuraCastConf
       return merged;
     }
   } catch {}
-  return getAzuraCastConfig();
+  return getStreamServerConfig();
 }
 
 /**
  * Helper to get clean base URL
  */
 function getNormalizedBaseUrl(customUrl?: string): string {
-  const url = (customUrl || getAzuraCastConfig().baseUrl || DEFAULT_AZURACAST_URL).trim();
+  const url = (customUrl || getStreamServerConfig().baseUrl || DEFAULT_STREAM_SERVER_URL).trim();
   return url.replace(/\/+$/, '');
 }
 
@@ -224,7 +224,7 @@ function getNormalizedBaseUrl(customUrl?: string): string {
  * Helper to build auth headers
  */
 function getAuthHeaders(customKey?: string): HeadersInit {
-  const key = (customKey !== undefined ? customKey : getAzuraCastConfig().apiKey).trim();
+  const key = (customKey !== undefined ? customKey : getStreamServerConfig().apiKey).trim();
   const headers: Record<string, string> = {
     'Accept': 'application/json',
     'Content-Type': 'application/json',
@@ -237,9 +237,9 @@ function getAuthHeaders(customKey?: string): HeadersInit {
 }
 
 /**
- * Test connectivity to AzuraCast API
+ * Test connectivity to Stream Server API
  */
-export async function testAzuraCastConnection(customUrl?: string, customKey?: string): Promise<{
+export async function testStreamServerConnection(customUrl?: string, customKey?: string): Promise<{
   ok: boolean;
   message: string;
   latencyMs?: number;
@@ -266,13 +266,13 @@ export async function testAzuraCastConnection(customUrl?: string, customKey?: st
       const list = Array.isArray(data) ? data : (data ? [data] : []);
       const stations = list.map((item: any) => ({
         id: item.station?.id ?? item.id ?? 1,
-        name: item.station?.name ?? item.name ?? 'Station AzuraCast',
+        name: item.station?.name ?? item.name ?? 'Station Synapse Cast',
         shortcode: item.station?.shortcode ?? item.shortcode ?? '',
       }));
 
       return {
         ok: true,
-        message: `Connecté avec succès à AzuraCast (${latency}ms) — ${stations.length} station(s) en ligne`,
+        message: `Connecté avec succès au serveur de diffusion (${latency}ms) — ${stations.length} station(s) en ligne`,
         latencyMs: latency,
         stationsCount: stations.length,
         stations,
@@ -287,15 +287,15 @@ export async function testAzuraCastConnection(customUrl?: string, customKey?: st
   } catch (err: any) {
     return {
       ok: false,
-      message: err.name === 'AbortError' ? 'Délai d\'attente dépassé (timeout 8s)' : (err.message || 'Impossible de joindre le serveur AzuraCast'),
+      message: err.name === 'AbortError' ? 'Délai d\'attente dépassé (timeout 8s)' : (err.message || 'Impossible de joindre le serveur de diffusion'),
     };
   }
 }
 
 /**
- * Fetch all nowplaying stations from AzuraCast
+ * Fetch all nowplaying stations from Stream Server
  */
-export async function fetchAllAzuraNowPlaying(): Promise<AzuraNowPlayingData[]> {
+export async function fetchAllStreamNowPlaying(): Promise<StreamNowPlayingData[]> {
   const base = getNormalizedBaseUrl();
   try {
     const res = await fetch(`${base}/api/nowplaying`, {
@@ -312,7 +312,7 @@ export async function fetchAllAzuraNowPlaying(): Promise<AzuraNowPlayingData[]> 
 /**
  * Fetch real-time Now Playing for a specific station (by ID or shortcode)
  */
-export async function fetchStationNowPlaying(stationIdOrShortcode: string | number): Promise<AzuraNowPlayingData | null> {
+export async function fetchStationNowPlaying(stationIdOrShortcode: string | number): Promise<StreamNowPlayingData | null> {
   const base = getNormalizedBaseUrl();
   const targetId = encodeURIComponent(String(stationIdOrShortcode));
 
@@ -329,7 +329,7 @@ export async function fetchStationNowPlaying(stationIdOrShortcode: string | numb
 
   // Fallback: fetch all and match
   try {
-    const all = await fetchAllAzuraNowPlaying();
+    const all = await fetchAllStreamNowPlaying();
     const strTarget = String(stationIdOrShortcode).toLowerCase();
     const match = all.find((item) => {
       const sId = String(item.station?.id || '').toLowerCase();
@@ -384,18 +384,18 @@ export async function startStationBackend(stationIdOrShortcode: string | number)
 }
 
 /**
- * Skip current track via AzuraCast Backend API
+ * Skip current track via Stream Server Backend API
  * POST /api/station/{station_id}/backend/skip
  */
 export async function skipStationCurrentTrack(stationIdOrShortcode: string | number): Promise<{ ok: boolean; message: string }> {
-  const cfg = getAzuraCastConfig();
+  const cfg = getStreamServerConfig();
   const base = getNormalizedBaseUrl();
   const targetId = encodeURIComponent(String(stationIdOrShortcode));
 
   if (!cfg.apiKey) {
     return {
       ok: false,
-      message: 'Clé API AzuraCast manquante. Renseignez la clé API dans les paramètres du panel.',
+      message: 'Clé API serveur de diffusion manquante. Renseignez la clé API dans les paramètres du panel.',
     };
   }
 
@@ -432,7 +432,7 @@ export async function skipStationCurrentTrack(stationIdOrShortcode: string | num
  * Fetch upcoming queue for a station
  * GET /api/station/{station_id}/queue
  */
-export async function fetchStationQueue(stationIdOrShortcode: string | number): Promise<AzuraQueueItem[]> {
+export async function fetchStationQueue(stationIdOrShortcode: string | number): Promise<StreamQueueItem[]> {
   const base = getNormalizedBaseUrl();
   const targetId = encodeURIComponent(String(stationIdOrShortcode));
 
@@ -453,7 +453,7 @@ export async function fetchStationQueue(stationIdOrShortcode: string | number): 
  * Fetch song history for a station
  * GET /api/station/{station_id}/history
  */
-export async function fetchStationHistory(stationIdOrShortcode: string | number): Promise<AzuraHistoryItem[]> {
+export async function fetchStationHistory(stationIdOrShortcode: string | number): Promise<StreamHistoryItem[]> {
   const base = getNormalizedBaseUrl();
   const targetId = encodeURIComponent(String(stationIdOrShortcode));
 
@@ -474,7 +474,7 @@ export async function fetchStationHistory(stationIdOrShortcode: string | number)
  * Fetch DJ streamers configured for a station
  * GET /api/station/{station_id}/streamers
  */
-export async function fetchStationStreamers(stationIdOrShortcode: string | number): Promise<AzuraStreamer[]> {
+export async function fetchStationStreamers(stationIdOrShortcode: string | number): Promise<StreamDjAccount[]> {
   const base = getNormalizedBaseUrl();
   const targetId = encodeURIComponent(String(stationIdOrShortcode));
 
@@ -492,7 +492,7 @@ export async function fetchStationStreamers(stationIdOrShortcode: string | numbe
 }
 
 /**
- * Create or update a streamer account in AzuraCast
+ * Create or update a streamer account on Stream Server
  * POST /api/station/{station_id}/streamers
  */
 export async function createStationStreamer(
@@ -504,7 +504,7 @@ export async function createStationStreamer(
     comments?: string;
     is_active?: boolean;
   }
-): Promise<{ ok: boolean; message: string; streamer?: AzuraStreamer }> {
+): Promise<{ ok: boolean; message: string; streamer?: StreamDjAccount }> {
   const base = getNormalizedBaseUrl();
   const targetId = encodeURIComponent(String(stationIdOrShortcode));
 
@@ -531,7 +531,7 @@ export async function createStationStreamer(
 }
 
 /**
- * Restart AutoDJ / backend service on AzuraCast
+ * Restart AutoDJ / backend service on Stream Server
  * POST /api/station/{station_id}/backend/restart
  */
 export async function restartStationBackend(stationIdOrShortcode: string | number): Promise<{ ok: boolean; message: string }> {
@@ -556,7 +556,7 @@ export async function restartStationBackend(stationIdOrShortcode: string | numbe
 }
 
 /**
- * Update an existing streamer account in AzuraCast
+ * Update an existing streamer account on Stream Server
  * PUT /api/station/{station_id}/streamer/{streamer_id}
  */
 export async function updateStationStreamer(
@@ -569,7 +569,7 @@ export async function updateStationStreamer(
     comments?: string;
     is_active?: boolean;
   }
-): Promise<{ ok: boolean; message: string; streamer?: AzuraStreamer }> {
+): Promise<{ ok: boolean; message: string; streamer?: StreamDjAccount }> {
   const base = getNormalizedBaseUrl();
   const targetId = encodeURIComponent(String(stationIdOrShortcode));
 
@@ -593,7 +593,7 @@ export async function updateStationStreamer(
 }
 
 /**
- * Clean slugify helper for AzuraCast station shortcodes
+ * Clean slugify helper for station shortcodes
  * Strips French accents ("Pop Variété" -> "pop-variete") and normalizes separators
  */
 export function slugifyStationName(name: string): string {
@@ -612,7 +612,7 @@ export function slugifyStationName(name: string): string {
 }
 
 /**
- * Get direct WebDJ live studio URL on AzuraCast (with guaranteed accurate slug)
+ * Get direct WebDJ live studio URL (with guaranteed accurate slug)
  */
 export function getStationWebDjUrl(stationShortcodeOrId: string | number): string {
   const base = getNormalizedBaseUrl();
@@ -642,11 +642,11 @@ export function dataUrlToBlob(dataUrl: string): Blob {
 }
 
 /**
- * REAL Priority Audio & Jingles Injection to AzuraCast Stream
+ * Priority Audio & Jingles Injection to Radio Stream
  * 1. Takes audio Blob or Data URL (voice drop, cartouche, uploaded jingle)
- * 2. Uploads the audio file to AzuraCast station media library
+ * 2. Uploads the audio file to station media library
  * 3. Associates / imports file into station rotation / playlist
- * 4. Submits request via AzuraCast song request API
+ * 4. Submits request via song request API
  * 5. If mode === 'immediate', triggers skip so AutoDJ transitions directly to the jingle/drop on the live radio stream!
  */
 export async function uploadAndInjectPriorityAudio(
@@ -655,14 +655,14 @@ export async function uploadAndInjectPriorityAudio(
   title: string,
   mode: 'immediate' | 'next' = 'immediate'
 ): Promise<{ ok: boolean; message: string; requestId?: string; fileId?: number }> {
-  const cfg = getAzuraCastConfig();
+  const cfg = getStreamServerConfig();
   const base = getNormalizedBaseUrl();
   const targetId = encodeURIComponent(String(stationIdOrShortcode));
 
   if (!cfg.apiKey) {
     return {
       ok: false,
-      message: 'Clé API AzuraCast manquante. Renseignez la clé API dans les paramètres du panel.',
+      message: 'Clé API serveur de diffusion manquante. Renseignez la clé API dans les paramètres du panel.',
     };
   }
 
@@ -702,7 +702,7 @@ export async function uploadAndInjectPriorityAudio(
     const cleanBaseName = `synapse_${sanitizedTitle}_${timestamp}`;
     const filename = `${cleanBaseName}.${extension}`;
 
-    // 2. Upload to AzuraCast files
+    // 2. Upload to media files
     const formData = new FormData();
     formData.append('file', finalBlob, filename);
     formData.append('path', 'jingles');
@@ -718,7 +718,7 @@ export async function uploadAndInjectPriorityAudio(
 
     if (!upRes.ok) {
       const errTxt = await upRes.text().catch(() => '');
-      return { ok: false, message: `Échec du téléversement AzuraCast (${upRes.status}): ${errTxt}` };
+      return { ok: false, message: `Échec du téléversement (${upRes.status}): ${errTxt}` };
     }
 
     // 3. Locate uploaded file in station media library to get its song_id
@@ -771,11 +771,9 @@ export async function uploadAndInjectPriorityAudio(
       }
     } catch {}
 
-    // 6. Immediate transition: NE FAIRE LE SKIP QUE SI LA REQUÊTE A ÉTÉ ENQUEUÉE AVEC SUCCÈS !
-    // Si la requête n'est pas dans la file, le skip passerait directement au titre suivant sans jouer le média.
+    // 6. Immediate transition
     if (mode === 'immediate') {
       if (requestId) {
-        // Laisser le temps à Liquidsoap d'insérer la requête dans la file d'attente (1200ms)
         await new Promise((r) => setTimeout(r, 1200));
         const skipRes = await skipStationCurrentTrack(targetId);
         return {
@@ -787,7 +785,7 @@ export async function uploadAndInjectPriorityAudio(
       } else {
         return {
           ok: true,
-          message: `Fichier audio "${title}" archivé dans AzuraCast.`,
+          message: `Fichier audio "${title}" archivé sur le serveur de diffusion.`,
           fileId: uploadedFile?.id,
         };
       }
@@ -802,15 +800,15 @@ export async function uploadAndInjectPriorityAudio(
   } catch (err: any) {
     return {
       ok: false,
-      message: err.message || 'Erreur lors de l\'injection de l\'audio sur AzuraCast',
+      message: err.message || 'Erreur lors de l\'injection de l\'audio sur le serveur de diffusion',
     };
   }
 }
 
 /**
- * Backward compatibility wrapper for triggerAzuraPriorityAudio
+ * Backward compatibility wrapper for triggerPriorityAudio
  */
-export async function triggerAzuraPriorityAudio(
+export async function triggerPriorityAudio(
   stationIdOrShortcode: string | number,
   title: string,
   mode: 'immediate' | 'next',
@@ -830,7 +828,32 @@ export async function triggerAzuraPriorityAudio(
   }
   return {
     ok: true,
-    message: `Ordre "${title}" transmis à la file d'attente AzuraCast.`,
+    message: `Ordre "${title}" transmis à la file d'attente du serveur.`,
   };
 }
 
+/**
+ * Apply DJ credentials to station configurations in local state
+ */
+export function applyAdminDjCredentialsToStations(
+  stations: any[],
+  djAccount: StreamDjAccount | null | undefined
+): any[] {
+  if (!djAccount || !stations || !Array.isArray(stations)) {
+    return stations || [];
+  }
+  return stations.map((st) => {
+    if (
+      !djAccount.stationShortcode ||
+      djAccount.stationShortcode === 'all' ||
+      djAccount.stationShortcode === st.id
+    ) {
+      return {
+        ...st,
+        djUsername: djAccount.username || djAccount.streamer_username || st.djUsername,
+        djPassword: djAccount.password || st.djPassword,
+      };
+    }
+    return st;
+  });
+}

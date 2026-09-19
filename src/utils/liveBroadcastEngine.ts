@@ -5,7 +5,7 @@
  * - Hardware Stereo Peak/RMS VU-Meter with dBFS scale & clipping detection
  * - Push-to-Talk (PTT) & Lock On-Air modes
  * - Sidetone headphone monitor with independent volume
- * - Live intervention recorder for instant stream injection via AzuraCast API
+ * - Live intervention recorder for instant stream injection via Streaming API
  * - Auto-ducking support for background music beds
  */
 
@@ -363,7 +363,7 @@ class LiveBroadcastEngine {
           this.recordedChunks.shift(); // keep sliding window
         }
 
-        // IF IN "ON AIR" MODE, WEBSOCKET OPEN, AND HANDSHAKE CONFIRMED: STREAM BINARY AUDIO TO AZURACAST/LIQUIDSOAP
+        // IF IN "ON AIR" MODE, WEBSOCKET OPEN, AND HANDSHAKE CONFIRMED: STREAM BINARY AUDIO TO STREAM SERVER/LIQUIDSOAP
         if (this.mode === 'on_air' && this.webSocket && this.webSocket.readyState === WebSocket.OPEN && this.isHandshakeReady) {
           try {
             const buffer = await e.data.arrayBuffer();
@@ -396,7 +396,7 @@ class LiveBroadcastEngine {
   }
 
   /**
-   * Connect to AzuraCast / Liquidsoap Icecast DJ WebSocket endpoint
+   * Connect to Liquidsoap Icecast DJ WebSocket endpoint
    * Uses single persistent WebSocket connection across DJ session
    */
   public async connectStream(customConfig?: Partial<StreamerConfig>, forceReconnect: boolean = false): Promise<boolean> {
@@ -472,7 +472,7 @@ class LiveBroadcastEngine {
           this.clearReconnectTimer();
           this.updateStats({ connectionState: 'connected' });
 
-          // Étape 2 : À l'événement 'open', envoie la trame JSON hello conforme au protocole officiel AzuraCast WebDJ
+          // Étape 2 : À l'événement 'open', envoie la trame JSON hello conforme au protocole officiel WebDJ
           const webcastConfig = JSON.stringify({
             type: 'hello',
             data: {
@@ -789,7 +789,7 @@ class LiveBroadcastEngine {
   /**
    * Play synthesized jingle (Chime, Gong, Stinger, Applause, Airhorn, Laser)
    * If target is 'cue': outputs ONLY to DJ headphones/speakers (local monitor)
-   * If target is 'on_air': outputs to DJ headphones AND mixes directly into streamDestinationNode (Web Audio -> WebSocket to AzuraCast/Liquidsoap)
+   * If target is 'on_air': outputs to DJ headphones AND mixes directly into streamDestinationNode (Web Audio -> WebSocket to broadcast server/Liquidsoap)
    */
   public async playSynthesizedJingle(
     soundType: 'gong' | 'chime' | 'stinger' | 'applause' | 'horn' | 'laser',
@@ -951,7 +951,7 @@ class LiveBroadcastEngine {
   /**
    * Play any audio URL or Blob (e.g. jingle file, audio drop, recorded intervention)
    * If target is 'cue': outputs ONLY to DJ headphones/speakers
-   * If target is 'on_air': outputs to DJ headphones AND mixes directly into streamDestinationNode (broadcast to AzuraCast/Liquidsoap)
+   * If target is 'on_air': outputs to DJ headphones AND mixes directly into streamDestinationNode (broadcast to server/Liquidsoap)
    */
   public async playAudioFile(
     urlOrBlob: string | Blob,

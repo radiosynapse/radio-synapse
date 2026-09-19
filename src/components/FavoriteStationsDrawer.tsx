@@ -124,6 +124,18 @@ export default function FavoriteStationsDrawer({
                 Découvrir toutes les stations
               </button>
             </div>
+          ) : filterMode === 'all' && stationsToUse.length === 0 ? (
+            <div className="text-center py-12 px-4 rounded-2xl bg-black/30 border border-white/5 flex flex-col items-center justify-center">
+              <div className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-3">
+                <Radio className="w-8 h-8 text-zinc-500" />
+              </div>
+              <p className="text-sm font-bold text-white font-futuristic uppercase tracking-wider">
+                Aucune station configurée
+              </p>
+              <p className="text-xs font-mono text-zinc-400 max-w-sm mt-1.5 leading-relaxed">
+                Aucune radio n'est actuellement enregistrée. Créez vos stations dans le Panel Administrateur pour les voir apparaître ici.
+              </p>
+            </div>
           ) : (
             (filterMode === 'favorites' ? favoriteStreamsList : stationsToUse).map((stream, idx) => {
               const isFav = favoritedStreamIds.has(stream.id);

@@ -33,6 +33,178 @@ import { getWidgetPresetConfig, computeDynamicFilledGridSpans } from '../utils/d
 import { useSiteFeatureFlags } from '../utils/siteFeatureFlagsStore';
 import { SUPABASE_CONFIG } from '../lib/supabase';
 
+export const WIDGET_CHROMATIC_THEMES: Record<string, {
+  cardBg: string;
+  cardBorder: string;
+  hoverBorder: string;
+  glow: string;
+  iconBg: string;
+  iconColor: string;
+  badge: string;
+  accentText: string;
+}> = {
+  kpi_overview: {
+    cardBg: 'bg-gradient-to-br from-zinc-900/95 via-zinc-900/90 to-cyan-950/20',
+    cardBorder: 'border-cyan-500/25',
+    hoverBorder: 'hover:border-cyan-500/40',
+    glow: 'hover:shadow-[0_0_24px_rgba(6,182,212,0.08)]',
+    iconBg: 'bg-cyan-500/10 border-cyan-500/20',
+    iconColor: 'text-cyan-400',
+    badge: 'text-cyan-300 bg-cyan-500/10 border-cyan-500/30',
+    accentText: 'text-cyan-300',
+  },
+  stations_monitor: {
+    cardBg: 'bg-gradient-to-br from-zinc-900/95 via-zinc-900/90 to-amber-950/20',
+    cardBorder: 'border-amber-500/25',
+    hoverBorder: 'hover:border-amber-500/40',
+    glow: 'hover:shadow-[0_0_24px_rgba(245,158,11,0.08)]',
+    iconBg: 'bg-amber-500/10 border-amber-500/20',
+    iconColor: 'text-amber-400',
+    badge: 'text-amber-300 bg-amber-500/10 border-amber-500/30',
+    accentText: 'text-amber-300',
+  },
+  services_status: {
+    cardBg: 'bg-gradient-to-br from-zinc-900/95 via-zinc-900/90 to-emerald-950/20',
+    cardBorder: 'border-emerald-500/25',
+    hoverBorder: 'hover:border-emerald-500/40',
+    glow: 'hover:shadow-[0_0_24px_rgba(16,185,129,0.08)]',
+    iconBg: 'bg-emerald-500/10 border-emerald-500/20',
+    iconColor: 'text-emerald-400',
+    badge: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/30',
+    accentText: 'text-emerald-300',
+  },
+  station_focus: {
+    cardBg: 'bg-gradient-to-br from-zinc-900/95 via-zinc-900/90 to-amber-950/20',
+    cardBorder: 'border-amber-500/25',
+    hoverBorder: 'hover:border-amber-500/40',
+    glow: 'hover:shadow-[0_0_24px_rgba(245,158,11,0.08)]',
+    iconBg: 'bg-amber-500/10 border-amber-500/20',
+    iconColor: 'text-amber-400',
+    badge: 'text-amber-300 bg-amber-500/10 border-amber-500/30',
+    accentText: 'text-amber-300',
+  },
+  station_playlist_history: {
+    cardBg: 'bg-gradient-to-br from-zinc-900/95 via-zinc-900/90 to-purple-950/20',
+    cardBorder: 'border-purple-500/25',
+    hoverBorder: 'hover:border-purple-500/40',
+    glow: 'hover:shadow-[0_0_24px_rgba(168,85,247,0.08)]',
+    iconBg: 'bg-purple-500/10 border-purple-500/20',
+    iconColor: 'text-purple-400',
+    badge: 'text-purple-300 bg-purple-500/10 border-purple-500/30',
+    accentText: 'text-purple-300',
+  },
+  recent_messages: {
+    cardBg: 'bg-gradient-to-br from-zinc-900/95 via-zinc-900/90 to-pink-950/20',
+    cardBorder: 'border-pink-500/25',
+    hoverBorder: 'hover:border-pink-500/40',
+    glow: 'hover:shadow-[0_0_24px_rgba(236,72,153,0.08)]',
+    iconBg: 'bg-pink-500/10 border-pink-500/20',
+    iconColor: 'text-pink-400',
+    badge: 'text-pink-300 bg-pink-500/10 border-pink-500/30',
+    accentText: 'text-pink-300',
+  },
+  station_song_requests: {
+    cardBg: 'bg-gradient-to-br from-zinc-900/95 via-zinc-900/90 to-pink-950/20',
+    cardBorder: 'border-pink-500/25',
+    hoverBorder: 'hover:border-pink-500/40',
+    glow: 'hover:shadow-[0_0_24px_rgba(236,72,153,0.08)]',
+    iconBg: 'bg-pink-500/10 border-pink-500/20',
+    iconColor: 'text-pink-400',
+    badge: 'text-pink-300 bg-pink-500/10 border-pink-500/30',
+    accentText: 'text-pink-300',
+  },
+  next_up_schedule: {
+    cardBg: 'bg-gradient-to-br from-zinc-900/95 via-zinc-900/90 to-purple-950/20',
+    cardBorder: 'border-purple-500/25',
+    hoverBorder: 'hover:border-purple-500/40',
+    glow: 'hover:shadow-[0_0_24px_rgba(168,85,247,0.08)]',
+    iconBg: 'bg-purple-500/10 border-purple-500/20',
+    iconColor: 'text-purple-400',
+    badge: 'text-purple-300 bg-purple-500/10 border-purple-500/30',
+    accentText: 'text-purple-300',
+  },
+  station_live_controls: {
+    cardBg: 'bg-gradient-to-br from-zinc-900/95 via-zinc-900/90 to-rose-950/20',
+    cardBorder: 'border-rose-500/25',
+    hoverBorder: 'hover:border-rose-500/40',
+    glow: 'hover:shadow-[0_0_24px_rgba(244,63,94,0.08)]',
+    iconBg: 'bg-rose-500/10 border-rose-500/20',
+    iconColor: 'text-rose-400',
+    badge: 'text-rose-300 bg-rose-500/10 border-rose-500/30',
+    accentText: 'text-rose-300',
+  },
+  station_stats_listeners: {
+    cardBg: 'bg-gradient-to-br from-zinc-900/95 via-zinc-900/90 to-cyan-950/20',
+    cardBorder: 'border-cyan-500/25',
+    hoverBorder: 'hover:border-cyan-500/40',
+    glow: 'hover:shadow-[0_0_24px_rgba(6,182,212,0.08)]',
+    iconBg: 'bg-cyan-500/10 border-cyan-500/20',
+    iconColor: 'text-cyan-400',
+    badge: 'text-cyan-300 bg-cyan-500/10 border-cyan-500/30',
+    accentText: 'text-cyan-300',
+  },
+  broadcast_quick_status: {
+    cardBg: 'bg-gradient-to-br from-zinc-900/95 via-zinc-900/90 to-emerald-950/20',
+    cardBorder: 'border-emerald-500/25',
+    hoverBorder: 'hover:border-emerald-500/40',
+    glow: 'hover:shadow-[0_0_24px_rgba(16,185,129,0.08)]',
+    iconBg: 'bg-emerald-500/10 border-emerald-500/20',
+    iconColor: 'text-emerald-400',
+    badge: 'text-emerald-300 bg-emerald-500/10 border-emerald-500/30',
+    accentText: 'text-emerald-300',
+  },
+  quick_actions: {
+    cardBg: 'bg-gradient-to-br from-zinc-900/95 via-zinc-900/90 to-indigo-950/20',
+    cardBorder: 'border-indigo-500/25',
+    hoverBorder: 'hover:border-indigo-500/40',
+    glow: 'hover:shadow-[0_0_24px_rgba(99,102,241,0.08)]',
+    iconBg: 'bg-indigo-500/10 border-indigo-500/20',
+    iconColor: 'text-indigo-400',
+    badge: 'text-indigo-300 bg-indigo-500/10 border-indigo-500/30',
+    accentText: 'text-indigo-300',
+  },
+  active_challenges: {
+    cardBg: 'bg-gradient-to-br from-zinc-900/95 via-zinc-900/90 to-yellow-950/20',
+    cardBorder: 'border-yellow-500/25',
+    hoverBorder: 'hover:border-yellow-500/40',
+    glow: 'hover:shadow-[0_0_24px_rgba(234,179,8,0.08)]',
+    iconBg: 'bg-yellow-500/10 border-yellow-500/20',
+    iconColor: 'text-yellow-400',
+    badge: 'text-yellow-300 bg-yellow-500/10 border-yellow-500/30',
+    accentText: 'text-yellow-300',
+  },
+  community_users: {
+    cardBg: 'bg-gradient-to-br from-zinc-900/95 via-zinc-900/90 to-sky-950/20',
+    cardBorder: 'border-sky-500/25',
+    hoverBorder: 'hover:border-sky-500/40',
+    glow: 'hover:shadow-[0_0_24px_rgba(14,165,233,0.08)]',
+    iconBg: 'bg-sky-500/10 border-sky-500/20',
+    iconColor: 'text-sky-400',
+    badge: 'text-sky-300 bg-sky-500/10 border-sky-500/30',
+    accentText: 'text-sky-300',
+  },
+  upcoming_events: {
+    cardBg: 'bg-gradient-to-br from-zinc-900/95 via-zinc-900/90 to-rose-950/20',
+    cardBorder: 'border-rose-500/25',
+    hoverBorder: 'hover:border-rose-500/40',
+    glow: 'hover:shadow-[0_0_24px_rgba(244,63,94,0.08)]',
+    iconBg: 'bg-rose-500/10 border-rose-500/20',
+    iconColor: 'text-rose-400',
+    badge: 'text-rose-300 bg-rose-500/10 border-rose-500/30',
+    accentText: 'text-rose-300',
+  },
+  promotions_partners: {
+    cardBg: 'bg-gradient-to-br from-zinc-900/95 via-zinc-900/90 to-teal-950/20',
+    cardBorder: 'border-teal-500/25',
+    hoverBorder: 'hover:border-teal-500/40',
+    glow: 'hover:shadow-[0_0_24px_rgba(20,184,166,0.08)]',
+    iconBg: 'bg-teal-500/10 border-teal-500/20',
+    iconColor: 'text-teal-400',
+    badge: 'text-teal-300 bg-teal-500/10 border-teal-500/30',
+    accentText: 'text-teal-300',
+  },
+};
+
 interface AdminDashboardViewProps {
   stations: StreamChannel[];
   users: SynapseUser[];
@@ -406,8 +578,8 @@ export default function AdminDashboardView({
                 onClick={() => setIsAddWidgetOpen(!isAddWidgetOpen)}
                 className={`px-3.5 py-2 rounded-xl border text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                   isAddWidgetOpen
-                    ? 'bg-emerald-500 text-black border-emerald-400 shadow-lg shadow-emerald-500/20'
-                    : 'bg-emerald-500/20 hover:bg-emerald-500/30 border-emerald-500/50 text-emerald-300'
+                    ? 'bg-zinc-100 text-zinc-950 border-white shadow-md'
+                    : 'bg-zinc-850 hover:bg-zinc-800 border-zinc-700 text-zinc-200'
                 }`}
                 title="Ajouter un widget au tableau de bord"
                 aria-label="Ajouter un widget"
@@ -415,7 +587,7 @@ export default function AdminDashboardView({
                 <Plus className="w-4 h-4 stroke-[2.5]" />
                 <span className="hidden sm:inline">Ajouter</span>
                 {hiddenWidgets.length > 0 && (
-                  <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-950/80 text-emerald-300 border border-emerald-500/40">
+                  <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[10px] bg-zinc-800 text-zinc-300 border border-zinc-700">
                     {hiddenWidgets.length}
                   </span>
                 )}
@@ -431,7 +603,7 @@ export default function AdminDashboardView({
                   <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl p-2.5 z-40 flex flex-col text-left animate-in fade-in zoom-in-95 duration-150 max-h-[80vh] overflow-hidden">
                     <div className="px-3 py-2 border-b border-zinc-850 flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Plus className="w-4 h-4 text-emerald-400" />
+                        <Plus className="w-4 h-4 text-zinc-300" />
                         <span className="text-xs font-mono font-bold text-white uppercase tracking-wider">
                           Ajouter un widget ({hiddenWidgets.length} dispo{hiddenWidgets.length > 1 ? 's' : ''})
                         </span>
@@ -480,9 +652,9 @@ export default function AdminDashboardView({
                                 onClick={() => {
                                   addWidgetToDashboard(w.id);
                                 }}
-                                className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-mono font-bold flex items-center gap-1 shrink-0 transition-all cursor-pointer"
+                                className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-600 text-xs font-mono font-bold flex items-center gap-1 shrink-0 transition-all cursor-pointer"
                               >
-                                <Plus className="w-3.5 h-3.5" />
+                                <Plus className="w-3.5 h-3.5 text-zinc-300" />
                                 <span>Ajouter</span>
                               </button>
                             </div>
@@ -497,9 +669,9 @@ export default function AdminDashboardView({
                           handleResetLayout();
                           setIsAddWidgetOpen(false);
                         }}
-                        className="w-full px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-400 hover:text-amber-400 text-[11px] font-mono flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                        className="w-full px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-400 hover:text-zinc-200 text-[11px] font-mono flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                       >
-                        <RotateCcw className="w-3 h-3 text-amber-400" />
+                        <RotateCcw className="w-3 h-3 text-zinc-400" />
                         <span>Rétablir la disposition par défaut</span>
                       </button>
                     </div>
@@ -562,6 +734,7 @@ export default function AdminDashboardView({
           const WidgetIcon = meta.icon;
           const preset = getWidgetPresetConfig(widget.id, widget.density);
           const packedLayout = dynamicPackedLayoutMap.get(widget.id) || preset;
+          const chromaticTheme = WIDGET_CHROMATIC_THEMES[widget.id] || WIDGET_CHROMATIC_THEMES.kpi_overview;
 
           return (
             <div
@@ -607,13 +780,13 @@ export default function AdminDashboardView({
                 isOver ? 'ring-2 ring-white/60 shadow-2xl shadow-black/60 scale-[1.01]' : ''
               }`}
             >
-              <div className={`h-full rounded-2xl bg-zinc-900/80 border flex flex-col justify-between shadow-lg overflow-hidden transition-all ${
-                isEditMode ? 'border-white/30 ring-1 ring-white/10' : 'border-zinc-800/80 hover:border-zinc-700'
+              <div className={`h-full rounded-2xl ${chromaticTheme.cardBg} border flex flex-col justify-between shadow-lg overflow-hidden transition-all duration-200 ${
+                isEditMode ? 'border-white/30 ring-1 ring-white/10' : `${chromaticTheme.cardBorder} ${chromaticTheme.hoverBorder} ${chromaticTheme.glow}`
               }`}>
                 
                 {/* WIDGET CUSTOMIZATION TOOLBAR (VISIBLE IN EDIT MODE: GRIP + TITLE + 3 PRESETS + CLOSE) */}
                 {isEditMode && (
-                  <div className="px-3.5 py-2.5 bg-zinc-950 border-b border-zinc-800 flex items-center justify-between gap-2 flex-wrap text-xs font-mono select-none">
+                  <div className="px-3.5 py-2.5 bg-zinc-950/90 border-b border-zinc-800/80 flex items-center justify-between gap-2 flex-wrap text-xs font-mono select-none">
                     <div className="flex items-center gap-2">
                       {/* DRAG HANDLE */}
                       <div 
@@ -625,8 +798,10 @@ export default function AdminDashboardView({
                       </div>
 
                       <div className="flex items-center gap-1.5 text-zinc-300">
-                        <WidgetIcon className="w-3.5 h-3.5 text-white" />
-                        <span className="font-bold truncate max-w-[140px] sm:max-w-none">{widget.title}</span>
+                        <div className={`p-1 rounded-md ${chromaticTheme.iconBg}`}>
+                          <WidgetIcon className={`w-3.5 h-3.5 ${chromaticTheme.iconColor}`} />
+                        </div>
+                        <span className="font-bold truncate max-w-[140px] sm:max-w-none text-white">{widget.title}</span>
                       </div>
                     </div>
 
@@ -796,24 +971,27 @@ function renderWidgetContent(
               </div>
               <div 
                 onClick={() => ctx.onNavigateTab('users')} 
-                className="p-2 rounded-lg bg-zinc-950 border border-purple-500/20 hover:border-purple-500/40 cursor-pointer flex flex-col items-center justify-center text-center"
+                className="p-2 rounded-lg bg-zinc-950 border border-zinc-800 hover:border-zinc-700 cursor-pointer flex flex-col items-center justify-center text-center"
               >
                 <span className="text-base font-mono font-black text-white">{ctx.users.length}</span>
-                <span className="text-[9px] font-mono text-purple-300 uppercase">Membres</span>
+                <span className="text-[9px] font-mono text-zinc-400 uppercase">Membres</span>
               </div>
               <div 
                 onClick={() => ctx.onNavigateTab('messages')} 
-                className="p-2 rounded-lg bg-zinc-950 border border-pink-500/20 hover:border-pink-500/40 cursor-pointer flex flex-col items-center justify-center text-center"
+                className="p-2 rounded-lg bg-zinc-950 border border-zinc-800 hover:border-zinc-700 cursor-pointer flex flex-col items-center justify-center text-center relative"
               >
                 <span className="text-base font-mono font-black text-white">{ctx.unreadMessagesCount}</span>
-                <span className="text-[9px] font-mono text-pink-300 uppercase">Dédicaces</span>
+                <span className="text-[9px] font-mono text-zinc-400 uppercase">Dédicaces</span>
+                {ctx.unreadMessagesCount > 0 && (
+                  <span className="w-2 h-2 rounded-full bg-rose-500 absolute top-1.5 right-1.5 animate-pulse" />
+                )}
               </div>
               <div 
                 onClick={() => ctx.onNavigateTab('challenges')} 
-                className="p-2 rounded-lg bg-zinc-950 border border-amber-500/20 hover:border-amber-500/40 cursor-pointer flex flex-col items-center justify-center text-center"
+                className="p-2 rounded-lg bg-zinc-950 border border-zinc-800 hover:border-zinc-700 cursor-pointer flex flex-col items-center justify-center text-center"
               >
                 <span className="text-base font-mono font-black text-white">{ctx.challenges.length}</span>
-                <span className="text-[9px] font-mono text-amber-300 uppercase">Quêtes</span>
+                <span className="text-[9px] font-mono text-zinc-400 uppercase">Quêtes</span>
               </div>
             </div>
           </div>
@@ -838,64 +1016,72 @@ function renderWidgetContent(
             >
               <div className="flex items-center justify-between text-zinc-200">
                 <span className="text-[10px] font-mono font-bold uppercase">Stations Radio</span>
-                <Radio className="w-3.5 h-3.5 text-zinc-300" />
+                <Radio className="w-3.5 h-3.5 text-zinc-400" />
               </div>
               <div className="flex flex-col">
                 <span className="text-2xl font-mono font-black text-white">
                   {ctx.activeStationsCount} / {ctx.stations.length}
                 </span>
-                <span className="text-[10px] font-mono text-zinc-400">Actives en direct</span>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-[10px] font-mono text-zinc-400">Actives en direct</span>
+                </div>
               </div>
             </div>
 
             {/* KPI 2 */}
             <div 
               onClick={() => ctx.onNavigateTab('users')}
-              className="p-3.5 rounded-xl bg-zinc-950 border border-purple-500/20 hover:border-purple-500/50 flex flex-col justify-between gap-2 cursor-pointer transition-all"
+              className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 hover:border-zinc-700 flex flex-col justify-between gap-2 cursor-pointer transition-all"
             >
-              <div className="flex items-center justify-between text-purple-400">
+              <div className="flex items-center justify-between text-zinc-200">
                 <span className="text-[10px] font-mono font-bold uppercase">Membres Inscrits</span>
-                <Users className="w-3.5 h-3.5" />
+                <Users className="w-3.5 h-3.5 text-zinc-400" />
               </div>
               <div className="flex flex-col">
                 <span className="text-2xl font-mono font-black text-white">
                   {ctx.users.length}
                 </span>
-                <span className="text-[10px] font-mono text-purple-300">Auditeurs & Équipe</span>
+                <span className="text-[10px] font-mono text-zinc-400">Auditeurs & Équipe</span>
               </div>
             </div>
 
             {/* KPI 3 */}
             <div 
               onClick={() => ctx.onNavigateTab('messages')}
-              className="p-3.5 rounded-xl bg-zinc-950 border border-pink-500/20 hover:border-pink-500/50 flex flex-col justify-between gap-2 cursor-pointer transition-all"
+              className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 hover:border-zinc-700 flex flex-col justify-between gap-2 cursor-pointer transition-all relative"
             >
-              <div className="flex items-center justify-between text-pink-400">
+              <div className="flex items-center justify-between text-zinc-200">
                 <span className="text-[10px] font-mono font-bold uppercase">Dédicaces Studio</span>
-                <Mail className="w-3.5 h-3.5" />
+                <Mail className="w-3.5 h-3.5 text-zinc-400" />
               </div>
               <div className="flex flex-col">
-                <span className="text-2xl font-mono font-black text-white">
-                  {ctx.unreadMessagesCount} <span className="text-xs text-pink-400 font-normal">non lus</span>
-                </span>
-                <span className="text-[10px] font-mono text-pink-300">{ctx.messages.length} reçus au total</span>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-mono font-black text-white">
+                    {ctx.unreadMessagesCount}
+                  </span>
+                  {ctx.unreadMessagesCount > 0 && (
+                    <span className="text-xs text-rose-400 font-mono font-bold">non lus</span>
+                  )}
+                </div>
+                <span className="text-[10px] font-mono text-zinc-400">{ctx.messages.length} reçus au total</span>
               </div>
             </div>
 
             {/* KPI 4 */}
             <div 
               onClick={() => ctx.onNavigateTab('challenges')}
-              className="p-3.5 rounded-xl bg-zinc-950 border border-amber-500/20 hover:border-amber-500/50 flex flex-col justify-between gap-2 cursor-pointer transition-all"
+              className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 hover:border-zinc-700 flex flex-col justify-between gap-2 cursor-pointer transition-all"
             >
-              <div className="flex items-center justify-between text-amber-400">
+              <div className="flex items-center justify-between text-zinc-200">
                 <span className="text-[10px] font-mono font-bold uppercase">Quêtes & Défis</span>
-                <Trophy className="w-3.5 h-3.5" />
+                <Trophy className="w-3.5 h-3.5 text-zinc-400" />
               </div>
               <div className="flex flex-col">
                 <span className="text-2xl font-mono font-black text-white">
                   {ctx.challenges.length}
                 </span>
-                <span className="text-[10px] font-mono text-amber-300">Défis actifs en cours</span>
+                <span className="text-[10px] font-mono text-zinc-400">Défis actifs en cours</span>
               </div>
             </div>
           </div>
@@ -908,9 +1094,9 @@ function renderWidgetContent(
                   Signal Global : 100% Qualité HD
                 </span>
                 <span className="text-zinc-500">|</span>
-                <span>Latence moyenne AzuraCast : <strong>12ms</strong></span>
+                <span>Latence moyenne Flux : <strong>12ms</strong></span>
               </div>
-              <span className="text-zinc-300 font-bold">PocketBase SQLite Synchronisé</span>
+              <span className="text-zinc-300 font-bold">Supabase PostgreSQL Synchronisé</span>
             </div>
           )}
         </div>
@@ -1289,7 +1475,7 @@ function renderWidgetContent(
     // 5. BROADCAST QUICK STATUS & DJ LINK
     // =========================================================
     case 'broadcast_quick_status': {
-      const djAccount = ctx.currentUser?.azuraDjAccount;
+      const djAccount = ctx.currentUser?.djAccount;
       
       return (
         <div className="flex flex-col gap-3 text-left">
@@ -1325,7 +1511,7 @@ function renderWidgetContent(
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${
                 djAccount ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
               }`}>
-                {djAccount ? 'LIÉ AZURACAST' : 'STUDIO PRÊT'}
+                {djAccount ? 'DJ ACTIF' : 'STUDIO PRÊT'}
               </span>
             </div>
 
@@ -1352,36 +1538,36 @@ function renderWidgetContent(
       if (density === 'compact') {
         return (
           <div className="flex flex-col gap-2.5 text-left">
-            <span className="text-[11px] font-mono font-bold text-amber-400 uppercase">
+            <span className="text-[11px] font-mono font-bold text-zinc-300 uppercase">
               Raccourcis Studio
             </span>
             <div className="grid grid-cols-4 gap-2">
               <button
                 onClick={() => { ctx.onNavigateTab('stations'); ctx.onOpenAddNew('stations'); }}
-                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white text-[10.5px] font-mono font-bold flex items-center justify-center gap-1 cursor-pointer"
+                className="p-2 rounded-lg bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-200 text-[10.5px] font-mono font-bold flex items-center justify-center gap-1 cursor-pointer transition-colors"
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-3.5 h-3.5 text-zinc-400" />
                 <span>Station</span>
               </button>
               <button
                 onClick={() => { ctx.onNavigateTab('challenges'); ctx.onOpenAddNew('challenges'); }}
-                className="p-2 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[10.5px] font-mono font-bold flex items-center justify-center gap-1 cursor-pointer"
+                className="p-2 rounded-lg bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-200 text-[10.5px] font-mono font-bold flex items-center justify-center gap-1 cursor-pointer transition-colors"
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-3.5 h-3.5 text-zinc-400" />
                 <span>Défi</span>
               </button>
               <button
                 onClick={() => { ctx.onNavigateTab('events'); ctx.onOpenAddNew('events'); }}
-                className="p-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-[10.5px] font-mono font-bold flex items-center justify-center gap-1 cursor-pointer"
+                className="p-2 rounded-lg bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-200 text-[10.5px] font-mono font-bold flex items-center justify-center gap-1 cursor-pointer transition-colors"
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-3.5 h-3.5 text-zinc-400" />
                 <span>Event</span>
               </button>
               <button
                 onClick={() => { ctx.onNavigateTab('promotions'); ctx.onOpenAddNew('promotions'); }}
-                className="p-2 rounded-lg bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/30 text-pink-300 text-[10.5px] font-mono font-bold flex items-center justify-center gap-1 cursor-pointer"
+                className="p-2 rounded-lg bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-200 text-[10.5px] font-mono font-bold flex items-center justify-center gap-1 cursor-pointer transition-colors"
               >
-                <Plus className="w-3.5 h-3.5" />
+                <Plus className="w-3.5 h-3.5 text-zinc-400" />
                 <span>Promo</span>
               </button>
             </div>
@@ -1392,7 +1578,7 @@ function renderWidgetContent(
       return (
         <div className="flex flex-col gap-3 text-left">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-mono font-bold text-amber-400 uppercase tracking-wider">
+            <span className="text-xs font-mono font-bold text-zinc-300 uppercase tracking-wider">
               Raccourcis & Actions Rapides
             </span>
           </div>
@@ -1403,9 +1589,9 @@ function renderWidgetContent(
                 ctx.onNavigateTab('stations');
                 ctx.onOpenAddNew('stations');
               }}
-              className="p-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-mono font-bold flex items-center gap-2 transition-all cursor-pointer"
+              className="p-3 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-200 text-xs font-mono font-bold flex items-center gap-2 transition-all cursor-pointer"
             >
-              <Plus className="w-4 h-4 text-white" />
+              <Plus className="w-4 h-4 text-zinc-400" />
               <span>Nouvelle Station</span>
             </button>
 
@@ -1414,9 +1600,9 @@ function renderWidgetContent(
                 ctx.onNavigateTab('challenges');
                 ctx.onOpenAddNew('challenges');
               }}
-              className="p-3 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-mono font-bold flex items-center gap-2 transition-all cursor-pointer"
+              className="p-3 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-200 text-xs font-mono font-bold flex items-center gap-2 transition-all cursor-pointer"
             >
-              <Plus className="w-4 h-4 text-amber-400" />
+              <Plus className="w-4 h-4 text-zinc-400" />
               <span>Nouveau Défi XP</span>
             </button>
 
@@ -1425,9 +1611,9 @@ function renderWidgetContent(
                 ctx.onNavigateTab('promotions');
                 ctx.onOpenAddNew('promotions');
               }}
-              className="p-3 rounded-xl bg-pink-500/10 hover:bg-pink-500/20 border border-pink-500/30 text-pink-300 text-xs font-mono font-bold flex items-center gap-2 transition-all cursor-pointer"
+              className="p-3 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-200 text-xs font-mono font-bold flex items-center gap-2 transition-all cursor-pointer"
             >
-              <Plus className="w-4 h-4 text-pink-400" />
+              <Plus className="w-4 h-4 text-zinc-400" />
               <span>Ajouter Promo</span>
             </button>
 
@@ -1436,9 +1622,9 @@ function renderWidgetContent(
                 ctx.onNavigateTab('events');
                 ctx.onOpenAddNew('events');
               }}
-              className="p-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-mono font-bold flex items-center gap-2 transition-all cursor-pointer"
+              className="p-3 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-200 text-xs font-mono font-bold flex items-center gap-2 transition-all cursor-pointer"
             >
-              <Plus className="w-4 h-4 text-emerald-400" />
+              <Plus className="w-4 h-4 text-zinc-400" />
               <span>Programmer Event</span>
             </button>
           </div>
@@ -1454,12 +1640,12 @@ function renderWidgetContent(
         <div className="flex flex-col gap-3 text-left">
           <div className="flex items-center justify-between border-b border-zinc-800 pb-2.5">
             <div className="flex items-center gap-2 text-xs font-mono font-bold text-white uppercase">
-              <Server className="w-4 h-4 text-emerald-400" />
+              <Server className="w-4 h-4 text-zinc-300" />
               <span>État des Services & API</span>
             </div>
             <button
               onClick={() => ctx.onNavigateTab('services')}
-              className="text-xs font-mono text-emerald-400 hover:underline cursor-pointer"
+              className="text-xs font-mono text-zinc-400 hover:text-white hover:underline cursor-pointer"
             >
               Gérer
             </button>
@@ -1493,14 +1679,14 @@ function renderWidgetContent(
             {/* LIQUIDSOAP & ICECAST STATUS CARD */}
             <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.6)]" />
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
                 <div className="flex flex-col">
                   <span className="text-xs font-mono font-bold text-white">Liquidsoap & Icecast Diffusion</span>
                   <span className="text-[10px] font-mono text-zinc-400">Encodage multi-flux & Prise direct Harbor DJ</span>
                 </div>
               </div>
 
-              <span className="px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-[10px] font-mono font-bold">
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-mono font-bold">
                 DIFFUSION OK
               </span>
             </div>
@@ -1518,12 +1704,12 @@ function renderWidgetContent(
         <div className="flex flex-col gap-3 text-left">
           <div className="flex items-center justify-between border-b border-zinc-800 pb-2.5">
             <div className="flex items-center gap-2 text-xs font-mono font-bold text-white uppercase">
-              <Mail className="w-4 h-4 text-pink-400" />
+              <Mail className="w-4 h-4 text-zinc-300" />
               <span>Dernières Dédicaces ({ctx.messages.length})</span>
             </div>
             <button
               onClick={() => ctx.onNavigateTab('messages')}
-              className="text-xs font-mono text-pink-400 hover:underline cursor-pointer"
+              className="text-xs font-mono text-zinc-400 hover:text-white hover:underline cursor-pointer"
             >
               Messagerie
             </button>
@@ -1566,12 +1752,12 @@ function renderWidgetContent(
         <div className="flex flex-col gap-3 text-left">
           <div className="flex items-center justify-between border-b border-zinc-800 pb-2.5">
             <div className="flex items-center gap-2 text-xs font-mono font-bold text-white uppercase">
-              <Trophy className="w-4 h-4 text-amber-400" />
+              <Trophy className="w-4 h-4 text-zinc-300" />
               <span>Défis & Quêtes Actives ({ctx.challenges.length})</span>
             </div>
             <button
               onClick={() => ctx.onNavigateTab('challenges')}
-              className="text-xs font-mono text-amber-400 hover:underline cursor-pointer"
+              className="text-xs font-mono text-zinc-400 hover:text-white hover:underline cursor-pointer"
             >
               Voir tout
             </button>
@@ -1587,7 +1773,7 @@ function renderWidgetContent(
                   <span className="text-xs font-mono font-bold text-white truncate">{c.title}</span>
                   <span className="text-[10px] font-mono text-zinc-400 line-clamp-1">{c.desc}</span>
                 </div>
-                <span className="px-2 py-1 rounded-lg bg-amber-500/10 text-amber-300 border border-amber-500/30 text-[10px] font-mono font-bold shrink-0">
+                <span className="px-2 py-1 rounded-lg bg-zinc-850 text-zinc-300 border border-zinc-750 text-[10px] font-mono font-bold shrink-0">
                   +{c.points} XP
                 </span>
               </div>
@@ -1605,12 +1791,12 @@ function renderWidgetContent(
         <div className="flex flex-col gap-3 text-left">
           <div className="flex items-center justify-between border-b border-zinc-800 pb-2.5">
             <div className="flex items-center gap-2 text-xs font-mono font-bold text-white uppercase">
-              <Users className="w-4 h-4 text-purple-400" />
+              <Users className="w-4 h-4 text-zinc-300" />
               <span>Membres Inscrits ({ctx.users.length})</span>
             </div>
             <button
               onClick={() => ctx.onNavigateTab('users')}
-              className="text-xs font-mono text-purple-400 hover:underline cursor-pointer"
+              className="text-xs font-mono text-zinc-400 hover:text-white hover:underline cursor-pointer"
             >
               Gérer
             </button>
@@ -1623,7 +1809,7 @@ function renderWidgetContent(
                 className="p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-between gap-2"
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-6 h-6 rounded-full bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-[10px] font-bold text-purple-300 shrink-0">
+                  <div className="w-6 h-6 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[10px] font-bold text-zinc-300 shrink-0">
                     {u.username?.charAt(0).toUpperCase() || 'U'}
                   </div>
                   <div className="flex flex-col min-w-0">
@@ -1634,9 +1820,9 @@ function renderWidgetContent(
 
                 <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${
                   u.role === 'super-admin'
-                    ? 'bg-white/20 text-white border-white/40'
+                    ? 'bg-zinc-100 text-zinc-950 border-white font-bold'
                     : u.role === 'admin'
-                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                    ? 'bg-zinc-800 text-zinc-200 border-zinc-700'
                     : 'bg-zinc-900 text-zinc-400 border-zinc-800'
                 }`}>
                   {u.role === 'super-admin' ? 'Super Admin' : u.role === 'admin' ? 'Admin' : 'Auditeur'}
@@ -1656,12 +1842,12 @@ function renderWidgetContent(
         <div className="flex flex-col gap-3 text-left">
           <div className="flex items-center justify-between border-b border-zinc-800 pb-2.5">
             <div className="flex items-center gap-2 text-xs font-mono font-bold text-white uppercase">
-              <CalendarDays className="w-4 h-4 text-emerald-400" />
+              <CalendarDays className="w-4 h-4 text-zinc-300" />
               <span>Événements & Lives ({ctx.events.length})</span>
             </div>
             <button
               onClick={() => ctx.onNavigateTab('events')}
-              className="text-xs font-mono text-emerald-400 hover:underline cursor-pointer"
+              className="text-xs font-mono text-zinc-400 hover:text-white hover:underline cursor-pointer"
             >
               Calendrier
             </button>
@@ -1680,7 +1866,7 @@ function renderWidgetContent(
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-mono font-bold text-white truncate">{e.title}</span>
-                    <span className="text-[10px] font-mono text-emerald-400">{e.date}</span>
+                    <span className="text-[10px] font-mono text-zinc-300 font-bold">{e.date}</span>
                   </div>
                   <span className="text-[10px] font-mono text-zinc-400">{e.location || 'En direct antenne'}</span>
                 </div>
@@ -1699,12 +1885,12 @@ function renderWidgetContent(
         <div className="flex flex-col gap-3 text-left">
           <div className="flex items-center justify-between border-b border-zinc-800 pb-2.5">
             <div className="flex items-center gap-2 text-xs font-mono font-bold text-white uppercase">
-              <Tag className="w-4 h-4 text-pink-400" />
+              <Tag className="w-4 h-4 text-zinc-300" />
               <span>Promotions Actives ({ctx.promotions.length})</span>
             </div>
             <button
               onClick={() => ctx.onNavigateTab('promotions')}
-              className="text-xs font-mono text-pink-400 hover:underline cursor-pointer"
+              className="text-xs font-mono text-zinc-400 hover:text-white hover:underline cursor-pointer"
             >
               Boutique
             </button>
@@ -1718,9 +1904,9 @@ function renderWidgetContent(
               >
                 <div className="flex flex-col min-w-0">
                   <span className="text-xs font-mono font-bold text-white truncate">{p.title}</span>
-                  <span className="text-[10px] font-mono text-zinc-400">Code: <code className="text-pink-300">{p.codePromo || 'SYNAPSE'}</code></span>
+                  <span className="text-[10px] font-mono text-zinc-400">Code: <code className="text-zinc-200">{p.codePromo || 'SYNAPSE'}</code></span>
                 </div>
-                <span className="text-xs font-mono font-bold text-pink-400 shrink-0">{p.price}</span>
+                <span className="text-xs font-mono font-bold text-white shrink-0">{p.price}</span>
               </div>
             ))}
           </div>
@@ -1790,9 +1976,9 @@ function renderWidgetContent(
             </div>
 
             {/* TITRES PASSÉS */}
-            <div className="flex flex-col gap-1.5 p-2.5 rounded-xl bg-zinc-950 border border-purple-500/20">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-purple-400 font-bold flex items-center gap-1.5">
-                <History className="w-3 h-3" />
+            <div className="flex flex-col gap-1.5 p-2.5 rounded-xl bg-zinc-950 border border-zinc-800">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-300 font-bold flex items-center gap-1.5">
+                <History className="w-3 h-3 text-zinc-400" />
                 Titres passés récemment
               </span>
               <div className="flex flex-col gap-1">
@@ -1804,7 +1990,7 @@ function renderWidgetContent(
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <span className="text-[10px] text-zinc-500">{trk.time}</span>
-                      <span className="text-[10px] text-amber-400 font-bold">♥ {trk.likes}</span>
+                      <span className="text-[10px] text-zinc-300 font-bold">♥ {trk.likes}</span>
                     </div>
                   </div>
                 ))}
@@ -1830,16 +2016,16 @@ function renderWidgetContent(
         <div className="flex flex-col gap-3 text-left">
           <div className="flex items-center justify-between border-b border-zinc-800 pb-2.5">
             <div className="flex items-center gap-2">
-              <Mic className="w-4 h-4 text-red-400" />
+              <Mic className="w-4 h-4 text-zinc-300" />
               <span className="text-xs font-mono font-bold text-white uppercase truncate">
-                Régie & Jingles Direct • <span className="text-red-400">{targetStation?.name || 'Station'}</span>
+                Régie & Jingles Direct • <span className="text-zinc-300">{targetStation?.name || 'Station'}</span>
               </span>
             </div>
             {ctx.onUpdateWidgetStation && (
               <select
                 value={targetStation?.id || 'pop-variete'}
                 onChange={(e) => ctx.onUpdateWidgetStation!(e.target.value)}
-                className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-700 text-red-300 text-[10px] font-mono cursor-pointer"
+                className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-700 text-zinc-200 text-[10px] font-mono cursor-pointer"
               >
                 {ctx.stations.map((s) => (
                   <option key={s.id} value={s.id}>{s.name}</option>
@@ -1851,32 +2037,32 @@ function renderWidgetContent(
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             <button
               onClick={() => playCartridge('Jingle Officiel')}
-              className="p-2.5 rounded-xl bg-red-950/40 hover:bg-red-900/60 border border-red-500/40 text-left cursor-pointer transition-all flex flex-col gap-1"
+              className="p-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-left cursor-pointer transition-all flex flex-col gap-1"
             >
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono uppercase text-red-400 font-bold">F1 • Jingle</span>
-                <Play className="w-3 h-3 text-red-400" />
+                <span className="text-[10px] font-mono uppercase text-zinc-400 font-bold">F1 • Jingle</span>
+                <Play className="w-3 h-3 text-zinc-300" />
               </div>
               <span className="text-xs font-mono font-bold text-white">Id Station HD</span>
             </button>
 
             <button
               onClick={() => playCartridge('Top Horaire')}
-              className="p-2.5 rounded-xl bg-amber-950/40 hover:bg-amber-900/60 border border-amber-500/40 text-left cursor-pointer transition-all flex flex-col gap-1"
+              className="p-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-left cursor-pointer transition-all flex flex-col gap-1"
             >
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono uppercase text-amber-400 font-bold">F2 • Top</span>
-                <Clock className="w-3 h-3 text-amber-400" />
+                <span className="text-[10px] font-mono uppercase text-zinc-400 font-bold">F2 • Top</span>
+                <Clock className="w-3 h-3 text-zinc-300" />
               </div>
               <span className="text-xs font-mono font-bold text-white">Top Horaire Bip</span>
             </button>
 
             <button
               onClick={() => playCartridge('Voice Intro')}
-              className="p-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-750 text-left cursor-pointer transition-all flex flex-col gap-1"
+              className="p-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-left cursor-pointer transition-all flex flex-col gap-1"
             >
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono uppercase text-zinc-300 font-bold">F3 • Voix</span>
+                <span className="text-[10px] font-mono uppercase text-zinc-400 font-bold">F3 • Voix</span>
                 <Mic className="w-3 h-3 text-zinc-300" />
               </div>
               <span className="text-xs font-mono font-bold text-white">Liner Animateur</span>
@@ -1884,33 +2070,33 @@ function renderWidgetContent(
 
             <button
               onClick={() => playCartridge('Bed Fond Parle')}
-              className="p-2.5 rounded-xl bg-purple-950/40 hover:bg-purple-900/60 border border-purple-500/40 text-left cursor-pointer transition-all flex flex-col gap-1"
+              className="p-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-left cursor-pointer transition-all flex flex-col gap-1"
             >
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono uppercase text-purple-400 font-bold">F4 • Loop</span>
-                <Volume2 className="w-3 h-3 text-purple-400" />
+                <span className="text-[10px] font-mono uppercase text-zinc-400 font-bold">F4 • Loop</span>
+                <Volume2 className="w-3 h-3 text-zinc-300" />
               </div>
               <span className="text-xs font-mono font-bold text-white">Bed Talk Show</span>
             </button>
 
             <button
               onClick={() => playCartridge('Drop Musical')}
-              className="p-2.5 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/40 text-left cursor-pointer transition-all flex flex-col gap-1"
+              className="p-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-left cursor-pointer transition-all flex flex-col gap-1"
             >
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono uppercase text-emerald-400 font-bold">F5 • FX</span>
-                <Zap className="w-3 h-3 text-emerald-400" />
+                <span className="text-[10px] font-mono uppercase text-zinc-400 font-bold">F5 • FX</span>
+                <Zap className="w-3 h-3 text-zinc-300" />
               </div>
               <span className="text-xs font-mono font-bold text-white">Impact Transition</span>
             </button>
 
             <button
               onClick={() => ctx.showToast(`Arrêt d'urgence flux ${targetStation?.name}`)}
-              className="p-2.5 rounded-xl bg-zinc-900 hover:bg-red-950/80 border border-red-500/60 text-left cursor-pointer transition-all flex flex-col gap-1 text-red-300"
+              className="p-2.5 rounded-xl bg-red-950/40 hover:bg-red-900/60 border border-red-500/60 text-left cursor-pointer transition-all flex flex-col gap-1 text-red-300"
             >
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono uppercase text-red-500 font-bold">Urgence</span>
-                <Square className="w-3 h-3 text-red-500" />
+                <span className="text-[10px] font-mono uppercase text-red-400 font-bold">Urgence</span>
+                <Square className="w-3 h-3 text-red-400" />
               </div>
               <span className="text-xs font-mono font-bold text-white">Coupure Micro</span>
             </button>
@@ -1930,16 +2116,16 @@ function renderWidgetContent(
         <div className="flex flex-col gap-3 text-left">
           <div className="flex items-center justify-between border-b border-zinc-800 pb-2.5">
             <div className="flex items-center gap-2">
-              <Activity className="w-4 h-4 text-emerald-400" />
+              <Activity className="w-4 h-4 text-zinc-300" />
               <span className="text-xs font-mono font-bold text-white uppercase truncate">
-                Audience Direct • <span className="text-emerald-400">{targetStation?.name || 'Station'}</span>
+                Audience Direct • <span className="text-zinc-300">{targetStation?.name || 'Station'}</span>
               </span>
             </div>
             {ctx.onUpdateWidgetStation && (
               <select
                 value={targetStation?.id || 'pop-variete'}
                 onChange={(e) => ctx.onUpdateWidgetStation!(e.target.value)}
-                className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-700 text-emerald-300 text-[10px] font-mono cursor-pointer"
+                className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-700 text-zinc-200 text-[10px] font-mono cursor-pointer"
               >
                 {ctx.stations.map((s) => (
                   <option key={s.id} value={s.id}>{s.name}</option>
@@ -1949,34 +2135,37 @@ function renderWidgetContent(
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <div className="p-2.5 rounded-xl bg-zinc-950 border border-emerald-500/20 flex flex-col">
+            <div className="p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 flex flex-col">
               <span className="text-[10px] font-mono text-zinc-400 uppercase">En Écoute</span>
-              <span className="text-lg font-mono font-black text-emerald-400">412</span>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-lg font-mono font-black text-white">{targetStation?.enabled !== false ? '0' : '--'}</span>
+                <span className={`w-1.5 h-1.5 rounded-full ${targetStation?.enabled !== false ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-600'}`} />
+              </div>
               <span className="text-[9px] font-mono text-zinc-500">Auditeurs live</span>
             </div>
             <div className="p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 flex flex-col">
               <span className="text-[10px] font-mono text-zinc-400 uppercase">Pic 24h</span>
-              <span className="text-lg font-mono font-black text-white">584</span>
+              <span className="text-lg font-mono font-black text-white">{targetStation?.enabled !== false ? '0' : '--'}</span>
               <span className="text-[9px] font-mono text-zinc-500">Record journalier</span>
             </div>
-            <div className="p-2.5 rounded-xl bg-zinc-950 border border-purple-500/20 flex flex-col">
+            <div className="p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 flex flex-col">
               <span className="text-[10px] font-mono text-zinc-400 uppercase">Durée Moy.</span>
-              <span className="text-lg font-mono font-black text-purple-400">46m</span>
+              <span className="text-lg font-mono font-black text-white">{targetStation?.enabled !== false ? '0m' : '--'}</span>
               <span className="text-[9px] font-mono text-zinc-500">Session moyenne</span>
             </div>
-            <div className="p-2.5 rounded-xl bg-zinc-950 border border-amber-500/20 flex flex-col">
+            <div className="p-2.5 rounded-xl bg-zinc-950 border border-zinc-800 flex flex-col">
               <span className="text-[10px] font-mono text-zinc-400 uppercase">Qualité</span>
-              <span className="text-lg font-mono font-black text-amber-400">192k</span>
-              <span className="text-[9px] font-mono text-zinc-500">AAC+ Studio HD</span>
+              <span className="text-lg font-mono font-black text-white">{targetStation?.enabled !== false ? '192k' : '--'}</span>
+              <span className="text-[9px] font-mono text-zinc-500">{targetStation?.enabled !== false ? 'AAC+ Studio HD' : 'Inactif'}</span>
             </div>
           </div>
 
           <div className="p-2 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-between text-[11px] font-mono">
             <span className="text-zinc-400 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              Serveur Icecast Synapse Connecté
+              <span className={`w-2 h-2 rounded-full ${targetStation?.enabled !== false ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-600'}`} />
+              {targetStation?.enabled !== false ? 'Serveur Icecast Connecté' : 'Aucun flux actif'}
             </span>
-            <span className="text-emerald-400 font-bold">Latence: 1.2s • Zéro coupure</span>
+            <span className="text-zinc-400 font-bold">{targetStation?.enabled !== false ? 'Flux en direct' : 'En attente'}</span>
           </div>
         </div>
       );
@@ -2003,16 +2192,16 @@ function renderWidgetContent(
         <div className="flex flex-col gap-3 text-left">
           <div className="flex items-center justify-between border-b border-zinc-800 pb-2.5">
             <div className="flex items-center gap-2">
-              <Music className="w-4 h-4 text-amber-400" />
+              <Music className="w-4 h-4 text-zinc-300" />
               <span className="text-xs font-mono font-bold text-white uppercase truncate">
-                Propositions & Dédicaces • <span className="text-amber-400">{targetStation?.name || 'Station'}</span>
+                Propositions & Dédicaces • <span className="text-zinc-300">{targetStation?.name || 'Station'}</span>
               </span>
             </div>
             {ctx.onUpdateWidgetStation && (
               <select
                 value={targetStation?.id || 'pop-variete'}
                 onChange={(e) => ctx.onUpdateWidgetStation!(e.target.value)}
-                className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-700 text-amber-300 text-[10px] font-mono cursor-pointer"
+                className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-700 text-zinc-200 text-[10px] font-mono cursor-pointer"
               >
                 {ctx.stations.map((s) => (
                   <option key={s.id} value={s.id}>{s.name}</option>
@@ -2023,15 +2212,15 @@ function renderWidgetContent(
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
             {/* AUDITOR PROPOSALS */}
-            <div className="flex flex-col gap-1.5 p-2.5 rounded-xl bg-zinc-950 border border-amber-500/20">
+            <div className="flex flex-col gap-1.5 p-2.5 rounded-xl bg-zinc-950 border border-zinc-800">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-bold flex items-center gap-1.5">
-                  <Flame className="w-3 h-3" />
+                <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-300 font-bold flex items-center gap-1.5">
+                  <Flame className="w-3 h-3 text-zinc-400" />
                   Titres Proposés ({submissions.length})
                 </span>
                 <button
                   onClick={() => ctx.onNavigateTab('challenges')}
-                  className="text-[10px] font-mono text-amber-400 hover:underline cursor-pointer"
+                  className="text-[10px] font-mono text-zinc-400 hover:text-white hover:underline cursor-pointer"
                 >
                   Voir tout
                 </button>
@@ -2048,10 +2237,10 @@ function renderWidgetContent(
                         <span className="font-bold text-white truncate">{sub.trackTitle}</span>
                         <span className="text-[10px] text-zinc-400 truncate">{sub.artist} • Par {sub.userName}</span>
                       </div>
-                      <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded shrink-0 ${
-                        sub.status === 'selected' ? 'bg-emerald-500/20 text-emerald-300' :
-                        sub.status === 'rejected' ? 'bg-red-500/20 text-red-300' :
-                        'bg-amber-500/20 text-amber-300'
+                      <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded shrink-0 border ${
+                        sub.status === 'selected' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
+                        sub.status === 'rejected' ? 'bg-zinc-800 text-zinc-400 border-zinc-700' :
+                        'bg-amber-500/10 text-amber-400 border-amber-500/30'
                       }`}>
                         {sub.status === 'selected' ? 'Validé' : sub.status === 'rejected' ? 'Archivé' : 'À valider'}
                       </span>
@@ -2062,15 +2251,15 @@ function renderWidgetContent(
             </div>
 
             {/* AUDITOR DEDICATIONS */}
-            <div className="flex flex-col gap-1.5 p-2.5 rounded-xl bg-zinc-950 border border-pink-500/20">
+            <div className="flex flex-col gap-1.5 p-2.5 rounded-xl bg-zinc-950 border border-zinc-800">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-pink-400 font-bold flex items-center gap-1.5">
-                  <Mail className="w-3 h-3" />
+                <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-300 font-bold flex items-center gap-1.5">
+                  <Mail className="w-3 h-3 text-zinc-400" />
                   Dédicaces Auditeurs ({stationMessages.length})
                 </span>
                 <button
                   onClick={() => ctx.onNavigateTab('messages')}
-                  className="text-[10px] font-mono text-pink-400 hover:underline cursor-pointer"
+                  className="text-[10px] font-mono text-zinc-400 hover:text-white hover:underline cursor-pointer"
                 >
                   Voir tout
                 </button>
@@ -2087,7 +2276,7 @@ function renderWidgetContent(
                         <span className="font-bold text-white truncate">{msg.authorName}</span>
                         <span className="text-[10px] text-zinc-400 truncate">"{msg.message}"</span>
                       </div>
-                      <span className="text-[10px] text-zinc-500 shrink-0">Live</span>
+                      <span className="text-[10px] font-mono text-zinc-400 shrink-0">Live</span>
                     </div>
                   ))
                 )}

@@ -25,20 +25,20 @@ import PromotionsDrawer from './components/PromotionsDrawer';
 import EventsDrawer from './components/EventsDrawer';
 import ContactDrawer from './components/ContactDrawer';
 import AdminPanelDrawer from './components/AdminPanelDrawer';
+import ListenerStudioRequestPopup from './components/ListenerStudioRequestPopup';
 import StandaloneTrackFlyerPage from './components/StandaloneTrackFlyerPage';
 import DoubleHeartIcon from './components/DoubleHeartIcon';
 import ReactiveStationWave from './components/ReactiveStationWave';
 import ChromaticStationsLabel from './components/ChromaticStationsLabel';
 import { useCoverColor } from './utils/coverColorExtractor';
-import { getAdminStations, getActiveAdminStations, loadRemoteAdminData, subscribeToPocketBaseRealtime } from './utils/adminStore';
+import { getAdminStations, getActiveAdminStations, loadRemoteAdminData, subscribeToSupabaseRealtime } from './utils/adminStore';
 import { LikedTrack, ConnectedAccount, SynapseUser } from './types';
 import { isSuperAdmin } from './utils/adminRolePermissionsStore';
 import { 
-  restoreSupabaseAuthSession as restorePocketBaseAuthSession, 
+  restoreSupabaseAuthSession, 
   getStoredSynapseUser, 
-  syncUserDataToPocketBaseCloud, 
-  fetchUserDataFromPocketBaseCloud,
-  linkSpotifyToSynapseUser
+  syncUserDataToSupabaseCloud, 
+  fetchUserDataFromSupabaseCloud
 } from './utils/supabaseAuthService';
 import { 
   getLikedTracks, 
@@ -48,17 +48,8 @@ import {
   setTrackLevelInStorage,
   removeLikedTrackById, 
   getConnectedAccount, 
-  saveConnectedAccount,
-  makeTrackId
+  saveConnectedAccount
 } from './utils/favoritesStorage';
-import { 
-  fetchAndRestoreUserData, 
-  syncFullLikedTracksToSpotifyPlaylist, 
-  addSingleTrackToSpotify, 
-  removeSingleTrackFromSpotify,
-  getValidSpotifyAccessToken,
-  findOrCreateSynapsePlaylist
-} from './utils/spotifyPlaylistSync';
 import {
   getFavoriteStations,
   toggleFavoriteStation,
@@ -217,7 +208,6 @@ export default function App() {
           level: 2,
           previewUrl: params.get('preview') || undefined,
           deezerUrl: params.get('deezer') || `https://www.deezer.com/search/${encodeURIComponent(`${artist} ${title}`)}`,
-          spotifyUrl: params.get('spotify') || `https://open.spotify.com/search/${encodeURIComponent(`${artist} ${title}`)}`,
           appleMusicUrl: params.get('apple') || `https://music.apple.com/fr/search?term=${encodeURIComponent(`${artist} ${title}`)}`,
           youtubeUrl: params.get('yt') || `https://music.youtube.com/search?q=${encodeURIComponent(`${artist} ${title}`)}`,
         };
@@ -228,9 +218,9 @@ export default function App() {
     }
   }, []);
 
-  // Synchronize and restore PocketBase Auth, Stations, Messages & Admin Data on boot
+  // Synchronize and restore Supabase Auth, Stations, Messages & Admin Data on boot
   useEffect(() => {
-    // 1. Fetch remote stations, messages, challenges, events from PocketBase
+    // 1. Fetch remote stations, messages, challenges, events from Supabase
     loadRemoteAdminData().then(() => {
       const updated = getAdminStations();
       setAllAdminStations(updated);
@@ -240,8 +230,8 @@ export default function App() {
       }
     });
 
-    // 2. Realtime subscription to live PocketBase updates
-    const unsubscribe = subscribeToPocketBaseRealtime(() => {
+    // 2. Realtime subscription to live Supabase updates
+    const unsubscribe = subscribeToSupabaseRealtime(() => {
       const updated = getAdminStations();
       setAllAdminStations(updated);
       const activeList = updated.filter(s => s.enabled !== false);
@@ -251,14 +241,10 @@ export default function App() {
     });
 
     // 3. Restore user authentication session & cloud data
-    restorePocketBaseAuthSession().then((user) => {
+    restoreSupabaseAuthSession().then((user) => {
       if (user) {
         setSynapseUser(user);
-        if (user.spotifyAccount) {
-          setConnectedAccount(user.spotifyAccount);
-          saveConnectedAccount(user.spotifyAccount);
-        }
-        fetchUserDataFromPocketBaseCloud(user).then((cloudData: any) => {
+        fetchUserDataFromSupabaseCloud(user).then((cloudData: any) => {
           if (cloudData?.likedTracks && cloudData.likedTracks.length > 0) {
             setLikedTracks(cloudData.likedTracks);
             saveLikedTracks(cloudData.likedTracks);
@@ -266,22 +252,6 @@ export default function App() {
         }).catch(() => {});
       }
     });
-
-    const initAcc = getConnectedAccount();
-    if (initAcc && initAcc.provider === 'spotify' && initAcc.accessToken) {
-      fetchAndRestoreUserData(initAcc, getLikedTracks()).then((res) => {
-        if (res && res.tracks) {
-          setLikedTracks(res.tracks);
-          saveLikedTracks(res.tracks);
-        }
-        if (res && res.account) {
-          setConnectedAccount(res.account);
-          saveConnectedAccount(res.account);
-        }
-      }).catch((err) => {
-        console.warn('Initial Spotify restore sync notice:', err);
-      });
-    }
 
     return () => {
       unsubscribe();
@@ -291,7 +261,7 @@ export default function App() {
   // Synchronize liked tracks and favorite stations to Supabase Cloud
   useEffect(() => {
     if (synapseUser && synapseUser.id) {
-      syncUserDataToPocketBaseCloud(synapseUser, {
+      syncUserDataToSupabaseCloud(synapseUser, {
         liked_tracks: likedTracks,
         favorite_stations: favoriteStations.map((s) => s.stationId),
       }).catch(() => {});
@@ -574,7 +544,7 @@ export default function App() {
     };
   }, [liveTrack.title, liveTrack.artist, activeStream.genre]);
 
-  // Fetch real AzuraCast / Icecast API for Now Playing and Song History
+  // Fetch real Stream / Icecast API for Now Playing and Song History
   useEffect(() => {
     let active = true;
 
@@ -634,7 +604,7 @@ export default function App() {
           return;
         }
 
-        // 2. Query Central AzuraCast API
+        // 2. Query Central Stream NowPlaying API
         const res = await fetch(`https://cast.radiosynapse.fr/api/nowplaying?_t=${Date.now()}`, { cache: 'no-store' });
         if (!res.ok) throw new Error("Fetch failed");
         const data = await res.json();
@@ -696,7 +666,7 @@ export default function App() {
               }
             }
 
-            // Extract Real Song History from AzuraCast for past tracks
+            // Extract Real Song History from stream for past tracks
             if (Array.isArray(matchedStation.song_history) && matchedStation.song_history.length > 0) {
               const nowSec = Math.floor(Date.now() / 1000);
 
@@ -756,7 +726,7 @@ export default function App() {
               }
             }
           } else if (activeStream.id !== 'standby' && active) {
-            // Station not found in AzuraCast nowplaying API: display guaranteed station metadata
+            // Station not found in stream nowplaying API: display guaranteed station metadata
             const guaranteed = getGuaranteedStationInfo(activeStream);
             setLiveTrack(prev => {
               if (prev.title === 'En attente de diffusion' || !prev.title) {
@@ -843,48 +813,11 @@ export default function App() {
       activeStream.name
     );
     setLikedTracks(res.tracks);
-
-    // Auto-sync with connected Spotify Account and create/update 'Radio Synapse - Titres Likés'
-    if (connectedAccount && connectedAccount.provider === 'spotify' && connectedAccount.accessToken) {
-      if (res.newLevel > 0) {
-        const liked = res.tracks.find(t => t.id === makeTrackId(currentTrack.title, currentTrack.artist));
-        if (liked) {
-          addSingleTrackToSpotify(liked, connectedAccount, res.tracks).then((syncRes) => {
-            if (syncRes.playlistId && (!connectedAccount.playlistId || !connectedAccount.playlistUrl)) {
-              const updatedAcc = {
-                ...connectedAccount,
-                playlistId: syncRes.playlistId,
-                playlistUrl: syncRes.playlistUrl,
-                lastSyncedAt: Date.now(),
-              };
-              setConnectedAccount(updatedAcc);
-              saveConnectedAccount(updatedAcc);
-            }
-          });
-        }
-      } else {
-        // Track unliked/removed
-        const unlikedTrack: LikedTrack = {
-          id: makeTrackId(currentTrack.title, currentTrack.artist),
-          title: currentTrack.title,
-          artist: currentTrack.artist,
-          coverUrl: currentTrack.coverUrl,
-          likedAt: Date.now(),
-        };
-        removeSingleTrackFromSpotify(unlikedTrack, connectedAccount, res.tracks);
-      }
-    }
   };
 
   const handleRemoveLikedTrack = (id: string) => {
-    const target = likedTracks.find(t => t.id === id);
     const updated = removeLikedTrackById(id);
     setLikedTracks(updated);
-
-    // Auto-sync deletion with connected Spotify Account
-    if (target && connectedAccount && connectedAccount.provider === 'spotify' && connectedAccount.accessToken) {
-      removeSingleTrackFromSpotify(target, connectedAccount, updated);
-    }
   };
 
   const handleUpdateTrackLevel = (id: string, newLevel: 1 | 2) => {
@@ -892,84 +825,9 @@ export default function App() {
     setLikedTracks(updated);
   };
 
-  const handleConnectAccount = async (account: ConnectedAccount | null) => {
+  const handleConnectAccount = (account: ConnectedAccount | null) => {
     setConnectedAccount(account);
     saveConnectedAccount(account);
-
-    if (account && synapseUser) {
-      const updatedUser = await linkSpotifyToSynapseUser(synapseUser, account);
-      if (updatedUser) {
-        setSynapseUser(updatedUser);
-      }
-    }
-
-    if (account && account.provider === 'spotify' && account.accessToken) {
-      try {
-        // 1. Fetch & restore existing playlist and database data across devices
-        const restoreResult = await fetchAndRestoreUserData(account, likedTracks);
-        setLikedTracks(restoreResult.tracks);
-        saveLikedTracks(restoreResult.tracks);
-        
-        let activeAccount = restoreResult.account;
-
-        // 2. Ensure Spotify playlist exists right now on their account
-        if (!activeAccount.playlistId || !activeAccount.playlistUrl) {
-          const tokenInfo = await getValidSpotifyAccessToken(activeAccount);
-          if (tokenInfo) {
-            try {
-              const playlist = await findOrCreateSynapsePlaylist(
-                tokenInfo.token,
-                tokenInfo.account.userId,
-                tokenInfo.account
-              );
-              activeAccount = {
-                ...activeAccount,
-                playlistId: playlist.id,
-                playlistUrl: playlist.url,
-                lastSyncedAt: Date.now(),
-              };
-            } catch (pErr) {
-              console.warn('Initial playlist creation error:', pErr);
-            }
-          }
-        }
-
-        // 3. Transfer existing liked tracks list to "Radio Synapse - Titres Likés" playlist on Spotify
-        if (restoreResult.tracks.length > 0) {
-          const syncRes = await syncFullLikedTracksToSpotifyPlaylist(restoreResult.tracks, activeAccount);
-          if (syncRes.playlistId) {
-            activeAccount = {
-              ...activeAccount,
-              playlistId: syncRes.playlistId,
-              playlistUrl: syncRes.playlistUrl,
-              lastSyncedAt: Date.now(),
-            };
-          }
-        }
-
-        setConnectedAccount(activeAccount);
-        saveConnectedAccount(activeAccount);
-      } catch (err) {
-        console.warn('Spotify initial sync warning:', err);
-      }
-    }
-  };
-
-  const handleManualSyncSpotify = async () => {
-    if (!connectedAccount || connectedAccount.provider !== 'spotify' || !connectedAccount.accessToken) {
-      return;
-    }
-    const syncRes = await syncFullLikedTracksToSpotifyPlaylist(likedTracks, connectedAccount);
-    if (syncRes.playlistId) {
-      const finalAcc: ConnectedAccount = {
-        ...connectedAccount,
-        playlistId: syncRes.playlistId,
-        playlistUrl: syncRes.playlistUrl,
-        lastSyncedAt: Date.now(),
-      };
-      setConnectedAccount(finalAcc);
-      saveConnectedAccount(finalAcc);
-    }
   };
 
   // Touch and Mouse handlers for heart button long-press
@@ -2499,7 +2357,7 @@ export default function App() {
                     </button>
                   </div>
 
-                  {/* Interactive Scrubbing Slider (Spotify Signature Bar) - Kept ABOVE the navigation */}
+                  {/* Interactive Scrubbing Slider - Kept ABOVE the navigation */}
                   <div className="flex flex-col gap-1 pt-0.5">
                     <div className="relative group w-full flex items-center py-1.5 cursor-pointer">
                       <input 
@@ -2697,7 +2555,7 @@ export default function App() {
                 const isActive = st.id === activeStream.id;
                 const isExpanded = !!expandedStations[st.id];
 
-                // Extract live playing song from AzuraCast cached metadata for this station
+                // Extract live playing song from cached stream metadata for this station
                 const stationNowPlaying = cachedNowPlaying?.find((item: any) => {
                   const shortcode = item?.station?.shortcode;
                   return shortcode === st.id || (shortcode === 'disco_funk' && st.id === 'disco-funk');
@@ -2992,10 +2850,6 @@ export default function App() {
         synapseUser={synapseUser}
         onUpdateSynapseUser={(user) => {
           setSynapseUser(user);
-          if (user?.spotifyAccount) {
-            setConnectedAccount(user.spotifyAccount);
-            saveConnectedAccount(user.spotifyAccount);
-          }
         }}
         likedTracksCount={likedTracks.length}
         favoriteStationsCount={favoriteStations.length}
@@ -3004,7 +2858,6 @@ export default function App() {
         accentColor={accentColor}
         onOpenLikedTracks={() => setShowLikedDrawer(true)}
         onOpenFavoriteStations={() => setShowFavoriteStationsDrawer(true)}
-        onSyncWithSpotify={handleManualSyncSpotify}
         onOpenConnectModal={() => {
           setShowUserProfileDrawer(false);
           setShowConnectModal(true);
@@ -3087,6 +2940,12 @@ export default function App() {
         onVolumeChange={handleVolumeChange}
       />
 
+      {/* LISTENER STUDIO INTERACTION POPUP (SENS UNIQUE MODÉRÉ RADIO) */}
+      <ListenerStudioRequestPopup
+        activeStation={activeStream}
+        currentUser={synapseUser}
+      />
+
       {/* 5. FULL-SCREEN SLIDE-UP EQUALIZER & AUDIO SETTINGS DRAWER */}
       <Drawer
         id="equalizer-drawer"
@@ -3135,7 +2994,6 @@ export default function App() {
         onRemoveTrack={handleRemoveLikedTrack}
         onUpdateTrackLevel={handleUpdateTrackLevel}
         connectedAccount={connectedAccount}
-        onSyncWithSpotify={handleManualSyncSpotify}
         onOpenConnectModal={() => {
           setShowLikedDrawer(false);
           setShowConnectModal(true);
@@ -3149,6 +3007,10 @@ export default function App() {
         onClose={() => setShowConnectModal(false)}
         currentAccount={connectedAccount}
         onConnectAccount={handleConnectAccount}
+        synapseUser={synapseUser}
+        onUpdateSynapseUser={(user) => {
+          setSynapseUser(user);
+        }}
       />
 
       {/* 9. FAVORITE STATIONS MANAGEMENT DRAWER */}

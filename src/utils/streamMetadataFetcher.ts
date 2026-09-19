@@ -63,7 +63,7 @@ export function getStationCandidateKeys(stream: StreamChannel): string[] {
     }
   }
 
-  // Common station shortcodes and numerical IDs on AzuraCast
+  // Common station shortcodes and numerical IDs
   candidates.add('pop-variete');
   candidates.add('pop_variete');
   candidates.add('1');
@@ -74,10 +74,10 @@ export function getStationCandidateKeys(stream: StreamChannel): string[] {
 }
 
 /**
- * Intelligent matcher to find the right station in AzuraCast / Icecast nowplaying API
+ * Intelligent matcher to find the right station in stream nowplaying API
  */
-export function matchNowPlayingStation(azuraList: any[] | null | undefined, stream: StreamChannel | null | undefined): any | null {
-  if (!Array.isArray(azuraList) || azuraList.length === 0 || !stream || stream.id === 'standby') {
+export function matchNowPlayingStation(stationList: any[] | null | undefined, stream: StreamChannel | null | undefined): any | null {
+  if (!Array.isArray(stationList) || stationList.length === 0 || !stream || stream.id === 'standby') {
     return null;
   }
 
@@ -86,7 +86,7 @@ export function matchNowPlayingStation(azuraList: any[] | null | undefined, stre
   const streamName = (stream.name || '').toLowerCase().trim();
 
   // 1. Direct shortcode or station ID match
-  const directMatch = azuraList.find((item: any) => {
+  const directMatch = stationList.find((item: any) => {
     const sc = (item?.station?.shortcode || '').toLowerCase().trim();
     const sId = String(item?.station?.id || '').toLowerCase().trim();
     return (
@@ -100,7 +100,7 @@ export function matchNowPlayingStation(azuraList: any[] | null | undefined, stre
 
   // 2. Stream URL match (mount path, shortcode in URL, or listen_url)
   if (streamUrl) {
-    const urlMatch = azuraList.find((item: any) => {
+    const urlMatch = stationList.find((item: any) => {
       const listenUrl = (item?.station?.listen_url || '').toLowerCase().trim();
       const sc = (item?.station?.shortcode || '').toLowerCase().trim();
       
@@ -129,7 +129,7 @@ export function matchNowPlayingStation(azuraList: any[] | null | undefined, stre
   // 3. Name fuzzy match
   if (streamName) {
     const cleanStreamName = streamName.replace(/^radio\s*synapse\s*[-–—:]\s*/i, '').trim();
-    const nameMatch = azuraList.find((item: any) => {
+    const nameMatch = stationList.find((item: any) => {
       const itemStationName = (item?.station?.name || '').toLowerCase().trim();
       const cleanItemName = itemStationName.replace(/^radio\s*synapse\s*[-–—:]\s*/i, '').trim();
       return (
@@ -141,16 +141,16 @@ export function matchNowPlayingStation(azuraList: any[] | null | undefined, stre
     if (nameMatch) return nameMatch;
   }
 
-  // 4. Single station fallback: if AzuraCast host has 1 station and user stream is valid, match it
-  if (azuraList.length === 1 && stream.id !== 'standby') {
-    return azuraList[0];
+  // 4. Single station fallback: if server host has 1 station and user stream is valid, match it
+  if (stationList.length === 1 && stream.id !== 'standby') {
+    return stationList[0];
   }
 
   return null;
 }
 
 /**
- * Probes the live stream endpoint (AzuraCast API or Icecast status) to extract real-time tags and history
+ * Probes the live stream endpoint to extract real-time tags and history
  */
 export async function probeLiveStreamMetadata(stream: StreamChannel): Promise<{
   title: string;
@@ -170,7 +170,7 @@ export async function probeLiveStreamMetadata(stream: StreamChannel): Promise<{
     const candidates = getStationCandidateKeys(stream);
     const cacheBuster = Date.now();
 
-    // 1. Try AzuraCast dedicated station endpoints first (handles both public and private stations)
+    // 1. Try dedicated station endpoints first (handles both public and private stations)
     for (const key of candidates) {
       const endpoints = [
         `${origin}/api/nowplaying/${encodeURIComponent(key)}?_t=${cacheBuster}`,
@@ -208,7 +208,7 @@ export async function probeLiveStreamMetadata(stream: StreamChannel): Promise<{
                 });
               }
 
-              // Resolve real cover art via iTunes/Deezer/AzuraCast
+              // Resolve real cover art via iTunes/Deezer
               const realCover = await fetchTrackCover(parsed.cleanTitle, parsed.cleanArtist, text, art, stream.genre);
 
               return {
@@ -226,7 +226,7 @@ export async function probeLiveStreamMetadata(stream: StreamChannel): Promise<{
       }
     }
 
-    // 2. Try global AzuraCast nowplaying
+    // 2. Try global nowplaying
     try {
       const controller = new AbortController();
       const t = setTimeout(() => controller.abort(), 2500);

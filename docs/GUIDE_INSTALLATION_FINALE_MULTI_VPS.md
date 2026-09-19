@@ -2,7 +2,7 @@
 ## Radio Synapse • Haute Disponibilité, Sécurité & Scalabilité
 
 Ce guide documente l'architecture définitive en production de Radio Synapse, basée sur la séparation stricte des rôles :
-* **VPS 1 (Maître Applicatif, Régie & Données)** : Application Web, Panel Admin, Base PocketBase, Moteur d'encodage Liquidsoap 2.2+, Médiathèque VPS et Port Harbor DJ Live.
+* **VPS 1 (Maître Applicatif, Régie & Données)** : Application Web, Panel Admin, Base Supabase (PostgreSQL / Realtime), Moteur d'encodage Liquidsoap 2.2+, Médiathèque VPS et Port Harbor DJ Live.
 * **VPS 2 (Relais de Diffusion Icecast Dédié Haute Capacité)** : Démon Icecast 2 optimisé pour absorber des milliers d'auditeurs simultanés sans impacter les performances de la régie ni de la base de données.
 
 ---
@@ -24,10 +24,10 @@ Ce guide documente l'architecture définitive en production de Radio Synapse, ba
                            │ Port 8000 (Source Password)
 ┌──────────────────────────┴────────────────────────────────┐
 │            VPS 1 : MAÎTRE APPLICATIF & RÉGIE LIQUIDSOAP   │
-│ IP: 203.0.113.10   •  Domaines: radiosynapse.fr, db...    │
+│ IP: 203.0.113.10   •  Domaines: radiosynapse.fr, api...   │
 │ ───────────────────────────────────────────────────────── │
 │  • Node.js 20 (Vite / Express BFF - Port 3000)            │
-│  • PocketBase v0.40+ (SQLite WAL Realtime - Port 8090)     │
+│  • Supabase Docker (PostgreSQL, Realtime, Kong Port 54321)│
 │  • Liquidsoap 2.2+ (AutoDJ, Smart Crossfade, Master Lim) │
 │  • Harbor DJ Direct Input (Port 8005)                     │
 │  • Stockage Audio Local (/var/media/synapse/music)        │
@@ -162,7 +162,7 @@ sudo systemctl restart nginx
 
 ### 3. Configuration du VPS 1 (Maître Applicatif, Régie & BDD)
 
-Sur le VPS 1 tournent l'application web utilisateur, le panel admin, PocketBase et le moteur Liquidsoap qui encode et envoie le son vers le VPS 2.
+Sur le VPS 1 tournent l'application web utilisateur, le panel admin, Supabase (PostgreSQL & Realtime) et le moteur Liquidsoap qui encode et envoie le son vers le VPS 2.
 
 #### A. Configuration de Liquidsoap (`/etc/liquidsoap/radio.liq` sur VPS 1)
 Dans la section d'encodage et d'envoi de flux, configurez l'adresse IP ou le nom de domaine de votre **VPS 2** :
@@ -234,6 +234,6 @@ sudo ufw allow 8005/tcp comment "Liquidsoap Harbor DJ Live"
 
 ### 4. Avantages de cette Architecture Séparée
 
-1. **Isolation de la bande passante** : Même avec 10 000 auditeurs écoutant le flux en 320 kbps (~3.2 Gbps de trafic réseau), le VPS 1 (Panel Admin, PocketBase, Node.js) conserve 100% de son CPU et de ses entrées/sorties disque pour l'application.
+1. **Isolation de la bande passante** : Même avec 10 000 auditeurs écoutant le flux en 320 kbps (~3.2 Gbps de trafic réseau), le VPS 1 (Panel Admin, Supabase, Node.js) conserve 100% de son CPU et de ses entrées/sorties disque pour l'application.
 2. **Tolérance aux pannes & Relais multiples** : Vous pouvez à tout moment ajouter un **VPS 3** (par exemple situé en Amérique du Nord ou en Asie) configuré en esclave Icecast qui se synchronise automatiquement sur le VPS 2.
-3. **Mises à jour sans coupure d'antenne** : Vous pouvez redémarrer le serveur web Node.js ou PocketBase sur le VPS 1 pour déployer une mise à jour applicative : l'antenne radio et les auditeurs connectés sur le VPS 2 continuent d'écouter sans aucune interruption grâce au buffer audio !
+3. **Mises à jour sans coupure d'antenne** : Vous pouvez redémarrer le serveur web Node.js ou Supabase sur le VPS 1 pour déployer une mise à jour applicative : l'antenne radio et les auditeurs connectés sur le VPS 2 continuent d'écouter sans aucune interruption grâce au buffer audio !

@@ -55,7 +55,7 @@ export default function ChallengesDrawer({
   const [submissionSuccessId, setSubmissionSuccessId] = useState<string | null>(null);
 
   const isUserConnected = !!currentUser || !!connectedAccount;
-  const activeUserId = currentUser?.id || currentUser?.email || connectedAccount?.userId || '';
+  const activeUserId = currentUser?.id || currentUser?.email || connectedAccount?.email || connectedAccount?.username || '';
   const activeUserName = currentUser?.username || connectedAccount?.username || 'Auditeur Synapse';
 
   const loadData = async () => {
@@ -336,22 +336,28 @@ export default function ChallengesDrawer({
                       <span className="text-[11px] font-mono uppercase tracking-wider text-zinc-400 font-bold">
                         Classement en Direct :
                       </span>
-                      {cc.currentLeaderboard.map((leader) => (
-                        <div key={leader.rank} className="flex items-center justify-between p-2 rounded-xl bg-black/40 border border-white/5 text-xs font-mono">
-                          <div className="flex items-center gap-2.5">
-                            <span className={`w-5 text-center font-bold ${
-                              leader.rank === 1 ? 'text-amber-300' : leader.rank === 2 ? 'text-zinc-300' : 'text-amber-500'
-                            }`}>
-                              #{leader.rank}
-                            </span>
-                            <span className="font-bold text-white">{leader.username}</span>
-                            {leader.stationName && (
-                              <span className="text-[10px] text-zinc-500">({leader.stationName})</span>
-                            )}
+                      {cc.currentLeaderboard && cc.currentLeaderboard.length > 0 ? (
+                        cc.currentLeaderboard.map((leader) => (
+                          <div key={leader.rank} className="flex items-center justify-between p-2 rounded-xl bg-black/40 border border-white/5 text-xs font-mono">
+                            <div className="flex items-center gap-2.5">
+                              <span className={`w-5 text-center font-bold ${
+                                leader.rank === 1 ? 'text-amber-300' : leader.rank === 2 ? 'text-zinc-300' : 'text-amber-500'
+                              }`}>
+                                #{leader.rank}
+                              </span>
+                              <span className="font-bold text-white">{leader.username}</span>
+                              {leader.stationName && (
+                                <span className="text-[10px] text-zinc-500">({leader.stationName})</span>
+                              )}
+                            </div>
+                            <span className="text-emerald-400 font-bold">{leader.scoreLabel}</span>
                           </div>
-                          <span className="text-emerald-400 font-bold">{leader.scoreLabel}</span>
+                        ))
+                      ) : (
+                        <div className="p-3 rounded-xl bg-black/30 border border-white/5 text-center text-xs font-mono text-zinc-500">
+                          Aucun auditeur classé pour le moment. Soyez le premier à participer !
                         </div>
-                      ))}
+                      )}
                     </div>
                   </div>
                 ))}

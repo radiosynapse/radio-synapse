@@ -11,7 +11,18 @@ export interface Track {
 export interface StreamChannel {
   id: string;
   stationNumber?: string;
+  number?: string;
   streamUrl?: string;
+  urls?: {
+    low?: string;
+    medium?: string;
+    standard?: string;
+    high?: string;
+  };
+  mountPoint?: string;
+  icecastPassword?: string;
+  bitrate?: number;
+  sampleRate?: number;
   enabled?: boolean;
   name: string;
   genre: string;

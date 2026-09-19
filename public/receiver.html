@@ -2467,7 +2467,7 @@
       return idx >= 0 ? idx : 0;
     }
 
-    /* Poll Live AzuraCast Now Playing API for real-time track metadata */
+    /* Poll Live Now Playing API for real-time track metadata */
     async function pollNowPlaying() {
       // If a connected sender is actively managing playback and pushing real-time metadata, avoid background poll conflicts
       if (connectedSenderId) return;
@@ -2532,7 +2532,7 @@
             currentDuration = songDuration > 0 ? songDuration : 240;
             trackFetchTime = nowSec;
 
-            // Prioritize absolute elapsed counter from AzuraCast to eliminate client-server clock drift
+            // Prioritize absolute elapsed counter to eliminate client-server clock drift
             if (typeof elapsed === 'number' && elapsed >= 0) {
               trackElapsed = elapsed;
               currentElapsed = Math.max(0, Math.min(currentDuration, Math.round(elapsed)));
@@ -2550,7 +2550,7 @@
             if (trackKey !== lastTrackKey) {
               lastTrackKey = trackKey;
 
-              // 1. Immediately update title & artist text with AzuraCast cover or fallback
+              // 1. Immediately update title & artist text with stream cover or fallback
               const immediateCover = rawArt || null;
               updateDisplay(parsed.cleanTitle, parsed.cleanArtist, immediateCover, stConfig.shutterLabel);
 
@@ -2813,7 +2813,7 @@
         }
       }
 
-      // If the current track has reached its end on-air, poll AzuraCast immediately to transition track info with zero lag!
+      // If the current track has reached its end on-air, poll stream API immediately to transition track info with zero lag!
       if (isPlayingUI && currentElapsed >= currentDuration && currentDuration > 0) {
         if (!pollFastDebounceTimer) {
           pollFastDebounceTimer = setTimeout(() => {

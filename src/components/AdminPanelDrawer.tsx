@@ -3,16 +3,16 @@ import {
   ShieldCheck, Users, Radio, Trophy, Tag, Calendar, CalendarDays, 
   Mail, Plus, Trash2, CheckCircle2, Link, Edit3, ArrowLeft,
   LayoutDashboard, Sparkles, X, RefreshCw,
-  Server, Database, DownloadCloud, Check, Copy, HardDrive,
+  Server, Database, Check, Copy, HardDrive,
   MoreVertical, Settings, RotateCcw, Mic, Zap, Key,
   UserCheck, Unlink, Shield, Sliders, 
   UserPlus, CheckSquare, Square,
-  Flame, Music, Archive, Award,
+  Flame, Music, ListMusic, FileText, Archive, Award,
   PanelLeftClose, PanelLeftOpen,
   Play, Pause, SkipBack, SkipForward, Volume2, Volume1, VolumeX
 } from 'lucide-react';
 import { StreamChannel } from '../data';
-import { SynapseUser, UserRole, AzuraDjAccount, AdminPermissions, AdminProfileTemplate } from '../types';
+import { SynapseUser, UserRole, StreamDjAccount, AdminPermissions, AdminProfileTemplate } from '../types';
 import { 
   canUserAccessTab,
   isSuperAdmin,
@@ -38,9 +38,9 @@ import {
   saveAdminMessages,
   getAdminUsers, 
   saveAdminUsers,
-  fetchPocketBaseUsers,
+  fetchSupabaseUsers,
   loadRemoteAdminData,
-  cleanupPocketBaseStationDuplicates
+  cleanupSupabaseStationDuplicates
 } from '../utils/adminStore';
 import {
   getTrackSubmissions,
@@ -53,20 +53,25 @@ import {
   SuggestMusicCriteria
 } from '../utils/challengesStore';
 import { 
-  updateUserRoleInSupabase as updateUserRoleInPocketBase, 
+  updateUserRoleInSupabase, 
   getStoredSynapseUser, 
   saveAdminDjAccount, 
   unlinkAdminDjAccount, 
   getLinkedAdminDjAccount, 
-  restoreSupabaseAuthSession as restorePocketBaseAuthSession
+  restoreSupabaseAuthSession
 } from '../utils/supabaseAuthService';
 import { testSupabaseConnection, SUPABASE_SQL_SCHEMA } from '../lib/supabase';
 import { liveBroadcastEngine } from '../utils/liveBroadcastEngine';
-import { applyAdminDjCredentialsToStations } from '../lib/azuracast';
+import { applyAdminDjCredentialsToStations } from '../lib/streamServer';
 import StationControlDeckModal from './StationControlDeckModal';
 import AdminServicesTab, { ServiceSection } from './AdminServicesTab';
 import AdminDashboardView from './AdminDashboardView';
 import AdminRegieLiquidsoapView from './AdminRegieLiquidsoapView';
+import { AdminStationManagementView } from './AdminStationManagementView';
+import { AdminRegieAnimationView } from './AdminRegieAnimationView';
+import { AdminMusicLibraryView } from './AdminMusicLibraryView';
+import { AdminPlaylistsView } from './AdminPlaylistsView';
+import { AdminEmissionPrepView } from './AdminEmissionPrepView';
 import AdminInteractiveProgrammingAgenda from './AdminInteractiveProgrammingAgenda';
 import { AdminFeatureFlagsView } from './AdminFeatureFlagsView';
 import AdminSidebarEditorModal from './AdminSidebarEditorModal';
@@ -76,7 +81,7 @@ import {
   getSavedSidebarOrder, 
   saveSidebarOrder, 
   resetSidebarOrder,
-  syncCustomizationsWithPocketBase
+  syncCustomizationsWithSupabase
 } from '../utils/adminCustomizationStore';
 
 interface AdminPanelDrawerProps {
@@ -96,17 +101,22 @@ interface AdminPanelDrawerProps {
 
 const TABS_METADATA: Record<AdminTab, { label: string; sublabel: string; icon: any }> = {
   dashboard: { label: 'Tableau de bord', sublabel: "Vue d'ensemble", icon: LayoutDashboard },
-  stations: { label: 'Régie', sublabel: 'Diffusion & Liquidsoap', icon: Radio },
-  services: { label: 'Services & API', sublabel: 'Liquidsoap, PB & Tiers', icon: Server },
-  users: { label: 'Utilisateurs', sublabel: 'Gestion des comptes', icon: Users },
+  stations_management: { label: 'Gestion des Stations', sublabel: 'Super-Admin • Flux & Serveurs', icon: Radio },
+  regie_animation: { label: 'Régie & Animation', sublabel: 'Micro Direct & Jingles', icon: Mic },
+  music_library: { label: 'Bibliothèque Musique', sublabel: 'Titres, tags & audio', icon: Music },
+  playlists: { label: 'Playlists & Rotations', sublabel: 'Auto-DJ & Programmation', icon: ListMusic },
+  emission_prep: { label: 'Préparation Émissions', sublabel: "Conducteurs d'antenne", icon: FileText },
+  programming: { label: 'Grille TV/Radio', sublabel: 'Programmes & Agenda', icon: Calendar },
   messages: { label: 'Messagerie Studio', sublabel: 'Dédicaces & direct', icon: Mail },
-  programming: { label: 'Grille TV/Radio', sublabel: 'Programmes', icon: Calendar },
   events: { label: 'Événements', sublabel: 'Concerts & lives', icon: CalendarDays },
   challenges: { label: 'Défis & XP', sublabel: 'Gamification', icon: Trophy },
   promotions: { label: 'Promotions', sublabel: 'Boutique', icon: Tag },
+  users: { label: 'Utilisateurs', sublabel: 'Gestion des comptes & rôles', icon: Users },
+  services: { label: 'Services & API', sublabel: 'Supabase, Liquidsoap & Tiers', icon: Server },
   features: { label: 'Fonctionnalités', sublabel: 'Gestion du site & modules', icon: Sliders },
-  azuracast: { label: 'AzuraCast', sublabel: 'Passerelle & Régie', icon: Server },
-  database: { label: 'PocketBase', sublabel: 'Base SQLite', icon: Database },
+  stations: { label: 'Stations (Ancien)', sublabel: 'Diffusion & Liquidsoap', icon: Radio },
+  streaming: { label: 'Serveur de flux', sublabel: 'Passerelle & Régie', icon: Server },
+  database: { label: 'Supabase', sublabel: 'Base PostgreSQL', icon: Database },
 };
 
 export const TAB_COLOR_CONFIGS: Record<AdminTab, {
@@ -116,102 +126,178 @@ export const TAB_COLOR_CONFIGS: Record<AdminTab, {
   activeBg: string;
   activeBorder: string;
   activeText: string;
+  accentGlow: string;
+  barBg: string;
 }> = {
   dashboard: {
-    text: 'text-indigo-400',
-    bg: 'bg-indigo-500/15',
-    border: 'border-indigo-500/30',
-    activeBg: 'bg-indigo-500/25',
-    activeBorder: 'border-indigo-400/50',
-    activeText: 'text-indigo-300',
+    text: 'text-cyan-400',
+    bg: 'bg-cyan-500/10',
+    border: 'border-cyan-500/20',
+    activeBg: 'bg-cyan-500/20',
+    activeBorder: 'border-cyan-400/50',
+    activeText: 'text-cyan-300',
+    accentGlow: 'shadow-[0_0_12px_rgba(6,182,212,0.25)]',
+    barBg: 'bg-cyan-400 shadow-[0_0_8px_#22d3ee]',
+  },
+  stations_management: {
+    text: 'text-amber-400',
+    bg: 'bg-amber-500/10',
+    border: 'border-amber-500/20',
+    activeBg: 'bg-amber-500/20',
+    activeBorder: 'border-amber-400/50',
+    activeText: 'text-amber-300',
+    accentGlow: 'shadow-[0_0_12px_rgba(245,158,11,0.25)]',
+    barBg: 'bg-amber-400 shadow-[0_0_8px_#f59e0b]',
+  },
+  regie_animation: {
+    text: 'text-rose-400',
+    bg: 'bg-rose-500/10',
+    border: 'border-rose-500/20',
+    activeBg: 'bg-rose-500/20',
+    activeBorder: 'border-rose-400/50',
+    activeText: 'text-rose-300',
+    accentGlow: 'shadow-[0_0_12px_rgba(251,113,133,0.25)]',
+    barBg: 'bg-rose-400 shadow-[0_0_8px_#fb7185]',
+  },
+  music_library: {
+    text: 'text-violet-400',
+    bg: 'bg-violet-500/10',
+    border: 'border-violet-500/20',
+    activeBg: 'bg-violet-500/20',
+    activeBorder: 'border-violet-400/50',
+    activeText: 'text-violet-300',
+    accentGlow: 'shadow-[0_0_12px_rgba(167,139,250,0.25)]',
+    barBg: 'bg-violet-400 shadow-[0_0_8px_#a78bfa]',
+  },
+  playlists: {
+    text: 'text-sky-400',
+    bg: 'bg-sky-500/10',
+    border: 'border-sky-500/20',
+    activeBg: 'bg-sky-500/20',
+    activeBorder: 'border-sky-400/50',
+    activeText: 'text-sky-300',
+    accentGlow: 'shadow-[0_0_12px_rgba(56,189,248,0.25)]',
+    barBg: 'bg-sky-400 shadow-[0_0_8px_#38bdf8]',
+  },
+  emission_prep: {
+    text: 'text-amber-400',
+    bg: 'bg-amber-500/10',
+    border: 'border-amber-500/20',
+    activeBg: 'bg-amber-500/20',
+    activeBorder: 'border-amber-400/50',
+    activeText: 'text-amber-300',
+    accentGlow: 'shadow-[0_0_12px_rgba(245,158,11,0.25)]',
+    barBg: 'bg-amber-400 shadow-[0_0_8px_#f59e0b]',
   },
   stations: {
     text: 'text-amber-400',
-    bg: 'bg-amber-500/15',
-    border: 'border-amber-500/30',
-    activeBg: 'bg-amber-500/25',
+    bg: 'bg-amber-500/10',
+    border: 'border-amber-500/20',
+    activeBg: 'bg-amber-500/20',
     activeBorder: 'border-amber-400/50',
     activeText: 'text-amber-300',
+    accentGlow: 'shadow-[0_0_12px_rgba(245,158,11,0.25)]',
+    barBg: 'bg-amber-400 shadow-[0_0_8px_#f59e0b]',
   },
   services: {
     text: 'text-emerald-400',
-    bg: 'bg-emerald-500/15',
-    border: 'border-emerald-500/30',
-    activeBg: 'bg-emerald-500/25',
+    bg: 'bg-emerald-500/10',
+    border: 'border-emerald-500/20',
+    activeBg: 'bg-emerald-500/20',
     activeBorder: 'border-emerald-400/50',
     activeText: 'text-emerald-300',
+    accentGlow: 'shadow-[0_0_12px_rgba(16,185,129,0.25)]',
+    barBg: 'bg-emerald-400 shadow-[0_0_8px_#10b981]',
   },
   users: {
     text: 'text-sky-400',
-    bg: 'bg-sky-500/15',
-    border: 'border-sky-500/30',
-    activeBg: 'bg-sky-500/25',
+    bg: 'bg-sky-500/10',
+    border: 'border-sky-500/20',
+    activeBg: 'bg-sky-500/20',
     activeBorder: 'border-sky-400/50',
     activeText: 'text-sky-300',
+    accentGlow: 'shadow-[0_0_12px_rgba(56,189,248,0.25)]',
+    barBg: 'bg-sky-400 shadow-[0_0_8px_#38bdf8]',
   },
   messages: {
     text: 'text-pink-400',
-    bg: 'bg-pink-500/15',
-    border: 'border-pink-500/30',
-    activeBg: 'bg-pink-500/25',
+    bg: 'bg-pink-500/10',
+    border: 'border-pink-500/20',
+    activeBg: 'bg-pink-500/20',
     activeBorder: 'border-pink-400/50',
     activeText: 'text-pink-300',
+    accentGlow: 'shadow-[0_0_12px_rgba(244,114,182,0.25)]',
+    barBg: 'bg-pink-400 shadow-[0_0_8px_#f472b6]',
   },
   programming: {
     text: 'text-purple-400',
-    bg: 'bg-purple-500/15',
-    border: 'border-purple-500/30',
-    activeBg: 'bg-purple-500/25',
+    bg: 'bg-purple-500/10',
+    border: 'border-purple-500/20',
+    activeBg: 'bg-purple-500/20',
     activeBorder: 'border-purple-400/50',
     activeText: 'text-purple-300',
+    accentGlow: 'shadow-[0_0_12px_rgba(192,132,252,0.25)]',
+    barBg: 'bg-purple-400 shadow-[0_0_8px_#c084fc]',
   },
   events: {
     text: 'text-rose-400',
-    bg: 'bg-rose-500/15',
-    border: 'border-rose-500/30',
-    activeBg: 'bg-rose-500/25',
+    bg: 'bg-rose-500/10',
+    border: 'border-rose-500/20',
+    activeBg: 'bg-rose-500/20',
     activeBorder: 'border-rose-400/50',
     activeText: 'text-rose-300',
+    accentGlow: 'shadow-[0_0_12px_rgba(251,113,133,0.25)]',
+    barBg: 'bg-rose-400 shadow-[0_0_8px_#fb7185]',
   },
   challenges: {
     text: 'text-yellow-400',
-    bg: 'bg-yellow-500/15',
-    border: 'border-yellow-500/30',
-    activeBg: 'bg-yellow-500/25',
+    bg: 'bg-yellow-500/10',
+    border: 'border-yellow-500/20',
+    activeBg: 'bg-yellow-500/20',
     activeBorder: 'border-yellow-400/50',
     activeText: 'text-yellow-300',
+    accentGlow: 'shadow-[0_0_12px_rgba(250,204,21,0.25)]',
+    barBg: 'bg-yellow-400 shadow-[0_0_8px_#facc15]',
   },
   promotions: {
     text: 'text-teal-400',
-    bg: 'bg-teal-500/15',
-    border: 'border-teal-500/30',
-    activeBg: 'bg-teal-500/25',
+    bg: 'bg-teal-500/10',
+    border: 'border-teal-500/20',
+    activeBg: 'bg-teal-500/20',
     activeBorder: 'border-teal-400/50',
     activeText: 'text-teal-300',
+    accentGlow: 'shadow-[0_0_12px_rgba(45,212,191,0.25)]',
+    barBg: 'bg-teal-400 shadow-[0_0_8px_#2dd4bf]',
   },
   features: {
-    text: 'text-cyan-400',
-    bg: 'bg-cyan-500/15',
-    border: 'border-cyan-500/30',
-    activeBg: 'bg-cyan-500/25',
-    activeBorder: 'border-cyan-400/50',
-    activeText: 'text-cyan-300',
+    text: 'text-indigo-400',
+    bg: 'bg-indigo-500/10',
+    border: 'border-indigo-500/20',
+    activeBg: 'bg-indigo-500/20',
+    activeBorder: 'border-indigo-400/50',
+    activeText: 'text-indigo-300',
+    accentGlow: 'shadow-[0_0_12px_rgba(129,140,248,0.25)]',
+    barBg: 'bg-indigo-400 shadow-[0_0_8px_#818cf8]',
   },
-  azuracast: {
-    text: 'text-violet-400',
-    bg: 'bg-violet-500/15',
-    border: 'border-violet-500/30',
-    activeBg: 'bg-violet-500/25',
-    activeBorder: 'border-violet-400/50',
-    activeText: 'text-violet-300',
+  streaming: {
+    text: 'text-emerald-400',
+    bg: 'bg-emerald-500/10',
+    border: 'border-emerald-500/20',
+    activeBg: 'bg-emerald-500/20',
+    activeBorder: 'border-emerald-400/50',
+    activeText: 'text-emerald-300',
+    accentGlow: 'shadow-[0_0_12px_rgba(16,185,129,0.25)]',
+    barBg: 'bg-emerald-400 shadow-[0_0_8px_#10b981]',
   },
   database: {
     text: 'text-emerald-400',
-    bg: 'bg-emerald-500/15',
-    border: 'border-emerald-500/30',
-    activeBg: 'bg-emerald-500/25',
+    bg: 'bg-emerald-500/10',
+    border: 'border-emerald-500/20',
+    activeBg: 'bg-emerald-500/20',
     activeBorder: 'border-emerald-400/50',
     activeText: 'text-emerald-300',
+    accentGlow: 'shadow-[0_0_12px_rgba(16,185,129,0.25)]',
+    barBg: 'bg-emerald-400 shadow-[0_0_8px_#10b981]',
   },
 };
 
@@ -280,7 +366,7 @@ export default function AdminPanelDrawer({
   // Selected Station for Station Control Deck Modal
   const [selectedStationForControlDeck, setSelectedStationForControlDeck] = useState<StreamChannel | null>(null);
 
-  // PocketBase Database State
+  // Supabase Database State
   const [dbStatus, setDbStatus] = useState<{
     ok: boolean | null;
     message: string;
@@ -322,7 +408,7 @@ export default function AdminPanelDrawer({
   const [selectedUserForRoleEdit, setSelectedUserForRoleEdit] = useState<SynapseUser | null>(null);
   const [roleEditRole, setRoleEditRole] = useState<UserRole>('user');
   const [roleEditProfileId, setRoleEditProfileId] = useState<string>('profile_general_admin');
-  const [roleEditAssignedStation, setRoleEditAssignedStation] = useState<string>('all');
+  const [roleEditAssignedStations, setRoleEditAssignedStations] = useState<string[]>([]);
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [userRoleFilter, setUserRoleFilter] = useState<'all' | 'super-admin' | 'admin' | 'user'>('all');
 
@@ -381,7 +467,7 @@ export default function AdminPanelDrawer({
 
   // --- ADMIN DJ STREAMER ACCOUNT LINKING STATE ---
   const [currentUser, setCurrentUser] = useState<SynapseUser | null>(() => propCurrentUser || getStoredSynapseUser());
-  const [djAccount, setDjAccount] = useState<AzuraDjAccount | null>(() => {
+  const [djAccount, setDjAccount] = useState<StreamDjAccount | null>(() => {
     const user = propCurrentUser || getStoredSynapseUser();
     return getLinkedAdminDjAccount(user);
   });
@@ -429,8 +515,8 @@ export default function AdminPanelDrawer({
       setDjFormStation(linked.stationShortcode || 'pop-variete');
     }
 
-    // Pull authentic registered users directly from PocketBase database
-    fetchPocketBaseUsers().then((res) => {
+    // Pull authentic registered users directly from Supabase database
+    fetchSupabaseUsers().then((res) => {
       if (res.data && res.data.length > 0) {
         setUsers(res.data);
       }
@@ -441,13 +527,13 @@ export default function AdminPanelDrawer({
     if (isOpen) {
       reloadData();
       
-      // Sync layout customizations from PocketBase cloud
-      syncCustomizationsWithPocketBase().then((res) => {
+      // Sync layout customizations from Supabase cloud
+      syncCustomizationsWithSupabase().then((res) => {
         if (res.sidebar) setSidebarOrder(res.sidebar);
       }).catch(() => {});
 
       // Restore session to check latest DJ account bindings
-      restorePocketBaseAuthSession().then((u) => {
+      restoreSupabaseAuthSession().then((u) => {
         if (u) {
           setCurrentUser(u);
           const linked = getLinkedAdminDjAccount(u);
@@ -458,12 +544,12 @@ export default function AdminPanelDrawer({
             setDjFormDisplayName(linked.displayName || linked.username);
             setDjFormStation(linked.stationShortcode || 'pop-variete');
             
-            // Sync credentials to broadcast engine and AzuraCast mappings
+            // Sync credentials to broadcast engine and station mappings
             liveBroadcastEngine.saveCredentials({
               username: linked.username,
               password: linked.password || '',
             });
-            applyAdminDjCredentialsToStations(linked.username, linked.password);
+            setStations(prev => applyAdminDjCredentialsToStations(prev, linked));
           }
         }
       });
@@ -495,7 +581,6 @@ export default function AdminPanelDrawer({
         username: 'Admin Synapse',
         role: 'admin',
         createdAt: Date.now(),
-        isSpotifyLinked: false,
       };
 
       const updatedUser = await saveAdminDjAccount(activeUser, {
@@ -506,7 +591,7 @@ export default function AdminPanelDrawer({
       });
 
       setCurrentUser(updatedUser);
-      setDjAccount(updatedUser.azuraDjAccount || null);
+      setDjAccount(updatedUser.djAccount || null);
       setIsEditingDjLink(false);
 
       // Apply credentials to liveBroadcastEngine
@@ -515,8 +600,8 @@ export default function AdminPanelDrawer({
         password: djFormPassword.trim(),
       });
 
-      // Apply to all AzuraCast station mappings
-      applyAdminDjCredentialsToStations(djFormUsername.trim(), djFormPassword.trim());
+      // Apply to all station mappings
+      setStations(prev => applyAdminDjCredentialsToStations(prev, updatedUser.djAccount));
 
       showToast(`Compte DJ "${djFormDisplayName || djFormUsername}" lié avec succès !`);
     } catch (err: any) {
@@ -614,7 +699,11 @@ export default function AdminPanelDrawer({
       targetUser.adminProfileId || 
       (targetUser.role === 'super-admin' ? 'profile_super_admin' : (targetUser.role === 'admin' ? 'profile_general_admin' : 'profile_animateur'))
     );
-    setRoleEditAssignedStation(targetUser.assignedStationId || 'all');
+    setRoleEditAssignedStations(
+      targetUser.assignedStationIds && targetUser.assignedStationIds.length > 0 
+        ? targetUser.assignedStationIds 
+        : (targetUser.assignedStationId && targetUser.assignedStationId !== 'all' ? [targetUser.assignedStationId] : [])
+    );
   };
 
   const handleSaveUserRole = async () => {
@@ -622,7 +711,8 @@ export default function AdminPanelDrawer({
 
     const targetId = selectedUserForRoleEdit.id;
     const finalProfileId = roleEditRole === 'user' ? undefined : (roleEditRole === 'super-admin' ? 'profile_super_admin' : roleEditProfileId);
-    const finalStationId = roleEditRole === 'user' ? undefined : roleEditAssignedStation;
+    const finalStationIds = roleEditRole === 'user' ? undefined : roleEditAssignedStations;
+    const finalStationId = roleEditRole === 'user' ? undefined : (roleEditAssignedStations.length === 1 ? roleEditAssignedStations[0] : (roleEditAssignedStations.length === 0 ? 'all' : roleEditAssignedStations[0]));
 
     const updated = users.map((u) => {
       if (u.id === targetId) {
@@ -631,6 +721,7 @@ export default function AdminPanelDrawer({
           role: roleEditRole,
           adminProfileId: finalProfileId,
           assignedStationId: finalStationId,
+          assignedStationIds: finalStationIds,
         };
       }
       return u;
@@ -646,15 +737,39 @@ export default function AdminPanelDrawer({
         role: roleEditRole,
         adminProfileId: finalProfileId,
         assignedStationId: finalStationId,
+        assignedStationIds: finalStationIds,
       };
       setCurrentUser(updatedCurrent);
     }
 
-    // Persist to PocketBase
-    await updateUserRoleInPocketBase(targetId, roleEditRole, finalProfileId, finalStationId).catch(() => {});
+    // Persist to Supabase
+    await updateUserRoleInSupabase(targetId, roleEditRole, finalProfileId, finalStationId).catch(() => {});
 
     setSelectedUserForRoleEdit(null);
     showToast(`Droits et profil mis à jour pour ${selectedUserForRoleEdit.username || selectedUserForRoleEdit.email} !`);
+  };
+
+  const handleUpdateUserStations = (userId: string, stationIds: string[]) => {
+    const updated = users.map((u) => {
+      if (u.id === userId) {
+        return {
+          ...u,
+          assignedStationIds: stationIds,
+          assignedStationId: stationIds.length === 1 ? stationIds[0] : (stationIds.length === 0 ? undefined : 'all'),
+        };
+      }
+      return u;
+    });
+    setUsers(updated);
+    saveAdminUsers(updated);
+    if (currentUser && currentUser.id === userId) {
+      setCurrentUser({
+        ...currentUser,
+        assignedStationIds: stationIds,
+        assignedStationId: stationIds.length === 1 ? stationIds[0] : (stationIds.length === 0 ? undefined : 'all'),
+      });
+    }
+    showToast('Attribution des stations mise à jour.');
   };
 
   const handleCreateUser = (e: React.FormEvent) => {
@@ -668,7 +783,7 @@ export default function AdminPanelDrawer({
       adminProfileId: userFormRole === 'super-admin' ? 'profile_super_admin' : (userFormRole === 'admin' ? userFormProfileId : undefined),
       assignedStationId: userFormRole !== 'user' ? userFormAssignedStation : undefined,
       createdAt: Date.now(),
-      isSpotifyLinked: false,
+      points: 100,
     };
     const updated = [newUser, ...users];
     setUsers(updated);
@@ -1008,6 +1123,26 @@ export default function AdminPanelDrawer({
       activityCount: activeStationsCount,
       alertCount: (!dbStatus.ok ? 1 : 0) + (unreadMessagesCount > 0 ? 1 : 0),
     },
+    stations_management: {
+      activityCount: stations.length,
+      alertCount: stations.filter((s) => s.enabled === false).length,
+    },
+    regie_animation: {
+      activityCount: activeStationsCount,
+      alertCount: 0,
+    },
+    music_library: {
+      activityCount: 1,
+      alertCount: 0,
+    },
+    playlists: {
+      activityCount: activeStationsCount,
+      alertCount: 0,
+    },
+    emission_prep: {
+      activityCount: 1,
+      alertCount: 0,
+    },
     stations: {
       activityCount: activeStationsCount,
       alertCount: stations.filter((s) => s.enabled === false).length,
@@ -1017,7 +1152,7 @@ export default function AdminPanelDrawer({
       alertCount: 0,
     },
     services: {
-      activityCount: 2, // AzuraCast API + PocketBase
+      activityCount: 2, // Streaming API + Supabase
       alertCount: !dbStatus.ok ? 1 : 0,
     },
     users: {
@@ -1615,15 +1750,8 @@ export default function AdminPanelDrawer({
             >
               {sidebarLinks.map((item) => {
                 const Icon = item.icon;
-                const isActive = activeTab === item.id || (item.id === 'services' && (activeTab === 'azuracast' || activeTab === 'database'));
-                const colorScheme = TAB_COLOR_CONFIGS[item.id as AdminTab] || {
-                  text: 'text-zinc-200',
-                  bg: 'bg-zinc-800',
-                  border: 'border-zinc-700',
-                  activeBg: 'bg-white/10',
-                  activeBorder: 'border-white/30',
-                  activeText: 'text-white',
-                };
+                const isActive = activeTab === item.id || (item.id === 'services' && (activeTab === 'streaming' || activeTab === 'database'));
+                const colorScheme = TAB_COLOR_CONFIGS[item.id as AdminTab] || TAB_COLOR_CONFIGS.dashboard;
 
                 return (
                   <button
@@ -1650,9 +1778,9 @@ export default function AdminPanelDrawer({
                         : 'hover:bg-zinc-900/60 text-zinc-400 hover:text-zinc-200'
                     }`}
                   >
-                    {/* Active vertical selection bar: left of icon, slightly taller exceeding top and bottom */}
+                    {/* Active vertical selection bar: left of icon, colored with the tab chromatic hue */}
                     {isActive && (
-                      <div className="absolute left-0 -top-1 -bottom-1 w-1 rounded-full bg-white shadow-[0_0_8px_rgba(255,255,255,0.5)] z-10" />
+                      <div className={`absolute left-0 -top-1 -bottom-1 w-1 rounded-full ${colorScheme.barBg} z-10`} />
                     )}
 
                     {/* FIXED ICON SLOT (52px wide, centered — NEVER MOVES BETWEEN RETRACTED & DEPLOYED) */}
@@ -1660,11 +1788,11 @@ export default function AdminPanelDrawer({
                       <div
                         className={`p-2 rounded-xl transition-all duration-200 shrink-0 relative border ${
                           isActive
-                            ? `bg-zinc-900 border-zinc-800 ${colorScheme.text}`
-                            : `bg-zinc-900/90 border-zinc-800/80 ${colorScheme.text} group-hover:${colorScheme.bg} group-hover:${colorScheme.border} group-hover:scale-105`
+                            ? `${colorScheme.activeBg} ${colorScheme.activeBorder} ${colorScheme.activeText} ${colorScheme.accentGlow}`
+                            : `bg-zinc-900/90 border-zinc-800/80 ${colorScheme.text} group-hover:border-zinc-700 group-hover:bg-zinc-850 group-hover:scale-105`
                         }`}
                       >
-                        <Icon className="w-4 h-4" />
+                        <Icon className={`w-4 h-4 ${isActive ? colorScheme.activeText : colorScheme.text}`} />
 
                         {/* ALERT BADGE (PRIORITY OVER ACTIVITY) */}
                         {item.alertCount && item.alertCount > 0 ? (
@@ -1695,7 +1823,7 @@ export default function AdminPanelDrawer({
                       }`}
                     >
                       <div className="flex flex-col min-w-0 pr-2">
-                        <span className={`text-xs font-mono font-bold tracking-wide truncate ${isActive ? 'text-white' : 'text-zinc-300 group-hover:text-white'}`}>
+                        <span className={`text-xs font-mono font-bold tracking-wide truncate ${isActive ? colorScheme.activeText : 'text-zinc-300 group-hover:text-white'}`}>
                           {item.label}
                         </span>
                       </div>
@@ -1833,7 +1961,7 @@ export default function AdminPanelDrawer({
               {/* TOP HEADER & SUBTABS TOGGLE (STICKY TOP BAR) */}
               <div className="sticky top-0 z-20 w-full bg-zinc-950 border-b border-zinc-800 px-4 sm:px-6 lg:px-8 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shrink-0 shadow-lg">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-zinc-800/80 border border-zinc-700/60 flex items-center justify-center text-zinc-200 shrink-0">
                     <Shield className="w-4 h-4" />
                   </div>
                   <div className="flex items-center gap-2 flex-wrap">
@@ -1841,7 +1969,7 @@ export default function AdminPanelDrawer({
                     <h2 className="text-base sm:text-lg font-futuristic font-black tracking-wide text-white">
                       Gestion des Comptes & Droits d'Accès
                     </h2>
-                    <span className="px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[10px] font-mono font-bold uppercase">
+                    <span className="px-2.5 py-0.5 rounded-full bg-zinc-900 border border-zinc-750 text-zinc-300 text-[10px] font-mono font-bold uppercase">
                       Hiérarchie Super-Admin
                     </span>
                   </div>
@@ -1853,7 +1981,7 @@ export default function AdminPanelDrawer({
                     onClick={() => setUserAccountsSubTab('accounts')}
                     className={`px-3.5 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center gap-2 transition-all cursor-pointer ${
                       userAccountsSubTab === 'accounts'
-                        ? 'bg-amber-500 text-black shadow-md'
+                        ? 'bg-zinc-800 text-white border border-zinc-600 shadow-xs'
                         : 'text-zinc-400 hover:text-white'
                     }`}
                   >
@@ -1865,7 +1993,7 @@ export default function AdminPanelDrawer({
                     onClick={() => setUserAccountsSubTab('templates')}
                     className={`px-3.5 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center gap-2 transition-all cursor-pointer ${
                       userAccountsSubTab === 'templates'
-                        ? 'bg-amber-500 text-black shadow-md'
+                        ? 'bg-zinc-800 text-white border border-zinc-600 shadow-xs'
                         : 'text-zinc-400 hover:text-white'
                     }`}
                   >
@@ -1890,15 +2018,15 @@ export default function AdminPanelDrawer({
                       <span className="text-[10px] font-mono uppercase text-zinc-400 font-bold">Total Comptes</span>
                       <span className="text-xl font-mono font-black text-white">{users.length}</span>
                     </div>
-                    <div className="p-3.5 rounded-xl bg-zinc-950 border border-red-500/20 flex flex-col gap-1">
-                      <span className="text-[10px] font-mono uppercase text-red-400 font-bold">Super-Admins</span>
-                      <span className="text-xl font-mono font-black text-red-300">
+                    <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 flex flex-col gap-1">
+                      <span className="text-[10px] font-mono uppercase text-zinc-400 font-bold">Super-Admins</span>
+                      <span className="text-xl font-mono font-black text-zinc-200">
                         {users.filter(u => u.role === 'super-admin').length}
                       </span>
                     </div>
-                    <div className="p-3.5 rounded-xl bg-zinc-950 border border-amber-500/20 flex flex-col gap-1">
-                      <span className="text-[10px] font-mono uppercase text-amber-400 font-bold">Admins & Profils</span>
-                      <span className="text-xl font-mono font-black text-amber-300">
+                    <div className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800 flex flex-col gap-1">
+                      <span className="text-[10px] font-mono uppercase text-zinc-400 font-bold">Admins & Profils</span>
+                      <span className="text-xl font-mono font-black text-zinc-200">
                         {users.filter(u => u.role === 'admin').length}
                       </span>
                     </div>
@@ -1918,7 +2046,7 @@ export default function AdminPanelDrawer({
                         placeholder="Rechercher un utilisateur (pseudo, email)..."
                         value={userSearchQuery}
                         onChange={(e) => setUserSearchQuery(e.target.value)}
-                        className="px-3.5 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs font-mono text-white placeholder-zinc-500 focus:border-amber-400 focus:outline-none flex-1 min-w-[200px]"
+                        className="px-3.5 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs font-mono text-white placeholder-zinc-500 focus:border-zinc-400 focus:outline-none flex-1 min-w-[200px]"
                       />
 
                       <div className="flex items-center gap-1 p-1 rounded-xl bg-zinc-950 border border-zinc-850">
@@ -1928,7 +2056,7 @@ export default function AdminPanelDrawer({
                             onClick={() => setUserRoleFilter(filterVal)}
                             className={`px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold transition-all cursor-pointer ${
                               userRoleFilter === filterVal
-                                ? 'bg-zinc-800 text-amber-300 border border-zinc-700'
+                                ? 'bg-zinc-800 text-white border border-zinc-700'
                                 : 'text-zinc-400 hover:text-zinc-200'
                             }`}
                           >
@@ -1940,7 +2068,7 @@ export default function AdminPanelDrawer({
 
                     <button
                       onClick={() => setIsAddingNew(!isAddingNew)}
-                      className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-mono font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shrink-0 shadow-md shadow-amber-500/20"
+                      className="px-3.5 py-2 rounded-xl bg-zinc-100 hover:bg-white text-zinc-950 text-xs font-mono font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shrink-0 shadow-md"
                     >
                       <UserPlus className="w-4 h-4" />
                       <span>{isAddingNew ? 'Fermer le formulaire' : 'Créer un compte'}</span>
@@ -1949,13 +2077,13 @@ export default function AdminPanelDrawer({
 
                   {/* ADD USER FORM WITH ROLE & PROFILE PICKER */}
                   {isAddingNew && (
-                    <form onSubmit={handleCreateUser} className="p-5 rounded-2xl bg-zinc-900/90 border border-amber-500/40 flex flex-col gap-4 shadow-xl animate-in fade-in duration-200">
+                    <form onSubmit={handleCreateUser} className="p-5 rounded-2xl bg-zinc-900/90 border border-zinc-700 flex flex-col gap-4 shadow-xl animate-in fade-in duration-200">
                       <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
-                        <span className="text-xs font-mono font-bold text-amber-400 uppercase flex items-center gap-2">
-                          <UserPlus className="w-4 h-4" />
+                        <span className="text-xs font-mono font-bold text-zinc-200 uppercase flex items-center gap-2">
+                          <UserPlus className="w-4 h-4 text-zinc-400" />
                           Créer un nouveau compte avec attribution de rôle
                         </span>
-                        <span className="text-[11px] font-mono text-zinc-500">Sauvegarde locale + PocketBase</span>
+                        <span className="text-[11px] font-mono text-zinc-500">Sauvegarde locale + Supabase</span>
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -1967,7 +2095,7 @@ export default function AdminPanelDrawer({
                             placeholder="ex: animateur@synapse.fm"
                             value={userFormEmail}
                             onChange={(e) => setUserFormEmail(e.target.value)}
-                            className="px-3.5 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs font-mono focus:border-amber-400 focus:outline-none"
+                            className="px-3.5 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs font-mono focus:border-zinc-400 focus:outline-none"
                           />
                         </div>
 
@@ -1978,7 +2106,7 @@ export default function AdminPanelDrawer({
                             placeholder="ex: Alex Radio"
                             value={userFormUsername}
                             onChange={(e) => setUserFormUsername(e.target.value)}
-                            className="px-3.5 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs font-mono focus:border-amber-400 focus:outline-none"
+                            className="px-3.5 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs font-mono focus:border-zinc-400 focus:outline-none"
                           />
                         </div>
 
@@ -1987,7 +2115,7 @@ export default function AdminPanelDrawer({
                           <select
                             value={userFormRole}
                             onChange={(e) => setUserFormRole(e.target.value as UserRole)}
-                            className="px-3.5 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs font-mono focus:border-amber-400 focus:outline-none cursor-pointer"
+                            className="px-3.5 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs font-mono focus:border-zinc-400 focus:outline-none cursor-pointer"
                           >
                             <option value="super-admin">👑 Super-Administrateur (Tous droits)</option>
                             <option value="admin">⭐ Administrateur (Selon profil assigné)</option>
@@ -1998,15 +2126,15 @@ export default function AdminPanelDrawer({
 
                       {/* CONDITIONAL PROFILE & STATION ASSIGNMENT IF ADMIN */}
                       {userFormRole === 'admin' && (
-                        <div className="p-4 rounded-xl bg-zinc-950 border border-amber-500/20 grid grid-cols-1 sm:grid-cols-2 gap-3 animate-in fade-in duration-150">
+                        <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 grid grid-cols-1 sm:grid-cols-2 gap-3 animate-in fade-in duration-150">
                           <div className="flex flex-col gap-1">
-                            <label className="text-[10.5px] font-mono text-amber-300 font-bold">
+                            <label className="text-[10.5px] font-mono text-zinc-300 font-bold">
                               Modèle de Profil Administrateur :
                             </label>
                             <select
                               value={userFormProfileId}
                               onChange={(e) => setUserFormProfileId(e.target.value)}
-                              className="px-3.5 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-white text-xs font-mono focus:border-amber-400 focus:outline-none cursor-pointer"
+                              className="px-3.5 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-white text-xs font-mono focus:border-zinc-400 focus:outline-none cursor-pointer"
                             >
                               {profileTemplates.filter(t => t.id !== 'profile_super_admin').map((tpl) => (
                                 <option key={tpl.id} value={tpl.id}>
@@ -2017,13 +2145,13 @@ export default function AdminPanelDrawer({
                           </div>
 
                           <div className="flex flex-col gap-1">
-                            <label className="text-[10.5px] font-mono text-amber-300 font-bold">
+                            <label className="text-[10.5px] font-mono text-zinc-300 font-bold">
                               Station / Fréquence assignée :
                             </label>
                             <select
                               value={userFormAssignedStation}
                               onChange={(e) => setUserFormAssignedStation(e.target.value)}
-                              className="px-3.5 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-white text-xs font-mono focus:border-amber-400 focus:outline-none cursor-pointer"
+                              className="px-3.5 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-white text-xs font-mono focus:border-zinc-400 focus:outline-none cursor-pointer"
                             >
                               <option value="all">🌍 Toutes les stations (Global)</option>
                               {stations.map((st) => (
@@ -2046,7 +2174,7 @@ export default function AdminPanelDrawer({
                         </button>
                         <button
                           type="submit"
-                          className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs font-mono cursor-pointer shadow-md"
+                          className="px-5 py-2 rounded-xl bg-zinc-100 hover:bg-white text-zinc-950 font-bold text-xs font-mono cursor-pointer shadow-md"
                         >
                           Créer le compte
                         </button>
@@ -2149,9 +2277,9 @@ export default function AdminPanelDrawer({
                                         </span>
                                       )}
 
-                                      {usr.isSpotifyLinked && (
-                                        <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[9px] font-mono font-bold">
-                                          Spotify
+                                      {usr.authMethod === 'passkey' && (
+                                        <span className="px-1.5 py-0.5 rounded-md bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-[9px] font-mono font-bold">
+                                          Passkey
                                         </span>
                                       )}
                                     </div>
@@ -2171,16 +2299,16 @@ export default function AdminPanelDrawer({
                                 <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
                                   <button
                                     onClick={() => handleOpenEditUserRole(usr)}
-                                    className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-amber-300 hover:text-amber-200 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                                    className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-200 hover:text-white text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer"
                                     title="Configurer le rôle et le profil de permissions"
                                   >
-                                    <Sliders className="w-3.5 h-3.5" />
+                                    <Sliders className="w-3.5 h-3.5 text-zinc-400" />
                                     <span>Modifier Droits</span>
                                   </button>
 
                                   <button
                                     onClick={() => handleDeleteUser(usr.id)}
-                                    className="p-2 rounded-xl bg-red-950/30 hover:bg-red-950/70 border border-red-500/30 text-red-400 hover:text-red-300 transition-all cursor-pointer"
+                                    className="p-2 rounded-xl bg-zinc-900 hover:bg-red-950/60 border border-zinc-800 hover:border-red-500/40 text-zinc-400 hover:text-red-400 transition-all cursor-pointer"
                                     title="Supprimer l'utilisateur"
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
@@ -2201,9 +2329,9 @@ export default function AdminPanelDrawer({
               {/* ========================================================= */}
               {userAccountsSubTab === 'templates' && (
                 <div className="flex flex-col gap-4">
-                  <div className="p-4 rounded-2xl bg-amber-950/20 border border-amber-500/30 text-amber-200 text-xs font-mono flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+                  <div className="p-4 rounded-2xl bg-zinc-900/70 border border-zinc-800 text-zinc-300 text-xs font-mono flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
                     <div className="flex items-center gap-2.5">
-                      <Shield className="w-4 h-4 text-amber-400 shrink-0" />
+                      <Shield className="w-4 h-4 text-zinc-400 shrink-0" />
                       <span>
                         <strong>Système de Permissions Déléguées :</strong> Tous les intervenants créés ont un compte admin mais reçoivent les permissions du profil associé préconfiguré ci-dessous.
                       </span>
@@ -2211,16 +2339,25 @@ export default function AdminPanelDrawer({
 
                     <button
                       onClick={handleResetProfileTemplatesList}
-                      className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-amber-500/40 text-amber-300 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
+                      className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-700 text-zinc-200 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
                     >
-                      <RotateCcw className="w-3.5 h-3.5" />
+                      <RotateCcw className="w-3.5 h-3.5 text-zinc-400" />
                       <span>Réinitialiser Modèles</span>
                     </button>
                   </div>
 
                   {/* GRID OF PROFILE TEMPLATES */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {profileTemplates.map((template) => {
+                  {profileTemplates.length === 0 ? (
+                    <div className="p-8 rounded-2xl bg-zinc-950/60 border border-zinc-850 text-center flex flex-col items-center justify-center gap-3">
+                      <ShieldCheck className="w-8 h-8 text-zinc-600" />
+                      <div className="text-sm font-futuristic text-zinc-300">Aucun modèle de profil créé</div>
+                      <p className="text-xs font-mono text-zinc-500 max-w-md">
+                        Le super-administrateur n'a pas encore créé de profil de permissions. Cliquez sur « Nouveau Modèle » pour en définir un.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {profileTemplates.map((template) => {
                       const enabledPermissionsCount = Object.values(template.permissions).filter(Boolean).length;
                       const isSuper = template.id === 'profile_super_admin';
 
@@ -2233,8 +2370,7 @@ export default function AdminPanelDrawer({
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex items-center gap-2">
                                 <div
-                                  className="w-3 h-3 rounded-full"
-                                  style={{ backgroundColor: template.color }}
+                                  className="w-3 h-3 rounded-full bg-zinc-400"
                                 />
                                 <span className="text-sm font-futuristic font-black tracking-wide text-white">
                                   {template.name}
@@ -2242,12 +2378,7 @@ export default function AdminPanelDrawer({
                               </div>
 
                               <span
-                                className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border"
-                                style={{
-                                  backgroundColor: `${template.color}15`,
-                                  borderColor: `${template.color}40`,
-                                  color: template.color,
-                                }}
+                                className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-zinc-900 border border-zinc-750 text-zinc-300"
                               >
                                 {template.badge}
                               </span>
@@ -2261,7 +2392,7 @@ export default function AdminPanelDrawer({
                             <div className="pt-3 border-t border-zinc-900 flex flex-col gap-2">
                               <div className="flex items-center justify-between text-[11px] font-mono">
                                 <span className="text-zinc-400">Permissions actives :</span>
-                                <span className="font-bold text-amber-400">{enabledPermissionsCount} / 11</span>
+                                <span className="font-bold text-white">{enabledPermissionsCount} / 11</span>
                               </div>
 
                               <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto custom-scrollbar">
@@ -2281,12 +2412,12 @@ export default function AdminPanelDrawer({
                                   </span>
                                 )}
                                 {template.permissions.can_manage_messages && (
-                                  <span className="px-1.5 py-0.5 rounded bg-pink-950/60 text-pink-300 text-[9.5px] font-mono border border-pink-500/30">
+                                  <span className="px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-300 text-[9.5px] font-mono border border-zinc-800">
                                     Dédicaces
                                   </span>
                                 )}
                                 {template.permissions.can_manage_programming && (
-                                  <span className="px-1.5 py-0.5 rounded bg-emerald-950/60 text-emerald-300 text-[9.5px] font-mono border border-emerald-500/30">
+                                  <span className="px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-300 text-[9.5px] font-mono border border-zinc-800">
                                     Grille On-Air
                                   </span>
                                 )}
@@ -2296,13 +2427,13 @@ export default function AdminPanelDrawer({
                                   </span>
                                 )}
                                 {template.permissions.can_manage_users && (
-                                  <span className="px-1.5 py-0.5 rounded bg-amber-950/60 text-amber-300 text-[9.5px] font-mono border border-amber-500/30">
+                                  <span className="px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-300 text-[9.5px] font-mono border border-zinc-800">
                                     Comptes
                                   </span>
                                 )}
                                 {template.permissions.can_manage_database && (
-                                  <span className="px-1.5 py-0.5 rounded bg-purple-950/60 text-purple-300 text-[9.5px] font-mono border border-purple-500/30">
-                                    PocketBase
+                                  <span className="px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-300 text-[9.5px] font-mono border border-zinc-800">
+                                    Supabase
                                   </span>
                                 )}
                               </div>
@@ -2313,13 +2444,14 @@ export default function AdminPanelDrawer({
                             onClick={() => setEditingProfileTemplate(template)}
                             className="w-full py-2 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-700 text-zinc-200 hover:text-white text-xs font-mono font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
                           >
-                            <Sliders className="w-3.5 h-3.5 text-amber-400" />
+                            <Sliders className="w-3.5 h-3.5 text-zinc-400" />
                             <span>{isSuper ? 'Voir le modèle' : 'Personnaliser ce profil'}</span>
                           </button>
                         </div>
                       );
                     })}
                   </div>
+                  )}
                 </div>
               )}
 
@@ -2332,7 +2464,7 @@ export default function AdminPanelDrawer({
                     
                     <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
                       <div className="flex items-center gap-2.5">
-                        <ShieldCheck className="w-5 h-5 text-amber-400" />
+                        <ShieldCheck className="w-5 h-5 text-zinc-300" />
                         <span className="text-base font-futuristic font-black text-white">
                           Attribuer Droits & Profil Administrateur
                         </span>
@@ -2346,7 +2478,7 @@ export default function AdminPanelDrawer({
                     </div>
 
                     <div className="p-3 rounded-xl bg-zinc-900/80 border border-zinc-800 flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-amber-400 font-bold text-xs">
+                      <div className="w-10 h-10 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-200 font-bold text-xs">
                         {selectedUserForRoleEdit.username?.slice(0, 2).toUpperCase() || 'US'}
                       </div>
                       <div className="flex flex-col">
@@ -2370,12 +2502,12 @@ export default function AdminPanelDrawer({
                           onClick={() => setRoleEditRole('super-admin')}
                           className={`p-3 rounded-xl border text-left flex flex-col gap-1 transition-all cursor-pointer ${
                             roleEditRole === 'super-admin'
-                              ? 'bg-red-500/10 border-red-500 text-red-300 shadow-md shadow-red-500/10'
+                              ? 'bg-zinc-800 border-zinc-500 text-white shadow-xs'
                               : 'bg-zinc-900/60 border-zinc-800 text-zinc-400 hover:border-zinc-700'
                           }`}
                         >
-                          <span className="text-xs font-mono font-bold flex items-center gap-1.5 text-red-400">
-                            <Shield className="w-3.5 h-3.5" />
+                          <span className="text-xs font-mono font-bold flex items-center gap-1.5 text-zinc-200">
+                            <Shield className="w-3.5 h-3.5 text-zinc-400" />
                             Super-Admin
                           </span>
                           <span className="text-[10px] font-mono text-zinc-400">
@@ -2388,12 +2520,12 @@ export default function AdminPanelDrawer({
                           onClick={() => setRoleEditRole('admin')}
                           className={`p-3 rounded-xl border text-left flex flex-col gap-1 transition-all cursor-pointer ${
                             roleEditRole === 'admin'
-                              ? 'bg-amber-500/10 border-amber-500 text-amber-300 shadow-md shadow-amber-500/10'
+                              ? 'bg-zinc-800 border-zinc-500 text-white shadow-xs'
                               : 'bg-zinc-900/60 border-zinc-800 text-zinc-400 hover:border-zinc-700'
                           }`}
                         >
-                          <span className="text-xs font-mono font-bold flex items-center gap-1.5 text-amber-400">
-                            <ShieldCheck className="w-3.5 h-3.5" />
+                          <span className="text-xs font-mono font-bold flex items-center gap-1.5 text-zinc-200">
+                            <ShieldCheck className="w-3.5 h-3.5 text-zinc-400" />
                             Admin Délégué
                           </span>
                           <span className="text-[10px] font-mono text-zinc-400">
@@ -2406,7 +2538,7 @@ export default function AdminPanelDrawer({
                           onClick={() => setRoleEditRole('user')}
                           className={`p-3 rounded-xl border text-left flex flex-col gap-1 transition-all cursor-pointer ${
                             roleEditRole === 'user'
-                              ? 'bg-zinc-800 border-zinc-600 text-zinc-200'
+                              ? 'bg-zinc-800 border-zinc-500 text-white'
                               : 'bg-zinc-900/60 border-zinc-800 text-zinc-400 hover:border-zinc-700'
                           }`}
                         >
@@ -2423,15 +2555,15 @@ export default function AdminPanelDrawer({
 
                     {/* IF ADMIN: PROFILE TEMPLATE PICKER */}
                     {roleEditRole === 'admin' && (
-                      <div className="flex flex-col gap-3 p-4 rounded-xl bg-zinc-900/90 border border-amber-500/30 animate-in fade-in duration-150">
+                      <div className="flex flex-col gap-3 p-4 rounded-xl bg-zinc-900/90 border border-zinc-800 animate-in fade-in duration-150">
                         <div className="flex flex-col gap-1">
-                          <label className="text-xs font-mono font-bold text-amber-300">
+                          <label className="text-xs font-mono font-bold text-zinc-200">
                             2. Modèle de Profil Préconfiguré :
                           </label>
                           <select
                             value={roleEditProfileId}
                             onChange={(e) => setRoleEditProfileId(e.target.value)}
-                            className="px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs font-mono focus:border-amber-400 focus:outline-none cursor-pointer"
+                            className="px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs font-mono focus:border-zinc-400 focus:outline-none cursor-pointer"
                           >
                             {profileTemplates.filter(t => t.id !== 'profile_super_admin').map((tpl) => (
                               <option key={tpl.id} value={tpl.id}>
@@ -2441,22 +2573,63 @@ export default function AdminPanelDrawer({
                           </select>
                         </div>
 
-                        <div className="flex flex-col gap-1">
-                          <label className="text-xs font-mono font-bold text-amber-300">
-                            3. Station Radio Assignée :
+                        <div className="flex flex-col gap-2">
+                          <label className="text-xs font-mono font-bold text-zinc-200">
+                            3. Attribution des Stations Radio :
                           </label>
-                          <select
-                            value={roleEditAssignedStation}
-                            onChange={(e) => setRoleEditAssignedStation(e.target.value)}
-                            className="px-3.5 py-2.5 rounded-xl bg-zinc-950 border border-zinc-800 text-white text-xs font-mono focus:border-amber-400 focus:outline-none cursor-pointer"
-                          >
-                            <option value="all">🌍 Toutes les stations (Accès multi-fréquences)</option>
-                            {stations.map((st) => (
-                              <option key={st.id} value={st.id}>
-                                📻 {st.name} ({st.genre})
-                              </option>
-                            ))}
-                          </select>
+                          <div className="text-[11px] font-mono text-zinc-400">
+                            Cochez les radios que cet administrateur est autorisé à animer et gérer :
+                          </div>
+                          <div className="flex flex-col gap-1.5 max-h-44 overflow-y-auto custom-scrollbar p-2 rounded-xl bg-zinc-950 border border-zinc-800">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (roleEditAssignedStations.length === stations.length) {
+                                  setRoleEditAssignedStations([]);
+                                } else {
+                                  setRoleEditAssignedStations(stations.map(s => s.id));
+                                }
+                              }}
+                              className="w-full text-left px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-[11px] font-mono text-zinc-300 hover:text-white flex items-center justify-between cursor-pointer"
+                            >
+                              <span>🌍 Toutes les stations ({roleEditAssignedStations.length}/{stations.length})</span>
+                              <span className="text-[10px] text-zinc-500">
+                                {roleEditAssignedStations.length === stations.length ? 'Tout désélectionner' : 'Tout sélectionner'}
+                              </span>
+                            </button>
+
+                            {stations.map((st) => {
+                              const isChecked = roleEditAssignedStations.includes(st.id);
+                              return (
+                                <button
+                                  key={st.id}
+                                  type="button"
+                                  onClick={() => {
+                                    if (isChecked) {
+                                      setRoleEditAssignedStations(roleEditAssignedStations.filter(id => id !== st.id));
+                                    } else {
+                                      setRoleEditAssignedStations([...roleEditAssignedStations, st.id]);
+                                    }
+                                  }}
+                                  className={`w-full text-left px-2.5 py-1.5 rounded-lg border text-xs font-mono flex items-center justify-between transition-colors cursor-pointer ${
+                                    isChecked
+                                      ? 'bg-zinc-850 border-amber-500/40 text-amber-300'
+                                      : 'bg-zinc-900/50 border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2 truncate">
+                                    {isChecked ? (
+                                      <CheckSquare className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                                    ) : (
+                                      <Square className="w-3.5 h-3.5 text-zinc-600 shrink-0" />
+                                    )}
+                                    <span className="truncate">{st.name}</span>
+                                  </div>
+                                  <span className="text-[10px] text-zinc-500 shrink-0 ml-2">{st.genre}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
                       </div>
                     )}
@@ -2473,7 +2646,7 @@ export default function AdminPanelDrawer({
                       <button
                         type="button"
                         onClick={handleSaveUserRole}
-                        className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-mono font-bold text-xs flex items-center gap-2 cursor-pointer shadow-lg shadow-amber-500/20"
+                        className="px-5 py-2 rounded-xl bg-zinc-100 hover:bg-white text-zinc-950 font-mono font-bold text-xs flex items-center gap-2 cursor-pointer shadow-md"
                       >
                         <Check className="w-4 h-4" />
                         <span>Enregistrer & Synchroniser</span>
@@ -2582,14 +2755,14 @@ export default function AdminPanelDrawer({
                           { key: 'can_access_dashboard', label: 'Tableau de bord modulable', desc: 'Surveillance et statistiques d\'antenne' },
                           { key: 'can_broadcast_live', label: 'Prise d\'antenne régie & DJ', desc: 'Console direct, micro studio et top horaire' },
                           { key: 'can_manage_stations', label: 'Stations & Flux Radio', desc: 'Gestion des fréquences et flux streaming' },
-                          { key: 'can_manage_services', label: 'Services API & AzuraCast', desc: 'Gestion des clés API, AutoDJ et connecteurs' },
+                          { key: 'can_manage_services', label: 'Services API & Serveurs de Flux', desc: 'Gestion des clés API, AutoDJ et connecteurs' },
                           { key: 'can_manage_users', label: 'Gestion des Utilisateurs & Rôles', desc: 'Création et attribution des profils admin' },
                           { key: 'can_manage_messages', label: 'Messagerie & Dédicaces Direct', desc: 'Lecture et modération des messages auditeurs' },
                           { key: 'can_manage_programming', label: 'Grille TV / Radio On-Air', desc: 'Planification des programmes et émissions' },
                           { key: 'can_manage_events', label: 'Événements & Concerts', desc: 'Création et publication des dates d\'antenne' },
                           { key: 'can_manage_challenges', label: 'Quêtes & Défis XP', desc: 'Gamification et récompenses des auditeurs' },
                           { key: 'can_manage_promotions', label: 'Promotions & Boutique', desc: 'Gestion des codes promo et avantages' },
-                          { key: 'can_manage_database', label: 'Base PocketBase SQLite', desc: 'Synchronisation et export de schéma' },
+                          { key: 'can_manage_database', label: 'Base Supabase PostgreSQL', desc: 'Synchronisation et export de schéma SQL' },
                         ].map(({ key, label, desc }) => {
                           const isChecked = !!editingProfileTemplate.permissions[key as keyof AdminPermissions];
                           return (
@@ -2652,6 +2825,67 @@ export default function AdminPanelDrawer({
             </div>
           )}
 
+        {/* SEPARATED DOMAIN TAB 1: GESTION DES STATIONS (SUPER ADMIN ONLY) */}
+        {activeTab === 'stations_management' && (
+          <AdminStationManagementView
+            stations={stations}
+            users={users}
+            currentUser={currentUser}
+            onSaveStations={(updatedStations) => {
+              setStations(updatedStations);
+              saveAdminStations(updatedStations);
+              if (onRefreshAppState) onRefreshAppState();
+            }}
+            onUpdateUserStations={handleUpdateUserStations}
+            showToast={showToast}
+          />
+        )}
+
+        {/* SEPARATED DOMAIN TAB 2: RÉGIE & ANIMATION STUDIO (ADMIN & SUPER ADMIN) */}
+        {activeTab === 'regie_animation' && (
+          <AdminRegieAnimationView
+            stations={stations}
+            activeStation={selectedStationForControlDeck || activeStation || stations[0]}
+            currentUser={currentUser}
+            onSelectStation={(st) => setSelectedStationForControlDeck(st)}
+            showToast={showToast}
+            onOpenControlDeck={(st) => setSelectedStationForControlDeck(st)}
+          />
+        )}
+
+        {/* SEPARATED DOMAIN TAB 3: BIBLIOTHÈQUE MUSIQUE */}
+        {activeTab === 'music_library' && (
+          <AdminMusicLibraryView
+            stations={stations}
+            activeStation={selectedStationForControlDeck || activeStation || stations[0]}
+            currentUser={currentUser}
+            onSelectStation={(st) => setSelectedStationForControlDeck(st)}
+            showToast={showToast}
+          />
+        )}
+
+        {/* SEPARATED DOMAIN TAB 4: PLAYLISTS & ROTATIONS AUTO-DJ */}
+        {activeTab === 'playlists' && (
+          <AdminPlaylistsView
+            stations={stations}
+            activeStation={selectedStationForControlDeck || activeStation || stations[0]}
+            currentUser={currentUser}
+            onSelectStation={(st) => setSelectedStationForControlDeck(st)}
+            showToast={showToast}
+          />
+        )}
+
+        {/* SEPARATED DOMAIN TAB 5: PRÉPARATION DES ÉMISSIONS & CONDUCTEURS D'ANTENNE */}
+        {activeTab === 'emission_prep' && (
+          <AdminEmissionPrepView
+            stations={stations}
+            activeStation={selectedStationForControlDeck || activeStation || stations[0]}
+            currentUser={currentUser}
+            onSelectStation={(st) => setSelectedStationForControlDeck(st)}
+            showToast={showToast}
+          />
+        )}
+
         {/* TAB 2: GESTION DE LA RÉGIE & STATIONS RADIOS (LIQUIDSOAP & VPS DIRECT) */}
         {activeTab === 'stations' && (
           <div className="flex flex-col w-full min-w-0">
@@ -2712,7 +2946,7 @@ export default function AdminPanelDrawer({
                 </div>
 
                 <div className="p-4 sm:p-6 lg:p-8 flex flex-col gap-4 text-left">
-            {/* SECTION HAUT DE PAGE : LIAISON COMPTE DJ STREAMER AZURACAST */}
+            {/* SECTION HAUT DE PAGE : LIAISON COMPTE DJ STREAMER DIRECT */}
             {djAccount && !isEditingDjLink ? (
               /* PASTILLE DJ CONNECTÉ */
               <div className="p-3.5 sm:p-4 rounded-2xl bg-emerald-950/20 border border-emerald-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg transition-all">
@@ -2781,13 +3015,13 @@ export default function AdminPanelDrawer({
                     </div>
                     <div>
                       <h4 className="text-xs font-mono font-bold text-white uppercase tracking-wide flex items-center gap-2">
-                        <span>Liaison Compte DJ Streamer AzuraCast</span>
+                        <span>Liaison Compte DJ Streamer Direct</span>
                         <span className="px-2 py-0.5 rounded-full bg-white/20 text-white text-[9px] font-bold">
                           Admin Requis
                         </span>
                       </h4>
                       <p className="text-[11px] font-mono text-zinc-400 mt-0.5">
-                        Renseignez votre compte DJ AzuraCast pour activer la régie en direct, le microphone studio et le pilotage exclusif des stations.
+                        Renseignez votre compte DJ streamer pour activer la régie en direct, le microphone studio et le pilotage exclusif des stations.
                       </p>
                     </div>
                   </div>
@@ -2901,9 +3135,9 @@ export default function AdminPanelDrawer({
                 <button
                   type="button"
                   onClick={async () => {
-                    const res = await cleanupPocketBaseStationDuplicates();
+                    const res = await cleanupSupabaseStationDuplicates();
                     if (res.removedCount > 0) {
-                      showToast(`${res.removedCount} doublons purgés de PocketBase ! Il reste ${res.remainingCount} stations uniques.`);
+                      showToast(`${res.removedCount} doublons purgés de Supabase ! Il reste ${res.remainingCount} stations uniques.`);
                     } else {
                       showToast(`Aucun doublon trouvé en BDD (${res.remainingCount} stations uniques).`);
                     }
@@ -2911,7 +3145,7 @@ export default function AdminPanelDrawer({
                     if (onRefreshAppState) onRefreshAppState();
                   }}
                   className="px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-300 text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
-                  title="Purger tous les doublons de la table synapse_stations sur PocketBase"
+                  title="Purger tous les doublons de la table synapse_stations sur Supabase"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                   <span>Nettoyer Doublons BDD</span>
@@ -3151,8 +3385,8 @@ export default function AdminPanelDrawer({
           <AdminFeatureFlagsView showToast={showToast} />
         )}
 
-        {/* TAB: SERVICES & API (AZURACAST, POCKETBASE ET INTÉGRATIONS TIERS) */}
-        {(activeTab === 'services' || activeTab === 'azuracast' || activeTab === 'database') && (
+        {/* TAB: SERVICES & API (SUPABASE, LIQUIDSOAP ET INTÉGRATIONS TIERS) */}
+        {(activeTab === 'services' || activeTab === 'streaming' || activeTab === 'database') && (
           <AdminServicesTab
             activeSection={servicesSubTab}
             onSectionChange={setServicesSubTab}
@@ -4175,7 +4409,7 @@ export default function AdminPanelDrawer({
           </div>
         )}
 
-        {/* TAB 8: GESTION DE LA BASE DE DONNÉES POCKETBASE (UNIFIÉE DANS SERVICES & API) */}
+        {/* TAB 8: GESTION DE LA BASE DE DONNÉES SUPABASE (UNIFIÉE DANS SERVICES & API) */}
         {false && activeTab === 'database' && (
           <div className="flex flex-col gap-6 animate-in fade-in duration-300">
 
@@ -4298,40 +4532,6 @@ export default function AdminPanelDrawer({
 
             </div>
 
-            {/* POCKETBASE 1-CLICK IMPORT JSON CARD */}
-            <div className="p-5 rounded-2xl bg-zinc-900/90 border border-emerald-500/30 flex flex-col gap-3 text-left shadow-xl">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <Database className="w-4 h-4 text-emerald-400" />
-                  <span className="text-xs font-mono font-bold text-white uppercase tracking-wider">
-                    Schéma PocketBase JSON (Import en 1 Clic : Settings &gt; Export/Import collections)
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <a
-                    href="/pb_schema.json"
-                    download="pb_schema.json"
-                    className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 border border-emerald-500/30 text-emerald-300 text-xs font-mono font-bold flex items-center gap-2 transition-all cursor-pointer"
-                  >
-                    <DownloadCloud className="w-3.5 h-3.5" />
-                    <span>Télécharger pb_schema.json</span>
-                  </a>
-                  <button
-                    onClick={handleCopyJsonSchema}
-                    className="px-3 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs font-mono font-bold flex items-center gap-2 transition-all cursor-pointer"
-                  >
-                    {copiedJson ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{copiedJson ? 'Copié !' : 'Copier pb_schema.json'}</span>
-                  </button>
-                </div>
-              </div>
-
-              <p className="text-xs font-mono text-zinc-400">
-                Dans l'interface PocketBase (<code className="text-emerald-300 font-bold">https://db.radiosynapse.fr/_/</code>), allez dans <strong>Settings &gt; Export/Import collections &gt; Load from JSON</strong> et importez ce fichier pour configurer instantanément toutes les collections et API Rules.
-              </p>
-            </div>
-
             {/* SUPABASE SQL SCHEMA CARD */}
             <div className="p-5 rounded-2xl bg-zinc-900/90 border border-white/10 flex flex-col gap-3 text-left shadow-xl">
               <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -4372,7 +4572,7 @@ export default function AdminPanelDrawer({
       >
         {sidebarLinks.map((item) => {
           const Icon = item.icon;
-          const isActive = activeTab === item.id || (item.id === 'services' && (activeTab === 'azuracast' || activeTab === 'database'));
+          const isActive = activeTab === item.id || (item.id === 'services' && (activeTab === 'streaming' || activeTab === 'database'));
 
           return (
             <button

@@ -7,9 +7,9 @@ import {
 } from 'lucide-react';
 import { StreamChannel } from '../data';
 import { 
-  AzuraNowPlayingData, 
+  StreamNowPlayingData, 
   skipStationCurrentTrack 
-} from '../lib/azuracast';
+} from '../lib/streamServer';
 import { 
   BroadcastState, 
   VuMeterReading, 
@@ -20,10 +20,10 @@ import {
 
 interface WebDjStudioDeckProps {
   station: StreamChannel;
-  targetAzuraId: number;
+  targetStationId: number;
   currentShortcode: string;
   webDjUrl: string;
-  nowPlaying: AzuraNowPlayingData | null;
+  nowPlaying: StreamNowPlayingData | null;
   isStreamerLive: boolean;
   liveStreamerName: string;
   broadcastState: BroadcastState;
@@ -65,7 +65,7 @@ interface WebDjStudioDeckProps {
 
 export const WebDjStudioDeck: React.FC<WebDjStudioDeckProps> = ({
   station,
-  targetAzuraId,
+  targetStationId,
   currentShortcode,
   webDjUrl,
   nowPlaying,
@@ -183,15 +183,15 @@ export const WebDjStudioDeck: React.FC<WebDjStudioDeckProps> = ({
     }
   };
 
-  // Direct skip via AzuraCast API
+  // Direct skip via Streaming API
   const handleImmediateSkip = async () => {
     if (onSkipTrack) {
       onSkipTrack();
       return;
     }
     try {
-      const res = await skipStationCurrentTrack(targetAzuraId);
-      showToast(res.message || 'Skip effectué sur AzuraCast !');
+      const res = await skipStationCurrentTrack(targetStationId);
+      showToast(res.message || 'Skip effectué sur le flux !');
     } catch (err: any) {
       showToast(err.message || 'Erreur lors du skip');
     }
@@ -303,10 +303,10 @@ export const WebDjStudioDeck: React.FC<WebDjStudioDeckProps> = ({
 
             <p className="text-[11px] mt-1 opacity-90 leading-tight">
               {isOnAir
-                ? 'Transmission audio Ogg/Opus active vers Liquidsoap harbor. Le flux antenne bascule en direct et atténue la musique !'
+                ? 'Transmission audio Ogg/Opus active vers le serveur broadcast. Le flux antenne bascule en direct et atténue la musique !'
                 : isCue
-                  ? 'Votre voix boucle uniquement dans votre casque (sidetone). Le heartbeat WebSocket maintient la session Liquidsoap au chaud sans couper l\'antenne.'
-                  : 'Console Web DJ native avec traitement voix broadcast, protocole Icecast WebSocket et injection prioritaire AzuraCast.'}
+                  ? 'Votre voix boucle uniquement dans votre casque (sidetone). Le heartbeat WebSocket maintient la session de stream au chaud sans couper l\'antenne.'
+                  : 'Console Web DJ native avec traitement voix broadcast, protocole Icecast WebSocket et injection prioritaire.'}
             </p>
           </div>
         </div>
@@ -340,10 +340,10 @@ export const WebDjStudioDeck: React.FC<WebDjStudioDeckProps> = ({
             target="_blank"
             rel="noopener noreferrer"
             className="px-3 py-1.5 rounded-xl bg-zinc-800/80 hover:bg-zinc-750 text-zinc-300 border border-zinc-700 hover:text-white font-mono text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
-            title={`Lien direct AzuraCast : ${webDjUrl}`}
+            title={`Lien direct DJ : ${webDjUrl}`}
           >
             <ExternalLink className="w-3.5 h-3.5 text-zinc-300" />
-            <span>WebDJ AzuraCast ({currentShortcode})</span>
+            <span>Studio WebDJ ({currentShortcode})</span>
           </a>
         </div>
       </div>
@@ -354,9 +354,9 @@ export const WebDjStudioDeck: React.FC<WebDjStudioDeckProps> = ({
           <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
             <span className="font-bold text-white flex items-center gap-2">
               <ShieldCheck className="w-4 h-4" />
-              Configuration du Flux WebSocket & Serveur DJ AzuraCast
+              Configuration du Flux WebSocket & Serveur DJ
             </span>
-            <span className="text-[10px] text-zinc-500">Station #{targetAzuraId} • Port DJ : 8005</span>
+            <span className="text-[10px] text-zinc-500">Station #{targetStationId} • Port DJ : 8005</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -427,7 +427,7 @@ export const WebDjStudioDeck: React.FC<WebDjStudioDeckProps> = ({
                 placeholder="theocourant"
                 className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-2.5 py-1.5 text-zinc-200 text-[11px] font-mono focus:border-white outline-none"
               />
-              <span className="text-[9px] text-zinc-500 block">Compte DJ AzuraCast</span>
+              <span className="text-[9px] text-zinc-500 block">Compte DJ Synapse</span>
             </div>
 
             {/* Streamer password */}
@@ -922,17 +922,17 @@ export const WebDjStudioDeck: React.FC<WebDjStudioDeckProps> = ({
           <div className="flex items-center justify-between border-b border-zinc-800 pb-2 flex-wrap gap-2">
             <span className="text-zinc-300 font-bold uppercase tracking-wider flex items-center gap-2">
               <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-              Cartoucheur & Jingles Immédiats (Injection Directe AzuraCast)
+              Cartoucheur & Jingles Immédiats (Diffusion Directe)
             </span>
             <div className="flex items-center gap-2">
               <button
                 onClick={handleImmediateSkip}
                 disabled={isSkippingTrack}
                 className="px-2.5 py-1 rounded-lg bg-red-600/20 hover:bg-red-600/30 text-red-300 border border-red-500/40 text-[10px] font-bold flex items-center gap-1 cursor-pointer"
-                title="Déclenche le skip immédiat via l'API AzuraCast"
+                title="Déclenche le skip immédiat sur le flux en cours"
               >
                 <SkipForward className="w-3 h-3 text-red-400" />
-                <span>Skip Immédiat (API)</span>
+                <span>Skip Immédiat</span>
               </button>
             </div>
           </div>

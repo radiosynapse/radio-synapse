@@ -102,8 +102,6 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   avatar_url TEXT,
   points INTEGER DEFAULT 100,
   badges JSONB DEFAULT '[]'::jsonb,
-  spotify_account JSONB,
-  is_spotify_linked BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -247,6 +245,119 @@ CREATE TABLE IF NOT EXISTS public.synapse_track_submissions (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 10. Table des dossiers de la bibliothèque musicale
+CREATE TABLE IF NOT EXISTS public.synapse_music_folders (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  folder_id TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  parent_id TEXT,
+  color TEXT DEFAULT '#3b82f6',
+  icon TEXT DEFAULT 'Folder',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 11. Table des fichiers audio et morceaux de la bibliothèque
+CREATE TABLE IF NOT EXISTS public.synapse_music_tracks (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  track_id TEXT UNIQUE NOT NULL,
+  folder_id TEXT,
+  title TEXT NOT NULL,
+  artist TEXT NOT NULL,
+  album TEXT DEFAULT '',
+  year INTEGER,
+  genre TEXT DEFAULT '',
+  bpm INTEGER,
+  duration INTEGER DEFAULT 0,
+  file_url TEXT NOT NULL,
+  cover_url TEXT DEFAULT '',
+  bitrate TEXT DEFAULT '320 kbps',
+  file_size TEXT DEFAULT '',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 12. Table des playlists (et flux de secours)
+CREATE TABLE IF NOT EXISTS public.synapse_playlists (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  playlist_id TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  color TEXT DEFAULT '#8b5cf6',
+  description TEXT DEFAULT '',
+  station_id TEXT DEFAULT 'all',
+  is_fallback BOOLEAN DEFAULT false,
+  fallback_rules JSONB DEFAULT '{}'::jsonb,
+  tracks JSONB DEFAULT '[]'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 13. Table des requêtes interactives du studio d'animation
+CREATE TABLE IF NOT EXISTS public.synapse_studio_requests (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  request_id TEXT UNIQUE NOT NULL,
+  title TEXT NOT NULL,
+  type TEXT NOT NULL,
+  question TEXT NOT NULL,
+  options JSONB DEFAULT '[]'::jsonb,
+  multiple_choices BOOLEAN DEFAULT false,
+  custom_label_yes TEXT DEFAULT 'OUI',
+  custom_label_no TEXT DEFAULT 'NON',
+  time_limit_seconds INTEGER DEFAULT 60,
+  timer_ends_at TIMESTAMPTZ,
+  status TEXT DEFAULT 'draft',
+  rules JSONB DEFAULT '{}'::jsonb,
+  station_id TEXT DEFAULT 'all',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 14. Table des réponses auditeurs aux requêtes studio
+CREATE TABLE IF NOT EXISTS public.synapse_studio_responses (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  response_id TEXT UNIQUE NOT NULL,
+  request_id TEXT NOT NULL,
+  user_id TEXT,
+  user_name TEXT DEFAULT 'Auditeur',
+  user_avatar TEXT DEFAULT '',
+  response_type TEXT NOT NULL,
+  text_content TEXT DEFAULT '',
+  selected_options JSONB DEFAULT '[]'::jsonb,
+  track_suggestion JSONB,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 15. Table des drops audio, jingles et liners
+CREATE TABLE IF NOT EXISTS public.synapse_audio_drops (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  drop_id TEXT UNIQUE NOT NULL,
+  title TEXT NOT NULL,
+  category TEXT DEFAULT 'jingle',
+  duration INTEGER DEFAULT 0,
+  audio_url TEXT NOT NULL,
+  color TEXT DEFAULT '#10b981',
+  hotkey TEXT,
+  station_id TEXT DEFAULT 'all',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 16. Table des fiches de préparation d'émissions
+CREATE TABLE IF NOT EXISTS public.synapse_emissions (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  emission_id TEXT UNIQUE NOT NULL,
+  title TEXT NOT NULL,
+  presenter TEXT NOT NULL,
+  day_of_week TEXT DEFAULT 'Lundi',
+  start_time TEXT NOT NULL,
+  end_time TEXT NOT NULL,
+  station_id TEXT DEFAULT 'all',
+  description TEXT DEFAULT '',
+  color TEXT DEFAULT '#f59e0b',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Activer les publications Realtime sur toutes les tables
 ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.synapse_admin_data;
@@ -257,6 +368,13 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.synapse_challenges;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.synapse_promotions;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.synapse_events;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.synapse_track_submissions;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.synapse_music_folders;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.synapse_music_tracks;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.synapse_playlists;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.synapse_studio_requests;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.synapse_studio_responses;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.synapse_audio_drops;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.synapse_emissions;
 
 -- Activer Row Level Security (RLS) avec règles permissives publiques pour l'application
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
@@ -268,6 +386,13 @@ ALTER TABLE public.synapse_challenges ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.synapse_promotions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.synapse_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.synapse_track_submissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.synapse_music_folders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.synapse_music_tracks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.synapse_playlists ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.synapse_studio_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.synapse_studio_responses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.synapse_audio_drops ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.synapse_emissions ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Public read profiles" ON public.profiles FOR SELECT USING (true);
 CREATE POLICY "Public write profiles" ON public.profiles FOR ALL USING (true);
@@ -295,5 +420,26 @@ CREATE POLICY "Public write events" ON public.synapse_events FOR ALL USING (true
 
 CREATE POLICY "Public read submissions" ON public.synapse_track_submissions FOR SELECT USING (true);
 CREATE POLICY "Public write submissions" ON public.synapse_track_submissions FOR ALL USING (true);
+
+CREATE POLICY "Public read music folders" ON public.synapse_music_folders FOR SELECT USING (true);
+CREATE POLICY "Public write music folders" ON public.synapse_music_folders FOR ALL USING (true);
+
+CREATE POLICY "Public read music tracks" ON public.synapse_music_tracks FOR SELECT USING (true);
+CREATE POLICY "Public write music tracks" ON public.synapse_music_tracks FOR ALL USING (true);
+
+CREATE POLICY "Public read playlists" ON public.synapse_playlists FOR SELECT USING (true);
+CREATE POLICY "Public write playlists" ON public.synapse_playlists FOR ALL USING (true);
+
+CREATE POLICY "Public read studio requests" ON public.synapse_studio_requests FOR SELECT USING (true);
+CREATE POLICY "Public write studio requests" ON public.synapse_studio_requests FOR ALL USING (true);
+
+CREATE POLICY "Public read studio responses" ON public.synapse_studio_responses FOR SELECT USING (true);
+CREATE POLICY "Public write studio responses" ON public.synapse_studio_responses FOR ALL USING (true);
+
+CREATE POLICY "Public read audio drops" ON public.synapse_audio_drops FOR SELECT USING (true);
+CREATE POLICY "Public write audio drops" ON public.synapse_audio_drops FOR ALL USING (true);
+
+CREATE POLICY "Public read emissions" ON public.synapse_emissions FOR SELECT USING (true);
+CREATE POLICY "Public write emissions" ON public.synapse_emissions FOR ALL USING (true);
 `;
 

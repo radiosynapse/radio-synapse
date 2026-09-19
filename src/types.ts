@@ -44,26 +44,17 @@ export interface LikedTrack {
   likedAt: number; // timestamp
   level?: 1 | 2; // 1 = Aime bien, 2 = Aime beaucoup (double cœur)
   previewUrl?: string; // 30s audio preview
-  spotifyUri?: string;
   deezerUrl?: string;
-  spotifyUrl?: string;
   appleMusicUrl?: string;
   youtubeUrl?: string;
 }
 
 export interface ConnectedAccount {
-  provider: 'deezer' | 'spotify' | 'apple-music' | 'email';
+  provider: 'email' | 'passkey' | 'deezer' | 'apple-music';
   username: string;
-  userId?: string; // Spotify User ID
   email?: string;
   avatarUrl?: string;
   profileUrl?: string;
-  accessToken?: string;
-  refreshToken?: string;
-  expiresAt?: number; // timestamp when accessToken expires
-  playlistId?: string; // ID of the 'Radio Synapse - Titres Likés' playlist
-  playlistUrl?: string; // URL of the 'Radio Synapse - Titres Likés' playlist
-  lastSyncedAt?: number;
   connectedAt: number;
 }
 
@@ -106,7 +97,7 @@ export interface AdminProfileTemplate {
   defaultStation?: string;
 }
 
-export interface AzuraDjAccount {
+export interface StreamDjAccount {
   username: string;
   password?: string;
   displayName: string;
@@ -125,18 +116,23 @@ export interface UserNotification {
 }
 
 export interface SynapseUser {
-  id: string; // PocketBase user ID or email
+  id: string; // Supabase user ID or email
   email: string;
-  username: string;
+  username: string; // pseudo
+  firstName?: string;
+  lastName?: string;
+  displayName?: string;
   role: UserRole;
   adminProfileId?: AdminProfileTypeId; // Linked profile type (animateur, podcasteur, etc.)
-  assignedStationId?: string; // Associated radio shortcode e.g. 'pop-variete' or 'all'
+  assignedStationId?: string; // Associated radio shortcode e.g. 'pop-variete' or 'all' (legacy / primary)
+  assignedStationIds?: string[]; // Array of assigned radio station IDs decided by super-admin (e.g. ['pop-variete', 'urban-groove'])
   customPermissions?: Partial<AdminPermissions>; // Custom override by super-admin
   avatarUrl?: string;
   createdAt: number;
-  spotifyAccount?: ConnectedAccount | null; // Linked Spotify account
-  isSpotifyLinked: boolean;
-  azuraDjAccount?: AzuraDjAccount | null; // Linked AzuraCast DJ account
+  authMethod?: 'password' | 'passkey' | 'email';
+  passkeyCredentialId?: string;
+  passkeyCreatedAt?: number;
+  djAccount?: StreamDjAccount | null; // Linked Stream DJ account
   isDjLinked?: boolean;
   likedTracksCount?: number;
   favoriteStationsCount?: number;

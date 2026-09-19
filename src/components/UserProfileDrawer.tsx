@@ -2,20 +2,23 @@ import { useState, useEffect } from 'react';
 import { 
   User, Sparkles, Smartphone, 
   Sliders, Star, Heart, ArrowRight, AlertCircle, Loader2,
-  Mail, Lock, ShieldCheck, Check, LogOut, Link2, X, Flame
+  Mail, Lock, ShieldCheck, Check, LogOut, X, Flame, Key, Fingerprint
 } from 'lucide-react';
 import { ConnectedAccount, SynapseUser } from '../types';
 import BrandLogo from './BrandLogo';
-import { authenticateWithMusicPlatform } from '../utils/musicPlatformAuth';
 import { getUserPoints } from '../utils/loyaltyStore';
 import { 
   signInWithEmail, 
   signUpWithEmail, 
   signOutSynapseUser, 
-  authenticateOrRegisterWithSpotify,
   resetPasswordForEmail,
   getStoredSynapseUser
 } from '../utils/supabaseAuthService';
+import {
+  isPasskeySupported,
+  registerWithPasskey,
+  loginWithPasskey
+} from '../utils/passkeyAuthService';
 
 // Mini 4-point Chromatic Star matching the BrandLogo star
 function ChromaticStarIcon({ className = "w-3.5 h-3.5", isAnimated = false }: { className?: string; isAnimated?: boolean }) {
@@ -76,7 +79,6 @@ interface UserProfileDrawerProps {
   accentColor?: string;
   onOpenLikedTracks: () => void;
   onOpenFavoriteStations: () => void;
-  onSyncWithSpotify?: () => Promise<void>;
   onOpenConnectModal?: () => void;
   onOpenAdminPanel?: () => void;
 }
@@ -84,7 +86,7 @@ interface UserProfileDrawerProps {
 export default function UserProfileDrawer({
   isOpen,
   onClose,
-  connectedAccount,
+  connectedAccount: _connectedAccount,
   onConnectAccount,
   synapseUser: propSynapseUser,
   onUpdateSynapseUser,
@@ -100,16 +102,21 @@ export default function UserProfileDrawer({
   const [synapseUser, setSynapseUser] = useState<SynapseUser | null>(propSynapseUser || getStoredSynapseUser());
   const [userPoints, setUserPoints] = useState<number>(() => getUserPoints(propSynapseUser || getStoredSynapseUser()));
   const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot'>('login');
+  const [signupType, setSignupType] = useState<'passkey' | 'password'>('passkey');
   
   // Form fields
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
+  const [confirmPasswordInput, setConfirmPasswordInput] = useState('');
+  const [firstNameInput, setFirstNameInput] = useState('');
+  const [lastNameInput, setLastNameInput] = useState('');
   const [usernameInput, setUsernameInput] = useState('');
   const [forgotEmailInput, setForgotEmailInput] = useState('');
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [passkeySupported, setPasskeySupported] = useState(true);
 
   // Fullscreen transition states
   const [isRendered, setIsRendered] = useState(isOpen);
@@ -121,6 +128,7 @@ export default function UserProfileDrawer({
       setIsClosing(false);
       setErrorMessage(null);
       setSuccessMessage(null);
+      setPasskeySupported(isPasskeySupported());
       document.body.style.overflow = 'hidden';
     } else if (isRendered) {
       setIsClosing(true);
@@ -140,44 +148,91 @@ export default function UserProfileDrawer({
     if (propSynapseUser !== undefined) {
       setSynapseUser(propSynapseUser);
       setUserPoints(getUserPoints(propSynapseUser));
-    } else {
-      const stored = getStoredSynapseUser();
-      setSynapseUser(stored);
-      setUserPoints(getUserPoints(stored));
     }
-  }, [propSynapseUser, isOpen]);
-
-  // Listen for points updates
-  useEffect(() => {
-    const handlePointsChanged = (e: any) => {
-      if (typeof e.detail?.points === 'number') {
-        setUserPoints(e.detail.points);
-      } else {
-        setUserPoints(getUserPoints(synapseUser));
-      }
-    };
-    window.addEventListener('synapse_points_changed', handlePointsChanged);
-    return () => window.removeEventListener('synapse_points_changed', handlePointsChanged);
-  }, [synapseUser]);
-
-  // Keyboard Escape to close
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        handleClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
+  }, [propSynapseUser]);
 
   const handleClose = () => {
-    setIsClosing(true);
-    setTimeout(() => {
-      onClose();
-    }, 280);
+    onClose();
   };
 
+  // Passkey Login handler
+  const handlePasskeyLogin = async () => {
+    setIsLoading(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    try {
+      const result = await loginWithPasskey(emailInput.trim() || undefined);
+      if (!result.success || !result.user) {
+        setErrorMessage(result.message || 'Échec de l\'authentification par Passkey.');
+        return;
+      }
+      setSynapseUser(result.user);
+      if (onUpdateSynapseUser) onUpdateSynapseUser(result.user);
+      onConnectAccount({
+        provider: 'passkey',
+        username: result.user.username,
+        email: result.user.email,
+        avatarUrl: result.user.avatarUrl,
+        connectedAt: Date.now(),
+      });
+      setSuccessMessage(`Bienvenue, ${result.user.displayName || result.user.username} !`);
+    } catch (err: any) {
+      console.error('Passkey login error:', err);
+      setErrorMessage(err?.message || 'Erreur lors de la connexion Passkey.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Passkey Signup handler
+  const handlePasskeySignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    if (!emailInput || !emailInput.includes('@')) {
+      setErrorMessage('Veuillez renseigner une adresse e-mail valide.');
+      return;
+    }
+    if (!usernameInput.trim()) {
+      setErrorMessage('Veuillez choisir un pseudo d\'auditeur.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const result = await registerWithPasskey({
+        email: emailInput,
+        firstName: firstNameInput,
+        lastName: lastNameInput,
+        username: usernameInput,
+      });
+
+      if (!result.success || !result.user) {
+        setErrorMessage(result.message || 'Erreur lors de la création du compte Passkey.');
+        return;
+      }
+
+      setSynapseUser(result.user);
+      if (onUpdateSynapseUser) onUpdateSynapseUser(result.user);
+      onConnectAccount({
+        provider: 'passkey',
+        username: result.user.username,
+        email: result.user.email,
+        avatarUrl: result.user.avatarUrl,
+        connectedAt: Date.now(),
+      });
+      setSuccessMessage('Compte créé et Passkey liée avec succès !');
+    } catch (err: any) {
+      console.error('Passkey register error:', err);
+      setErrorMessage(err?.message || 'Erreur lors de l\'enregistrement Passkey.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Classic Email Auth handler
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
@@ -188,18 +243,36 @@ export default function UserProfileDrawer({
       return;
     }
 
+    if (authMode === 'signup' && passwordInput !== confirmPasswordInput) {
+      setErrorMessage('Les deux mots de passe ne correspondent pas.');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       if (authMode === 'signup') {
-        const result = await signUpWithEmail(emailInput, passwordInput, usernameInput);
+        const result = await signUpWithEmail(
+          emailInput, 
+          passwordInput, 
+          usernameInput,
+          firstNameInput,
+          lastNameInput
+        );
         if (!result.success || !result.user) {
           setErrorMessage(result.message || result.error || 'Erreur lors de la création du compte.');
           return;
         }
         setSynapseUser(result.user);
         if (onUpdateSynapseUser) onUpdateSynapseUser(result.user);
-        setSuccessMessage(result.message || 'Votre compte Radio Synapse a été créé avec succès.');
+        onConnectAccount({
+          provider: 'email',
+          username: result.user.username,
+          email: result.user.email,
+          avatarUrl: result.user.avatarUrl,
+          connectedAt: Date.now(),
+        });
+        setSuccessMessage('Votre compte Radio Synapse a été créé avec succès.');
       } else {
         const result = await signInWithEmail(emailInput, passwordInput);
         if (!result.success || !result.user) {
@@ -208,12 +281,18 @@ export default function UserProfileDrawer({
         }
         setSynapseUser(result.user);
         if (onUpdateSynapseUser) onUpdateSynapseUser(result.user);
-        setSuccessMessage(`Ravi de vous revoir, ${result.user.username}.`);
+        onConnectAccount({
+          provider: 'email',
+          username: result.user.username,
+          email: result.user.email,
+          avatarUrl: result.user.avatarUrl,
+          connectedAt: Date.now(),
+        });
+        setSuccessMessage(`Ravi de vous revoir, ${result.user.displayName || result.user.username}.`);
       }
 
-      setEmailInput('');
       setPasswordInput('');
-      setUsernameInput('');
+      setConfirmPasswordInput('');
     } catch (err: any) {
       console.error('Auth error:', err);
       setErrorMessage(err?.message || 'Une erreur est survenue lors de la connexion.');
@@ -249,36 +328,6 @@ export default function UserProfileDrawer({
     }
   };
 
-  /**
-   * Universal Spotify Login / Registration
-   * - In "Inscription": "Créer un compte avec Spotify" (direct creation & linking via Spotify email, no password needed)
-   * - In "Connexion": "Se connecter avec Spotify" (if account doesn't exist, behaves identically)
-   */
-  const handleSpotifyDirectAuth = async () => {
-    setIsLoading(true);
-    setErrorMessage(null);
-    setSuccessMessage(null);
-
-    try {
-      const spotifyAccount = await authenticateWithMusicPlatform('spotify');
-
-      const result = await authenticateOrRegisterWithSpotify(spotifyAccount);
-      if (result.user) {
-        setSynapseUser(result.user);
-        if (onUpdateSynapseUser) onUpdateSynapseUser(result.user);
-      }
-
-      onConnectAccount(spotifyAccount);
-
-      setSuccessMessage(result.message || 'Compte Spotify synchronisé avec succès.');
-    } catch (e: any) {
-      console.error('Spotify auth error:', e);
-      setErrorMessage(e?.message || 'Connexion Spotify échouée.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleSignOut = async () => {
     setIsLoading(true);
     try {
@@ -296,8 +345,9 @@ export default function UserProfileDrawer({
 
   if (!isRendered) return null;
 
-  const activeUserEmail = synapseUser?.email || connectedAccount?.email;
-  const isAdmin = synapseUser?.role === 'admin';
+  const activeUserEmail = synapseUser?.email;
+  const isSuperAdminUser = synapseUser?.role === 'super-admin' || activeUserEmail === 'adminradiosynapse@gmail.com' || activeUserEmail === 'admin@radiosynapse.fr';
+  const isAdmin = synapseUser?.role === 'admin' || isSuperAdminUser;
 
   return (
     <div 
@@ -319,7 +369,7 @@ export default function UserProfileDrawer({
             <span className="hidden sm:inline-block w-[1px] h-3.5 bg-white/20" />
             <div className="hidden sm:flex items-center gap-1.5 text-[11px] font-mono uppercase tracking-widest text-zinc-400">
               <ChromaticStarIcon className="w-3 h-3" />
-              <span>{synapseUser || connectedAccount ? 'Profil & Session' : 'Connexion & Inscription'}</span>
+              <span>{synapseUser ? 'Profil & Session' : 'Connexion & Inscription'}</span>
             </div>
           </div>
 
@@ -350,33 +400,33 @@ export default function UserProfileDrawer({
       <main className="flex-1 min-h-0 overflow-y-auto overscroll-contain w-full">
         <div className="w-full max-w-lg mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col gap-5">
 
-          {/* ALERTS (Error & Success in Sober High-Contrast Monochromatic Style) */}
+          {/* ALERTS */}
           {errorMessage && (
-            <div className="p-4 rounded-2xl bg-zinc-900 border border-white/30 flex items-start gap-3 text-white text-xs font-mono shadow-xl relative overflow-hidden">
-              <div className="p-1 rounded-lg bg-white/10 border border-white/20 text-white flex-shrink-0">
-                <AlertCircle className="w-4 h-4 text-white" />
+            <div className="p-4 rounded-2xl bg-zinc-900 border border-red-500/40 flex items-start gap-3 text-white text-xs font-mono shadow-xl relative overflow-hidden">
+              <div className="p-1 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 flex-shrink-0">
+                <AlertCircle className="w-4 h-4" />
               </div>
               <div className="flex flex-col text-left">
-                <span className="font-bold uppercase tracking-wider text-zinc-300 text-[10px]">Notification</span>
+                <span className="font-bold uppercase tracking-wider text-red-300 text-[10px]">Alerte</span>
                 <span className="leading-relaxed mt-0.5 text-zinc-200">{errorMessage}</span>
               </div>
             </div>
           )}
 
           {successMessage && (
-            <div className="p-4 rounded-2xl bg-zinc-900 border border-white/30 flex items-start gap-3 text-white text-xs font-mono shadow-xl relative overflow-hidden">
-              <div className="p-1 rounded-lg bg-white/10 border border-white/20 text-white flex-shrink-0">
-                <Check className="w-4 h-4 text-white" />
+            <div className="p-4 rounded-2xl bg-zinc-900 border border-emerald-500/40 flex items-start gap-3 text-white text-xs font-mono shadow-xl relative overflow-hidden">
+              <div className="p-1 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 flex-shrink-0">
+                <Check className="w-4 h-4" />
               </div>
               <div className="flex flex-col text-left">
-                <span className="font-bold uppercase tracking-wider text-zinc-300 text-[10px]">Confirmation</span>
+                <span className="font-bold uppercase tracking-wider text-emerald-300 text-[10px]">Succès</span>
                 <span className="leading-relaxed mt-0.5 text-zinc-200">{successMessage}</span>
               </div>
             </div>
           )}
 
-          {/* SECTION A: AUTHENTICATED USER STATE (SOBER B&W WITH CHROMATIC ACCENTS) */}
-          {synapseUser || connectedAccount ? (
+          {/* SECTION A: AUTHENTICATED USER STATE */}
+          {synapseUser ? (
             <div className="p-6 rounded-2xl bg-zinc-950 border border-white/15 flex flex-col gap-5 shadow-2xl relative overflow-hidden">
               
               {/* Subtle ambient chromatic glow */}
@@ -387,16 +437,15 @@ export default function UserProfileDrawer({
                 }}
               />
 
-              {/* USER HEADER & CHROMATIC AVATAR RING */}
+              {/* USER HEADER & AVATAR */}
               <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-5">
                 <div className="flex items-center gap-4 min-w-0">
                   <div className="relative flex-shrink-0">
-                    {/* Chromatic star metal ring */}
                     <div className="p-[2px] rounded-2xl chromatic-metallic-gradient shadow-[0_0_16px_rgba(0,242,255,0.3)] flex items-center justify-center">
                       <div className="w-14 h-14 rounded-[14px] overflow-hidden bg-black flex items-center justify-center border border-black/80">
-                        {synapseUser?.avatarUrl || connectedAccount?.avatarUrl ? (
+                        {synapseUser.avatarUrl ? (
                           <img 
-                            src={synapseUser?.avatarUrl || connectedAccount?.avatarUrl} 
+                            src={synapseUser.avatarUrl} 
                             alt="Avatar" 
                             className="w-full h-full object-cover" 
                           />
@@ -405,7 +454,6 @@ export default function UserProfileDrawer({
                         )}
                       </div>
                     </div>
-                    {/* Chromatic mini star indicator pinned on bottom corner */}
                     <span className="absolute -bottom-1 -right-1 z-10">
                       <ChromaticStarIcon className="w-4 h-4" />
                     </span>
@@ -414,17 +462,22 @@ export default function UserProfileDrawer({
                   <div className="flex flex-col text-left min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="text-base sm:text-lg font-bold text-white font-futuristic tracking-wider truncate max-w-[200px]">
-                        {synapseUser?.username || connectedAccount?.username || 'Membre Synapse'}
+                        {synapseUser.displayName || synapseUser.username || 'Auditeur'}
                       </h3>
 
-                      {isAdmin ? (
-                        <span className="px-2.5 py-0.5 rounded-full bg-white/10 border border-white/30 text-white text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 shadow-sm">
-                          <ShieldCheck className="w-3 h-3 text-white" />
+                      {isSuperAdminUser ? (
+                        <span className="px-2.5 py-0.5 rounded-full bg-pink-500/20 border border-pink-500/40 text-pink-300 text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 shadow-sm">
+                          <ShieldCheck className="w-3 h-3 text-pink-400" />
+                          <span>SUPER ADMIN</span>
+                        </span>
+                      ) : isAdmin ? (
+                        <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-[10px] font-mono font-bold uppercase tracking-wider flex items-center gap-1 shadow-sm">
+                          <ShieldCheck className="w-3 h-3 text-cyan-400" />
                           <span>ADMIN</span>
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded-full bg-white/10 border border-white/20 text-white text-[9px] font-mono font-bold uppercase tracking-wider">
-                          MEMBRE
+                        <span className="px-2 py-0.5 rounded-full bg-white/10 border border-white/20 text-zinc-300 text-[9px] font-mono font-bold uppercase tracking-wider">
+                          AUDITEUR
                         </span>
                       )}
                     </div>
@@ -432,6 +485,12 @@ export default function UserProfileDrawer({
                     <span className="text-xs font-mono text-zinc-400 truncate mt-1">
                       {activeUserEmail || 'Compte vérifié'}
                     </span>
+
+                    {(synapseUser.firstName || synapseUser.lastName) && (
+                      <span className="text-[11px] font-mono text-zinc-400 truncate">
+                        {synapseUser.firstName} {synapseUser.lastName}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -439,7 +498,7 @@ export default function UserProfileDrawer({
                 <button
                   onClick={handleSignOut}
                   disabled={isLoading}
-                  className="p-2.5 rounded-xl bg-white/5 hover:bg-white/15 border border-white/15 text-zinc-300 hover:text-white transition-all cursor-pointer flex-shrink-0 active:scale-95"
+                  className="p-2.5 rounded-xl bg-white/5 hover:bg-red-500/20 hover:text-red-400 border border-white/15 hover:border-red-500/30 text-zinc-300 transition-all cursor-pointer flex-shrink-0 active:scale-95"
                   title="Déconnexion"
                   aria-label="Déconnexion"
                 >
@@ -464,7 +523,7 @@ export default function UserProfileDrawer({
                       <span className="text-xs font-mono font-bold text-amber-400/90">PTS</span>
                     </div>
                     <span className="text-[11px] font-mono text-zinc-400 mt-0.5">
-                      Gagnés en relevant les défis de la station & échangeables contre des promos
+                      Gagnés en relevant les défis de la station & échangeables contre des cadeaux
                     </span>
                   </div>
                 </div>
@@ -492,55 +551,29 @@ export default function UserProfileDrawer({
                 </div>
               )}
 
-              {/* LINKED IDENTITIES (SOBER B&W) */}
+              {/* AUTH METHOD DETAILS */}
               <div className="flex flex-col gap-2.5">
                 <span className="text-xs font-mono uppercase tracking-wider text-zinc-400 font-bold flex items-center gap-2">
                   <ChromaticStarIcon className="w-3 h-3" />
-                  Comptes & Synchronisation :
+                  Mode de connexion sécurisé :
                 </span>
 
-                {/* Email Account */}
                 <div className="p-3.5 rounded-xl bg-zinc-900 border border-white/10 flex items-center justify-between">
                   <div className="flex items-center gap-3 text-xs font-mono">
-                    <Mail className="w-4 h-4 text-white" />
-                    <span className="text-white font-bold">Email :</span>
-                    <span className="text-zinc-300 truncate max-w-[180px]">{activeUserEmail || 'Non configuré'}</span>
-                  </div>
-                  <Check className="w-4 h-4 text-white" />
-                </div>
-
-                {/* Spotify Account */}
-                <div className="p-3.5 rounded-xl bg-zinc-900 border border-white/10 flex items-center justify-between">
-                  <div className="flex items-center gap-3 text-xs font-mono">
-                    <Link2 className="w-4 h-4 text-white" />
-                    <span className="text-white font-bold">Spotify :</span>
-                    {connectedAccount || synapseUser?.spotifyAccount ? (
-                      <span className="text-zinc-200 font-bold">
-                        {connectedAccount?.username || synapseUser?.spotifyAccount?.username}
-                      </span>
-                    ) : (
-                      <span className="text-zinc-500">Non synchronisé</span>
-                    )}
-                  </div>
-
-                  {connectedAccount || synapseUser?.spotifyAccount ? (
-                    <span className="text-[10px] font-mono text-white bg-white/10 px-2 py-0.5 rounded-md border border-white/20 font-bold">
-                      SYNCHRONISÉ
+                    <Key className="w-4 h-4 text-cyan-400" />
+                    <span className="text-white font-bold">Sécurité :</span>
+                    <span className="text-zinc-300">
+                      {synapseUser.authMethod === 'passkey' ? 'Passkey Biométrique (WebAuthn)' : 'E-mail & Mot de passe'}
                     </span>
-                  ) : (
-                    <button
-                      onClick={handleSpotifyDirectAuth}
-                      disabled={isLoading}
-                      className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 text-white text-[11px] font-mono font-bold transition-all cursor-pointer"
-                    >
-                      Lier Spotify
-                    </button>
-                  )}
+                  </div>
+                  <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20 font-bold">
+                    ACTIF
+                  </span>
                 </div>
               </div>
             </div>
           ) : (
-            /* SECTION B: NOT CONNECTED - FORMULAIRE CONNEXION / INSCRIPTION SOBER B&W */
+            /* SECTION B: NOT CONNECTED - FORMULAIRE CONNEXION / INSCRIPTION */
             <div className="p-6 sm:p-7 rounded-2xl bg-zinc-950 border border-white/15 flex flex-col gap-5 shadow-2xl relative overflow-hidden">
               
               {/* Header Title with chromatic star */}
@@ -549,18 +582,18 @@ export default function UserProfileDrawer({
                   <ChromaticStarIcon className="w-4 h-4" />
                   <h2 className="text-base sm:text-lg font-futuristic font-black uppercase tracking-wider text-white">
                     {authMode === 'signup' 
-                      ? 'Inscription Synapse' 
+                      ? 'Inscription Auditeur' 
                       : authMode === 'forgot'
                       ? 'Mot de Passe Oublié'
-                      : 'Mon Compte'}
+                      : 'Espace Connexion'}
                   </h2>
                 </div>
                 <p className="text-xs font-mono text-zinc-400">
                   {authMode === 'signup'
-                    ? 'Créez votre compte pour sauvegarder vos favoris et synchroniser vos appareils.'
+                    ? 'Inscrivez-vous simplement par Passkey biométrique (sans mot de passe) ou par e-mail classique.'
                     : authMode === 'forgot'
-                    ? 'Définissez ou réinitialisez votre mot de passe pour accéder à votre compte par e-mail.'
-                    : 'Accédez à vos stations favorites, titres likés et synchronisation multi-appareils.'}
+                    ? 'Réinitialisez votre mot de passe pour accéder à votre compte par e-mail.'
+                    : 'Connectez-vous instantanément avec votre Passkey ou vos identifiants e-mail.'}
                 </p>
               </div>
 
@@ -596,13 +629,13 @@ export default function UserProfileDrawer({
               {authMode === 'forgot' ? (
                 <form onSubmit={handleForgotPasswordSubmit} className="flex flex-col gap-3.5 text-left">
                   <div className="p-3.5 rounded-xl bg-zinc-900/70 border border-white/10 text-xs font-mono text-zinc-300 leading-relaxed">
-                    Si vous avez créé votre compte avec Spotify ou si vous avez oublié votre mot de passe, indiquez votre adresse e-mail ci-dessous. Vous recevrez un lien pour créer votre mot de passe et vous connecter par e-mail en toute circonstance.
+                    Indiquez votre adresse e-mail ci-dessous pour recevoir un lien de réinitialisation sécurisé.
                   </div>
 
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[11px] font-mono text-zinc-300 font-bold flex items-center gap-1.5">
                       <Mail className="w-3.5 h-3.5 text-white" />
-                      Votre adresse e-mail (liée au compte ou à Spotify)
+                      Votre adresse e-mail
                     </label>
                     <input
                       type="email"
@@ -610,7 +643,7 @@ export default function UserProfileDrawer({
                       value={forgotEmailInput}
                       onChange={(e) => setForgotEmailInput(e.target.value)}
                       placeholder="votre.email@domaine.fr"
-                      className="w-full px-4 py-3 rounded-xl bg-zinc-900 border border-white/15 text-white text-xs font-mono focus:outline-none focus:border-white transition-colors placeholder:text-zinc-600"
+                      className="w-full px-4 py-3 rounded-xl bg-zinc-900 border border-white/15 text-white text-xs font-mono focus:outline-none focus:border-cyan-400 transition-colors placeholder:text-zinc-400"
                     />
                   </div>
 
@@ -639,60 +672,52 @@ export default function UserProfileDrawer({
                     ← Retour à la Connexion
                   </button>
                 </form>
-              ) : (
-                /* VIEW 2: STANDARD CONNEXION / INSCRIPTION FORM */
+              ) : authMode === 'login' ? (
+                /* VIEW 2: CONNEXION (PASSKEY OU MOT DE PASSE) */
                 <div className="flex flex-col gap-4">
-                  
-                  {/* SPOTIFY BUTTON DEDICATED PER TAB */}
-                  <div className="flex flex-col gap-1.5">
-                    <button
-                      type="button"
-                      onClick={handleSpotifyDirectAuth}
-                      disabled={isLoading}
-                      className="w-full py-3.5 px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-white/20 text-white font-mono font-bold text-xs flex items-center justify-center gap-2.5 transition-all cursor-pointer active:scale-[0.98] shadow-md group"
-                    >
-                      <Link2 className="w-4 h-4 text-white group-hover:scale-110 transition-transform" />
-                      <span>
-                        {authMode === 'signup' 
-                          ? 'Créer un compte avec Spotify' 
-                          : 'Se connecter avec Spotify'}
-                      </span>
-                    </button>
-                    <span className="text-[11px] font-mono text-zinc-400 text-center">
-                      {authMode === 'signup'
-                        ? 'Crée directement votre compte avec votre adresse e-mail Spotify, aucun mot de passe requis.'
-                        : 'Accès instantané via vos identifiants Spotify sans mot de passe requis.'}
-                    </span>
-                  </div>
+                  {/* Option 1: Fast Passkey Login */}
+                  {passkeySupported && (
+                    <div className="p-4 rounded-xl bg-cyan-950/20 border border-cyan-500/30 flex flex-col gap-2.5">
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-2 rounded-lg bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                          <Fingerprint className="w-5 h-5" />
+                        </div>
+                        <div className="flex flex-col text-left">
+                          <span className="text-xs font-bold text-white uppercase font-futuristic">
+                            Connexion Passkey (Biométrie)
+                          </span>
+                          <span className="text-[11px] font-mono text-zinc-400">
+                            Face ID, Empreinte ou Smartphone
+                          </span>
+                        </div>
+                      </div>
 
-                  {/* SEPARATOR */}
+                      <button
+                        type="button"
+                        onClick={handlePasskeyLogin}
+                        disabled={isLoading}
+                        className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-black font-mono font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-98 shadow-md disabled:opacity-50"
+                      >
+                        {isLoading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Key className="w-4 h-4" />
+                        )}
+                        <span>Se connecter avec ma Passkey</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Separator */}
                   <div className="relative my-1 flex items-center justify-center">
                     <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/10" /></div>
                     <span className="relative px-3 bg-zinc-950 text-[11px] font-mono uppercase text-zinc-400 font-bold">
-                      OU PAR E-MAIL
+                      OU PAR E-MAIL & MOT DE PASSE
                     </span>
                   </div>
 
-                  {/* EMAIL / PASSWORD FORM */}
+                  {/* Classic Email/Password Form */}
                   <form onSubmit={handleEmailAuth} className="flex flex-col gap-3 text-left">
-                    
-                    {authMode === 'signup' && (
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-[11px] font-mono text-zinc-300 font-bold flex items-center gap-1.5">
-                          <User className="w-3.5 h-3.5 text-white" />
-                          Nom d'utilisateur / Pseudo
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={usernameInput}
-                          onChange={(e) => setUsernameInput(e.target.value)}
-                          placeholder="Ex: Theo Synapse"
-                          className="w-full px-4 py-3 rounded-xl bg-zinc-900 border border-white/15 text-white text-xs font-mono focus:outline-none focus:border-white transition-colors placeholder:text-zinc-600"
-                        />
-                      </div>
-                    )}
-
                     <div className="flex flex-col gap-1.5">
                       <label className="text-[11px] font-mono text-zinc-300 font-bold flex items-center gap-1.5">
                         <Mail className="w-3.5 h-3.5 text-white" />
@@ -704,7 +729,7 @@ export default function UserProfileDrawer({
                         value={emailInput}
                         onChange={(e) => setEmailInput(e.target.value)}
                         placeholder="votre.email@domaine.fr"
-                        className="w-full px-4 py-3 rounded-xl bg-zinc-900 border border-white/15 text-white text-xs font-mono focus:outline-none focus:border-white transition-colors placeholder:text-zinc-600"
+                        className="w-full px-4 py-3 rounded-xl bg-zinc-900 border border-white/15 text-white text-xs font-mono focus:outline-none focus:border-cyan-400 transition-colors placeholder:text-zinc-400"
                       />
                     </div>
 
@@ -714,15 +739,13 @@ export default function UserProfileDrawer({
                           <Lock className="w-3.5 h-3.5 text-white" />
                           Mot de passe
                         </label>
-                        {authMode === 'login' && (
-                          <button
-                            type="button"
-                            onClick={() => setAuthMode('forgot')}
-                            className="text-[10px] font-mono text-zinc-400 hover:text-white transition-colors cursor-pointer"
-                          >
-                            Mot de passe oublié ?
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => setAuthMode('forgot')}
+                          className="text-[10px] font-mono text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                        >
+                          Mot de passe oublié ?
+                        </button>
                       </div>
                       <input
                         type="password"
@@ -730,34 +753,238 @@ export default function UserProfileDrawer({
                         value={passwordInput}
                         onChange={(e) => setPasswordInput(e.target.value)}
                         placeholder="••••••••••••"
-                        className="w-full px-4 py-3 rounded-xl bg-zinc-900 border border-white/15 text-white text-xs font-mono focus:outline-none focus:border-white transition-colors placeholder:text-zinc-600"
+                        className="w-full px-4 py-3 rounded-xl bg-zinc-900 border border-white/15 text-white text-xs font-mono focus:outline-none focus:border-cyan-400 transition-colors placeholder:text-zinc-400"
                       />
                     </div>
 
-                    {/* LUXURY SUBMIT BUTTON WITH SLIGHT CHROMATIC BORDER TOUCH */}
-                    <div className="p-[1.5px] rounded-xl chromatic-metallic-gradient mt-2 transition-transform hover:scale-[1.01] active:scale-[0.98]">
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="mt-1 w-full py-3.5 px-4 rounded-xl bg-white hover:bg-zinc-200 text-black font-mono font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg disabled:opacity-50 active:scale-98"
+                    >
+                      {isLoading ? (
+                        <Loader2 className="w-4 h-4 text-black animate-spin" />
+                      ) : (
+                        <>
+                          <span>Connexion par e-mail</span>
+                          <ArrowRight className="w-4 h-4 text-black" />
+                        </>
+                      )}
+                    </button>
+                  </form>
+                </div>
+              ) : (
+                /* VIEW 3: INSCRIPTION (PASSKEY OU E-MAIL) */
+                <div className="flex flex-col gap-4">
+                  {/* Signup Type Toggle */}
+                  <div className="flex items-center p-1 rounded-xl bg-zinc-900 border border-white/10">
+                    <button
+                      type="button"
+                      onClick={() => setSignupType('passkey')}
+                      className={`flex-1 py-2 px-3 rounded-lg text-xs font-mono font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                        signupType === 'passkey'
+                          ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                          : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      <Fingerprint className="w-3.5 h-3.5" />
+                      <span>Passkey (Recommandé)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSignupType('password')}
+                      className={`flex-1 py-2 px-3 rounded-lg text-xs font-mono font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                        signupType === 'password'
+                          ? 'bg-zinc-800 text-white border border-white/20'
+                          : 'text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      <Lock className="w-3.5 h-3.5" />
+                      <span>Mot de passe</span>
+                    </button>
+                  </div>
+
+                  {signupType === 'passkey' ? (
+                    /* Inscription Passkey */
+                    <form onSubmit={handlePasskeySignup} className="flex flex-col gap-3 text-left animate-fadeIn">
+                      <div className="p-3 rounded-xl bg-cyan-950/30 border border-cyan-500/30 flex items-start gap-2.5">
+                        <Sparkles className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5" />
+                        <p className="text-[11px] font-mono text-cyan-200 leading-relaxed">
+                          Votre profil (adresse mail, nom, prénom et pseudo) est enregistré et la passkey générée par votre appareil est liée à votre compte à la place du mot de passe.
+                        </p>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[11px] font-mono text-zinc-300 font-bold">
+                          Adresse e-mail *
+                        </label>
+                        <input
+                          type="email"
+                          required
+                          value={emailInput}
+                          onChange={(e) => setEmailInput(e.target.value)}
+                          placeholder="auditeur@exemple.com"
+                          className="w-full px-4 py-2.5 rounded-xl bg-zinc-900 border border-white/15 text-white text-xs font-mono focus:outline-none focus:border-cyan-400 placeholder:text-zinc-400"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-mono text-zinc-300 font-bold">
+                            Prénom
+                          </label>
+                          <input
+                            type="text"
+                            value={firstNameInput}
+                            onChange={(e) => setFirstNameInput(e.target.value)}
+                            placeholder="Alex"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-white/15 text-white text-xs font-mono focus:outline-none focus:border-cyan-400 placeholder:text-zinc-400"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-mono text-zinc-300 font-bold">
+                            Nom
+                          </label>
+                          <input
+                            type="text"
+                            value={lastNameInput}
+                            onChange={(e) => setLastNameInput(e.target.value)}
+                            placeholder="Dupont"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-white/15 text-white text-xs font-mono focus:outline-none focus:border-cyan-400 placeholder:text-zinc-400"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[11px] font-mono text-zinc-300 font-bold">
+                          Pseudo d'auditeur *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={usernameInput}
+                          onChange={(e) => setUsernameInput(e.target.value)}
+                          placeholder="Theo Synapse"
+                          className="w-full px-4 py-2.5 rounded-xl bg-zinc-900 border border-white/15 text-white text-xs font-mono focus:outline-none focus:border-cyan-400 placeholder:text-zinc-400"
+                        />
+                      </div>
+
                       <button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full py-3.5 px-4 rounded-[10.5px] bg-black hover:bg-zinc-950 text-white font-mono font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg disabled:opacity-50"
+                        className="mt-2 w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-cyan-400 via-teal-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-black font-mono font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg active:scale-98 disabled:opacity-50"
                       >
                         {isLoading ? (
-                          <Loader2 className="w-4 h-4 text-white animate-spin" />
+                          <Loader2 className="w-4 h-4 animate-spin" />
                         ) : (
-                          <>
-                            <span>{authMode === 'signup' ? "S'inscrire sur Radio Synapse" : "Connexion par e-mail"}</span>
-                            <ArrowRight className="w-4 h-4 text-white" />
-                          </>
+                          <Fingerprint className="w-4 h-4" />
                         )}
+                        <span>Créer mon compte avec Passkey</span>
                       </button>
-                    </div>
-                  </form>
+                    </form>
+                  ) : (
+                    /* Inscription Mot de passe classique */
+                    <form onSubmit={handleEmailAuth} className="flex flex-col gap-3 text-left animate-fadeIn">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[11px] font-mono text-zinc-300 font-bold">
+                          Adresse e-mail *
+                        </label>
+                        <input
+                          type="email"
+                          required
+                          value={emailInput}
+                          onChange={(e) => setEmailInput(e.target.value)}
+                          placeholder="auditeur@exemple.com"
+                          className="w-full px-4 py-2.5 rounded-xl bg-zinc-900 border border-white/15 text-white text-xs font-mono focus:outline-none focus:border-cyan-400 placeholder:text-zinc-400"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-mono text-zinc-300 font-bold">
+                            Prénom
+                          </label>
+                          <input
+                            type="text"
+                            value={firstNameInput}
+                            onChange={(e) => setFirstNameInput(e.target.value)}
+                            placeholder="Alex"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-white/15 text-white text-xs font-mono focus:outline-none focus:border-cyan-400 placeholder:text-zinc-400"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-mono text-zinc-300 font-bold">
+                            Nom
+                          </label>
+                          <input
+                            type="text"
+                            value={lastNameInput}
+                            onChange={(e) => setLastNameInput(e.target.value)}
+                            placeholder="Dupont"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-white/15 text-white text-xs font-mono focus:outline-none focus:border-cyan-400 placeholder:text-zinc-400"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[11px] font-mono text-zinc-300 font-bold">
+                          Pseudo d'auditeur *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={usernameInput}
+                          onChange={(e) => setUsernameInput(e.target.value)}
+                          placeholder="Theo Synapse"
+                          className="w-full px-4 py-2.5 rounded-xl bg-zinc-900 border border-white/15 text-white text-xs font-mono focus:outline-none focus:border-cyan-400 placeholder:text-zinc-400"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-mono text-zinc-300 font-bold">
+                            Mot de passe *
+                          </label>
+                          <input
+                            type="password"
+                            required
+                            value={passwordInput}
+                            onChange={(e) => setPasswordInput(e.target.value)}
+                            placeholder="••••••••"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-white/15 text-white text-xs font-mono focus:outline-none focus:border-cyan-400 placeholder:text-zinc-400"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[11px] font-mono text-zinc-300 font-bold">
+                            Confirmer *
+                          </label>
+                          <input
+                            type="password"
+                            required
+                            value={confirmPasswordInput}
+                            onChange={(e) => setConfirmPasswordInput(e.target.value)}
+                            placeholder="••••••••"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-white/15 text-white text-xs font-mono focus:outline-none focus:border-cyan-400 placeholder:text-zinc-400"
+                          />
+                        </div>
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={isLoading}
+                        className="mt-2 w-full py-3.5 px-4 rounded-xl bg-white hover:bg-zinc-200 text-black font-mono font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md active:scale-98 disabled:opacity-50"
+                      >
+                        {isLoading ? <Loader2 className="w-4 h-4 animate-spin text-black" /> : <ArrowRight className="w-4 h-4 text-black" />}
+                        <span>Créer mon compte</span>
+                      </button>
+                    </form>
+                  )}
                 </div>
               )}
             </div>
           )}
 
-          {/* SECTION C: DONNÉES ET QUALITÉ AUDIO (SOBER BLACK & WHITE BENTO) */}
+          {/* SECTION C: DONNÉES ET QUALITÉ AUDIO */}
           <div className="flex flex-col gap-3">
             <div className="flex items-center justify-between px-1">
               <span className="text-xs font-mono uppercase tracking-wider text-zinc-400 font-bold flex items-center gap-1.5">
@@ -765,7 +992,7 @@ export default function UserProfileDrawer({
                 Données & Qualité Audio
               </span>
               <span className="text-[10.5px] font-mono text-zinc-300 font-bold">
-                {synapseUser || connectedAccount ? 'SYNCHRONISÉ' : 'LOCAL'}
+                {synapseUser ? 'SYNCHRONISÉ' : 'LOCAL'}
               </span>
             </div>
 
@@ -803,7 +1030,7 @@ export default function UserProfileDrawer({
                 <span className="text-[11px] font-mono text-zinc-400">Accès rapide</span>
               </button>
 
-              {/* Audio Quality Selection Card - Replaces Studio Preset */}
+              {/* Audio Quality Selection Card */}
               <div className="p-4 rounded-2xl bg-zinc-950 border border-white/10 flex flex-col justify-between text-left">
                 <div className="flex items-center justify-between w-full">
                   <div className="flex items-center gap-1.5">
@@ -845,7 +1072,7 @@ export default function UserProfileDrawer({
             </div>
           </div>
 
-          {/* SECTION D: MULTI-DEVICE SYNC BANNER (SOBER B&W) */}
+          {/* SECTION D: MULTI-DEVICE SYNC & PASSKEY INFO */}
           <div className="p-4 rounded-2xl bg-zinc-950 border border-white/10 flex flex-col gap-2.5">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-white/5 border border-white/15 text-white">
@@ -853,10 +1080,10 @@ export default function UserProfileDrawer({
               </div>
               <div className="flex flex-col text-left">
                 <span className="text-xs font-bold text-white font-futuristic uppercase tracking-wider">
-                  Synchronisation Multi-Appareils
+                  Synchronisation Multi-Appareils & Passkey
                 </span>
                 <span className="text-[10px] font-mono text-zinc-400 leading-snug">
-                  Vos favoris, flux et réglages sont instantanément synchronisés sur tous vos écrans.
+                  Vos favoris, flux et réglages sont instantanément synchronisés sur tous vos appareils de manière chiffrée.
                 </span>
               </div>
             </div>
@@ -867,9 +1094,10 @@ export default function UserProfileDrawer({
                   handleClose();
                   onOpenConnectModal();
                 }}
-                className="text-[10.5px] font-mono text-zinc-300 hover:text-white text-center pt-2 border-t border-white/10 transition-colors cursor-pointer font-bold"
+                className="text-[10.5px] font-mono text-zinc-300 hover:text-white text-center pt-2 border-t border-white/10 transition-colors cursor-pointer font-bold flex items-center justify-center gap-1.5"
               >
-                Configurer un Client ID Spotify personnalisé & Redirections →
+                <Key className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Gérer mes identifiants & ma Passkey →</span>
               </button>
             )}
           </div>

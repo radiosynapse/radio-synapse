@@ -99,15 +99,6 @@ export default function StandaloneTrackFlyerPage({
       buttonHover: 'hover:border-purple-500/60 hover:bg-purple-950/40',
     },
     {
-      id: 'spotify',
-      name: 'Spotify',
-      action: 'Écouter sur Spotify',
-      url: flyerRecord.spotifyUrl,
-      icon: 'https://cdn-icons-png.flaticon.com/512/174/174872.png',
-      brandColor: '#1DB954',
-      buttonHover: 'hover:border-emerald-500/60 hover:bg-emerald-950/40',
-    },
-    {
       id: 'apple',
       name: 'Apple Music',
       action: 'Écouter sur Apple Music',

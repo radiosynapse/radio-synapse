@@ -228,246 +228,11 @@ export const DEFAULT_REGIE_SERVER_CONFIG: LiquidsoapServerConfig = {
   logsPath: '/var/log/liquidsoap/radio.log',
 };
 
-export const DEFAULT_REGIE_STATIONS: LiquidsoapStationConfig[] = [
-  {
-    id: 'synapse-main',
-    name: 'Radio Synapse HD',
-    shortCode: 'SYNAPSE-HD',
-    genre: 'Électro, Synthwave, Chill & Pop',
-    tagline: 'Le flux haute fidélité Master 320k',
-    mountpoint: '/synapse_hd.mp3',
-    format: 'mp3',
-    bitrate: 320,
-    samplerate: 44100,
-    channels: 2,
-    isEncodingActive: true,
-    currentListeners: 142,
-    peakListeners: 380,
-    fallbackMount: '/fallback.mp3',
-    logoUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'synapse-club',
-    name: 'Synapse Club & DJ Sets',
-    shortCode: 'SYNAPSE-CLUB',
-    genre: 'Club, Tech House, Melodic Techno',
-    tagline: 'Sets DJ en direct et clubbing non-stop',
-    mountpoint: '/synapse_club.mp3',
-    format: 'mp3',
-    bitrate: 320,
-    samplerate: 48000,
-    channels: 2,
-    isEncodingActive: true,
-    currentListeners: 89,
-    peakListeners: 245,
-    fallbackMount: '/fallback.mp3',
-    logoUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'synapse-chill',
-    name: 'Synapse Lo-Fi & Chillout',
-    shortCode: 'SYNAPSE-CHILL',
-    genre: 'Lo-Fi Beats, Ambient, Downtempo',
-    tagline: 'Atmosphère calme pour coder, lire ou travailler',
-    mountpoint: '/synapse_chill.aac',
-    format: 'aac',
-    bitrate: 192,
-    samplerate: 44100,
-    channels: 2,
-    isEncodingActive: true,
-    currentListeners: 64,
-    peakListeners: 180,
-    fallbackMount: '/fallback.mp3',
-    logoUrl: 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=400&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'synapse-flac',
-    name: 'Synapse Audiophile Lossless',
-    shortCode: 'SYNAPSE-LOSSLESS',
-    genre: 'Master Direct Studio Non Compressé',
-    tagline: 'Diffusion FLAC 24-bit pure qualité studio',
-    mountpoint: '/synapse_lossless.flac',
-    format: 'flac',
-    bitrate: 1411,
-    samplerate: 48000,
-    channels: 2,
-    isEncodingActive: true,
-    currentListeners: 28,
-    peakListeners: 92,
-    fallbackMount: '/fallback.mp3',
-    logoUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&auto=format&fit=crop&q=80',
-  },
-];
+export const DEFAULT_REGIE_STATIONS: LiquidsoapStationConfig[] = [];
 
-export const DEFAULT_REGIE_PLAYLISTS: LiquidsoapPlaylist[] = [
-  {
-    id: 'pl-heavy',
-    name: 'Rotation Heavy (Tubes & Nouveautés)',
-    type: 'general',
-    weight: 8,
-    crossfadeDuration: 4,
-    trackCount: 148,
-    totalDurationSeconds: 31200,
-    isActive: true,
-    color: '#00f2ff',
-  },
-  {
-    id: 'pl-soft',
-    name: 'Rotation Soft & Gold Classiques',
-    type: 'general',
-    weight: 4,
-    crossfadeDuration: 5,
-    trackCount: 220,
-    totalDurationSeconds: 46800,
-    isActive: true,
-    color: '#a855f7',
-  },
-  {
-    id: 'pl-night',
-    name: 'Sessions Clubbing Nocturne (22h - 04h)',
-    type: 'scheduled',
-    weight: 10,
-    crossfadeDuration: 6,
-    trackCount: 85,
-    totalDurationSeconds: 24000,
-    isActive: true,
-    scheduleRule: 'Tous les jours 22:00 - 04:00',
-    color: '#ff00a0',
-  },
-  {
-    id: 'pl-jingles',
-    name: 'Habillage, Drops & Jingles Synapse',
-    type: 'jingles',
-    weight: 5,
-    crossfadeDuration: 2,
-    trackCount: 32,
-    totalDurationSeconds: 480,
-    isActive: true,
-    scheduleRule: '1 jingle tous les 4 titres',
-    color: '#eab308',
-  },
-  {
-    id: 'pl-clock',
-    name: 'Top Horloge & Synthèse de l\'Heure',
-    type: 'clock_hourly',
-    weight: 10,
-    crossfadeDuration: 2,
-    trackCount: 24,
-    totalDurationSeconds: 360,
-    isActive: true,
-    scheduleRule: 'Chaque heure précise à XX:00:00',
-    color: '#10b981',
-  },
-  {
-    id: 'pl-fallback',
-    name: 'Boucle de Secours d\'Urgence (Offline Safe)',
-    type: 'fallback',
-    weight: 1,
-    crossfadeDuration: 3,
-    trackCount: 15,
-    totalDurationSeconds: 3600,
-    isActive: true,
-    scheduleRule: 'En cas de coupure de source principale',
-    color: '#ef4444',
-  },
-];
+export const DEFAULT_REGIE_PLAYLISTS: LiquidsoapPlaylist[] = [];
 
-export const DEFAULT_REGIE_TRACKS: LiquidsoapMediaTrack[] = [
-  {
-    id: 'track-1',
-    title: 'Midnight City (Synapse Rework)',
-    artist: 'M83',
-    album: 'Hurry Up, We\'re Dreaming',
-    duration: 243,
-    filePath: '/var/media/synapse/music/m83_midnight_city_rework.mp3',
-    fileSizeMb: 9.8,
-    bitrate: 320,
-    genre: 'Synthwave / Electro',
-    year: 2011,
-    bpm: 105,
-    playlistIds: ['pl-heavy'],
-    cueIn: 0.5,
-    cueOut: 242.0,
-    replayGainDb: -1.2,
-    coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=400&auto=format&fit=crop&q=80',
-    addedAt: '2026-09-10T12:00:00Z',
-  },
-  {
-    id: 'track-2',
-    title: 'Starboy (Kygo Remix VIP)',
-    artist: 'The Weeknd ft. Daft Punk',
-    album: 'Starboy Remixed',
-    duration: 244,
-    filePath: '/var/media/synapse/music/the_weeknd_starboy_kygo.mp3',
-    fileSizeMb: 9.6,
-    bitrate: 320,
-    genre: 'Electro Pop',
-    year: 2016,
-    bpm: 120,
-    playlistIds: ['pl-heavy', 'pl-night'],
-    cueIn: 0.0,
-    cueOut: 243.5,
-    replayGainDb: -0.8,
-    coverUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400&auto=format&fit=crop&q=80',
-    addedAt: '2026-09-11T14:30:00Z',
-  },
-  {
-    id: 'track-3',
-    title: 'Resonance',
-    artist: 'HOME',
-    album: 'Odyssey',
-    duration: 212,
-    filePath: '/var/media/synapse/music/home_resonance.mp3',
-    fileSizeMb: 8.5,
-    bitrate: 320,
-    genre: 'Chillwave / Synthwave',
-    year: 2014,
-    bpm: 85,
-    playlistIds: ['pl-soft'],
-    cueIn: 0.2,
-    cueOut: 211.5,
-    replayGainDb: 0.0,
-    coverUrl: 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=400&auto=format&fit=crop&q=80',
-    addedAt: '2026-09-12T09:15:00Z',
-  },
-  {
-    id: 'track-4',
-    title: 'One More Time (12" Extended Club Mix)',
-    artist: 'Daft Punk',
-    album: 'Discovery',
-    duration: 320,
-    filePath: '/var/media/synapse/music/daft_punk_one_more_time_club.mp3',
-    fileSizeMb: 12.8,
-    bitrate: 320,
-    genre: 'French House',
-    year: 2001,
-    bpm: 123,
-    playlistIds: ['pl-heavy', 'pl-night'],
-    cueIn: 0.4,
-    cueOut: 319.0,
-    replayGainDb: -1.5,
-    coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=400&auto=format&fit=crop&q=80',
-    addedAt: '2026-09-13T16:00:00Z',
-  },
-  {
-    id: 'track-5',
-    title: 'Synapse Radio - Top Horaire Synth 2026',
-    artist: 'Radio Synapse FX',
-    album: 'Station ID 2026',
-    duration: 15,
-    filePath: '/var/media/synapse/music/jingles/synapse_top_horaire.mp3',
-    fileSizeMb: 0.8,
-    bitrate: 320,
-    genre: 'Jingle / Station ID',
-    year: 2026,
-    bpm: 120,
-    playlistIds: ['pl-clock', 'pl-jingles'],
-    cueIn: 0.0,
-    cueOut: 15.0,
-    replayGainDb: +1.0,
-    addedAt: '2026-09-14T10:00:00Z',
-  },
-];
+export const DEFAULT_REGIE_TRACKS: LiquidsoapMediaTrack[] = [];
 
 // Helper functions for state retrieval & persistence
 export function getRegieServerConfig(): LiquidsoapServerConfig {
@@ -490,9 +255,12 @@ export function saveRegieServerConfig(config: LiquidsoapServerConfig): void {
 export function getRegieStations(): LiquidsoapStationConfig[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_REGIE_STATIONS);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
   } catch {}
-  return DEFAULT_REGIE_STATIONS;
+  return [];
 }
 
 export function saveRegieStations(stations: LiquidsoapStationConfig[]): void {
@@ -507,9 +275,12 @@ export function saveRegieStations(stations: LiquidsoapStationConfig[]): void {
 export function getRegiePlaylists(): LiquidsoapPlaylist[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_REGIE_PLAYLISTS);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
   } catch {}
-  return DEFAULT_REGIE_PLAYLISTS;
+  return [];
 }
 
 export function saveRegiePlaylists(playlists: LiquidsoapPlaylist[]): void {
@@ -524,9 +295,12 @@ export function saveRegiePlaylists(playlists: LiquidsoapPlaylist[]): void {
 export function getRegieTracks(): LiquidsoapMediaTrack[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_REGIE_TRACKS);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
   } catch {}
-  return DEFAULT_REGIE_TRACKS;
+  return [];
 }
 
 export function saveRegieTracks(tracks: LiquidsoapMediaTrack[]): void {
@@ -777,7 +551,7 @@ export function getLiquidsoapMultiVpsSetupGuide(config: LiquidsoapServerConfig):
 ## RADIO SYNAPSE • HAUTE DISPONIBILITÉ & SCALABILITÉ
 
 Dans cette architecture définitive en production :
-- **VPS 1 (Maître Applicatif, Régie & Données)** : Application Web, Panel Admin, Base PocketBase, Liquidsoap 2.2+, Stockage audio local et Port Harbor DJ Live.
+- **VPS 1 (Maître Applicatif, Régie & Données)** : Application Web, Panel Admin, Base Supabase (PostgreSQL & Realtime), Liquidsoap 2.2+, Stockage audio local et Port Harbor DJ Live.
 - **VPS 2 (Relais Icecast Dédié Haute Capacité)** : Démon Icecast 2 optimisé pour encaisser 15 000+ auditeurs simultanés sans impacter la régie ni la base de données.
 
 ---
@@ -878,7 +652,7 @@ server {
 
 ### PARTIE B : CONFIGURATION DU VPS 1 (MAÎTRE APPLICATIF & RÉGIE)
 
-Sur le VPS 1 (IP: ex: 203.0.113.10) tournent l'application web, PocketBase et Liquidsoap.
+Sur le VPS 1 (IP: ex: 203.0.113.10) tournent l'application web, Supabase et Liquidsoap.
 
 #### 1. Configuration de radio.liq pour diffuser vers le VPS 2
 Dans /etc/liquidsoap/radio.liq sur le VPS 1, configurez l'adresse IP du VPS 2 :

@@ -4,20 +4,24 @@ import { supabase } from '../lib/supabase';
 const SIDEBAR_STORAGE_KEY = 'synapse_admin_sidebar_config_v3';
 const DASHBOARD_STORAGE_KEY = 'synapse_admin_dashboard_widgets_v4';
 
-const PB_KEY_SIDEBAR = 'admin_sidebar_layout_v3';
-const PB_KEY_DASHBOARD = 'admin_dashboard_widgets_v4';
+const SUPABASE_KEY_SIDEBAR = 'admin_sidebar_layout_v3';
+const SUPABASE_KEY_DASHBOARD = 'admin_dashboard_widgets_v4';
 
 export const DEFAULT_SIDEBAR_ITEMS: SidebarItemConfig[] = [
   { id: 'dashboard', visible: true, order: 0 },
-  { id: 'stations', visible: true, order: 1 },
-  { id: 'programming', visible: true, order: 2 },
-  { id: 'messages', visible: true, order: 3 },
-  { id: 'events', visible: true, order: 4 },
-  { id: 'challenges', visible: true, order: 5 },
-  { id: 'promotions', visible: true, order: 6 },
-  { id: 'users', visible: true, order: 7 },
-  { id: 'services', visible: true, order: 8 },
-  { id: 'features', visible: true, order: 9 },
+  { id: 'stations_management', visible: true, order: 1 },
+  { id: 'regie_animation', visible: true, order: 2 },
+  { id: 'music_library', visible: true, order: 3 },
+  { id: 'playlists', visible: true, order: 4 },
+  { id: 'emission_prep', visible: true, order: 5 },
+  { id: 'programming', visible: true, order: 6 },
+  { id: 'messages', visible: true, order: 7 },
+  { id: 'events', visible: true, order: 8 },
+  { id: 'challenges', visible: true, order: 9 },
+  { id: 'promotions', visible: true, order: 10 },
+  { id: 'users', visible: true, order: 11 },
+  { id: 'services', visible: true, order: 12 },
+  { id: 'features', visible: true, order: 13 },
 ];
 
 export const DEFAULT_DASHBOARD_WIDGETS: DashboardWidgetConfig[] = [
@@ -124,7 +128,7 @@ export const DEFAULT_DASHBOARD_WIDGETS: DashboardWidgetConfig[] = [
   {
     id: 'broadcast_quick_status',
     title: 'Direct Antenne',
-    description: 'Connexion streamer AzuraCast et signal micro',
+    description: 'Connexion streamer direct et signal micro',
     size: 'third',
     height: 'normal',
     density: 'normal',
@@ -216,7 +220,7 @@ export function saveSidebarOrder(items: SidebarItemConfig[]): void {
     localStorage.setItem(SIDEBAR_STORAGE_KEY, JSON.stringify(normalized));
 
     // Persist to Supabase admin_customizations in background
-    persistCustomizationToSupabase(PB_KEY_SIDEBAR, normalized);
+    persistCustomizationToSupabase(SUPABASE_KEY_SIDEBAR, normalized);
   } catch (err) {
     console.error('Error saving sidebar order:', err);
   }
@@ -225,7 +229,7 @@ export function saveSidebarOrder(items: SidebarItemConfig[]): void {
 export function resetSidebarOrder(): SidebarItemConfig[] {
   try {
     localStorage.removeItem(SIDEBAR_STORAGE_KEY);
-    persistCustomizationToSupabase(PB_KEY_SIDEBAR, DEFAULT_SIDEBAR_ITEMS);
+    persistCustomizationToSupabase(SUPABASE_KEY_SIDEBAR, DEFAULT_SIDEBAR_ITEMS);
   } catch {}
   return DEFAULT_SIDEBAR_ITEMS;
 }
@@ -267,7 +271,7 @@ export function saveDashboardWidgets(widgets: DashboardWidgetConfig[]): void {
     localStorage.setItem(DASHBOARD_STORAGE_KEY, JSON.stringify(normalized));
 
     // Persist to Supabase in background
-    persistCustomizationToSupabase(PB_KEY_DASHBOARD, normalized);
+    persistCustomizationToSupabase(SUPABASE_KEY_DASHBOARD, normalized);
   } catch (err) {
     console.error('Error saving dashboard widgets:', err);
   }
@@ -276,7 +280,7 @@ export function saveDashboardWidgets(widgets: DashboardWidgetConfig[]): void {
 export function resetDashboardWidgets(): DashboardWidgetConfig[] {
   try {
     localStorage.removeItem(DASHBOARD_STORAGE_KEY);
-    persistCustomizationToSupabase(PB_KEY_DASHBOARD, DEFAULT_DASHBOARD_WIDGETS);
+    persistCustomizationToSupabase(SUPABASE_KEY_DASHBOARD, DEFAULT_DASHBOARD_WIDGETS);
   } catch {}
   return DEFAULT_DASHBOARD_WIDGETS;
 }
@@ -299,7 +303,7 @@ async function persistCustomizationToSupabase(key: string, payload: any): Promis
 /**
  * Fetch and synchronize customization layouts from Supabase on app/drawer start
  */
-export async function syncCustomizationsWithPocketBase(): Promise<{
+export async function syncCustomizationsWithSupabase(): Promise<{
   sidebar?: SidebarItemConfig[];
   dashboard?: DashboardWidgetConfig[];
 }> {
@@ -308,12 +312,12 @@ export async function syncCustomizationsWithPocketBase(): Promise<{
   try {
     const { data } = await supabase.from('admin_customizations').select('*');
     if (data && Array.isArray(data)) {
-      const sidebarRow = data.find((r: any) => r.key === PB_KEY_SIDEBAR);
+      const sidebarRow = data.find((r: any) => r.key === SUPABASE_KEY_SIDEBAR);
       if (sidebarRow?.value && Array.isArray(sidebarRow.value)) {
         localStorage.setItem(SIDEBAR_STORAGE_KEY, JSON.stringify(sidebarRow.value));
         result.sidebar = sidebarRow.value;
       }
-      const dashRow = data.find((r: any) => r.key === PB_KEY_DASHBOARD);
+      const dashRow = data.find((r: any) => r.key === SUPABASE_KEY_DASHBOARD);
       if (dashRow?.value && Array.isArray(dashRow.value)) {
         const filtered = dashRow.value.filter((w: any) => w.id !== 'quick_audio_monitor');
         localStorage.setItem(DASHBOARD_STORAGE_KEY, JSON.stringify(filtered));

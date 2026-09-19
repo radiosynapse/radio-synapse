@@ -1,226 +1,23 @@
 import { LiquidsoapProgramEvent } from '../types/programming';
 import { LiquidsoapPlaylist } from './liquidsoapBroadcasterService';
+import { getStationPlaylists } from './playlistsStore';
 
 const STORAGE_KEY_PROGRAM_EVENTS = 'synapse_liquidsoap_schedule_events_v2';
 export const EVENT_SCHEDULE_CHANGED = 'synapse_schedule_data_changed';
 
-export const INITIAL_PROGRAM_EVENTS: LiquidsoapProgramEvent[] = [
-  {
-    id: 'prog-rock-60-70',
-    stationId: 'all',
-    title: "Mix 60/70 Rock'n Roll & Vinyl Classics",
-    host: 'DJ Mitch & Vintage Crew',
-    genre: "Classic Rock & Roll 60s/70s",
-    badge: 'ÉMISSION SPÉCIALE',
-    description: 'Deux heures de légende : riffs saturés, perles vinyles rares des années 60 et 70. Chat interactif et demandes de titres ouverts !',
-    color: '#f97316', // Orange
-    scheduleType: 'weekly_recurring',
-    daysOfWeek: [3, 6], // Mercredi et Samedi
-    startTime: '14:00',
-    endTime: '16:00',
-    playlistIds: ['pl-heavy'],
-    playbackBehavior: 'shuffle',
-    loopBehavior: 'loop',
-    jingleIntro: {
-      enabled: true,
-      name: "Jingle Entrée Émission Rock'n Roll 60s",
-      filePath: '/var/media/synapse/music/jingles/intro_rock_60_70.mp3',
-    },
-    jingleOutro: {
-      enabled: true,
-      name: "Jingle Fin de Programme & Salutations",
-      filePath: '/var/media/synapse/music/jingles/outro_rock_60_70.mp3',
-    },
-    jingleRotation: {
-      enabled: true,
-      frequencyTracks: 3, // 1 jingle tous les 3 titres
-      jinglePlaylistId: 'pl-jingles',
-    },
-    features: {
-      allowLiveChat: true,
-      allowSongRequests: true,
-      allowLiveVoting: true,
-      isLiveSpecial: true,
-    },
-    isActive: true,
-    createdAt: '2026-09-01T10:00:00Z',
-    updatedAt: '2026-09-18T00:00:00Z',
-  },
-  {
-    id: 'prog-morning-synth',
-    stationId: 'all',
-    title: 'Morning Synthwave & Cyber Drive',
-    host: 'Alexandre Roy',
-    genre: 'Synthwave / Retrowave / Darksynth',
-    badge: 'MATINALE 100% ÉNERGIE',
-    description: 'Le réveil électronique rétro-futuriste pour bien attaquer la journée avec synthétiseurs analogiques et rythmes percutants.',
-    color: '#00f2ff', // Cyan
-    scheduleType: 'weekly_recurring',
-    daysOfWeek: [1, 2, 3, 4, 5], // Du Lundi au Vendredi
-    startTime: '07:00',
-    endTime: '10:00',
-    playlistIds: ['pl-heavy'],
-    playbackBehavior: 'shuffle',
-    loopBehavior: 'loop',
-    jingleIntro: {
-      enabled: true,
-      name: 'Matinale Top Synth ID',
-      filePath: '/var/media/synapse/music/jingles/synapse_top_horaire.mp3',
-    },
-    jingleOutro: {
-      enabled: true,
-      name: 'Transition Flash Matinale',
-      filePath: '/var/media/synapse/music/jingles/outro_morning.mp3',
-    },
-    jingleRotation: {
-      enabled: true,
-      frequencyTracks: 4,
-      jinglePlaylistId: 'pl-jingles',
-    },
-    features: {
-      allowLiveChat: true,
-      allowSongRequests: false,
-      allowLiveVoting: false,
-      isLiveSpecial: false,
-    },
-    isActive: true,
-    createdAt: '2026-09-02T08:00:00Z',
-    updatedAt: '2026-09-18T00:00:00Z',
-  },
-  {
-    id: 'prog-club-night',
-    stationId: 'all',
-    title: 'Synapse Club & DJ Residency Live',
-    host: 'DJ Guest & Resident Synapse',
-    genre: 'Melodic Techno / Tech House / Club',
-    badge: 'CLUBBING LIVE',
-    description: 'Prise de contrôle en direct de la régie par les DJs résidents avec transitions clubbing et flux sans coupure.',
-    color: '#ff00a0', // Magenta
-    scheduleType: 'weekly_recurring',
-    daysOfWeek: [5, 6], // Vendredi et Samedi
-    startTime: '22:00',
-    endTime: '02:00',
-    playlistIds: ['pl-night'],
-    playbackBehavior: 'sequential',
-    loopBehavior: 'loop',
-    jingleIntro: {
-      enabled: true,
-      name: 'Clubbing Intro Live Harbor Drop',
-      filePath: '/var/media/synapse/music/jingles/club_intro.mp3',
-    },
-    jingleOutro: {
-      enabled: false,
-      name: '',
-    },
-    jingleRotation: {
-      enabled: true,
-      frequencyTracks: 5,
-      jinglePlaylistId: 'pl-jingles',
-    },
-    features: {
-      allowLiveChat: true,
-      allowSongRequests: true,
-      allowLiveVoting: true,
-      isLiveSpecial: true,
-    },
-    isActive: true,
-    createdAt: '2026-09-03T14:00:00Z',
-    updatedAt: '2026-09-18T00:00:00Z',
-  },
-  {
-    id: 'prog-lofi-sunday',
-    stationId: 'all',
-    title: 'Sunday Lo-Fi Study & Chillout',
-    host: 'AutoDJ Curator Synapse',
-    genre: 'Lo-Fi Hip Hop / Chillout / Downtempo',
-    badge: 'CHILL & FOCUS',
-    description: 'Une après-midi cocooning avec battements feutrés, craquements de vinyles et nappes apaisantes.',
-    color: '#a855f7', // Purple
-    scheduleType: 'weekly_recurring',
-    daysOfWeek: [0], // Dimanche
-    startTime: '14:00',
-    endTime: '18:00',
-    playlistIds: ['pl-soft'],
-    playbackBehavior: 'shuffle',
-    loopBehavior: 'loop',
-    jingleIntro: {
-      enabled: true,
-      name: 'Lo-Fi Chill Drop',
-      filePath: '/var/media/synapse/music/jingles/lofi_intro.mp3',
-    },
-    jingleOutro: {
-      enabled: false,
-      name: '',
-    },
-    jingleRotation: {
-      enabled: true,
-      frequencyTracks: 6,
-      jinglePlaylistId: 'pl-jingles',
-    },
-    features: {
-      allowLiveChat: true,
-      allowSongRequests: true,
-      allowLiveVoting: false,
-      isLiveSpecial: false,
-    },
-    isActive: true,
-    createdAt: '2026-09-04T12:00:00Z',
-    updatedAt: '2026-09-18T00:00:00Z',
-  },
-  {
-    id: 'prog-listeners-choice',
-    stationId: 'all',
-    title: 'Le Grand Mix des Auditeurs (Dédicaces)',
-    host: 'Sarah & L\'Équipe Synapse',
-    genre: 'Multi-Genres / Choix du Public',
-    badge: '100% AUDITEURS',
-    description: 'Émission interactive où l\'antenne est façonnée par vos dédicaces en direct et vos votes sur le player.',
-    color: '#10b981', // Emerald
-    scheduleType: 'weekly_recurring',
-    daysOfWeek: [4], // Jeudi
-    startTime: '20:00',
-    endTime: '22:00',
-    playlistIds: ['pl-heavy', 'pl-soft'],
-    playbackBehavior: 'weighted',
-    loopBehavior: 'loop',
-    jingleIntro: {
-      enabled: true,
-      name: 'Jingle Spécial Dédicaces Auditeurs',
-      filePath: '/var/media/synapse/music/jingles/dedicaces_intro.mp3',
-    },
-    jingleOutro: {
-      enabled: true,
-      name: 'Remerciements et Clôture',
-      filePath: '/var/media/synapse/music/jingles/dedicaces_outro.mp3',
-    },
-    jingleRotation: {
-      enabled: true,
-      frequencyTracks: 2,
-      jinglePlaylistId: 'pl-jingles',
-    },
-    features: {
-      allowLiveChat: true,
-      allowSongRequests: true,
-      allowLiveVoting: true,
-      isLiveSpecial: true,
-    },
-    isActive: true,
-    createdAt: '2026-09-05T16:00:00Z',
-    updatedAt: '2026-09-18T00:00:00Z',
-  },
-];
+export const INITIAL_PROGRAM_EVENTS: LiquidsoapProgramEvent[] = [];
 
 export function getProgramEvents(): LiquidsoapProgramEvent[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_PROGRAM_EVENTS);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) return parsed;
     }
   } catch (e) {
     console.error('Error reading program events from storage:', e);
   }
-  return INITIAL_PROGRAM_EVENTS;
+  return [];
 }
 
 export function saveProgramEvents(events: LiquidsoapProgramEvent[]): void {
@@ -381,9 +178,37 @@ ${cleanId}_ready = sequence([${cleanId}_intro, ${cleanId}_with_jingles])
     script += '\n';
   });
 
-  // 2. Aiguillage chronologique (Switch temporel)
+  // 2. Configuration du flux continu de secours (Auto-DJ Fallback)
+  const fallbackPlaylists = getStationPlaylists('all').filter((p) => p.isActive && p.isFallbackAutoDj !== false);
+
+  script += `# ==============================================================================
+# FLUX CONTINU DE SECOURS (AUTO-DJ BACKUP)
+# Déclenché si aucun créneau de l'agenda n'est actif ou en cas de coupure de direct
+# ==============================================================================
+`;
+  if (fallbackPlaylists.length > 0) {
+    fallbackPlaylists.forEach((fpl) => {
+      const cleanPlId = fpl.id.replace(/[^a-zA-Z0-9_]/g, '_');
+      const plMode = fpl.fallbackPlayMode === 'shuffle' ? 'mode="randomize"' : 'mode="normal"';
+      script += `# Playlist de secours : ${fpl.name} (Priorité #${fpl.fallbackPriority || 1}, Poids: ${fpl.weight}/10, Répétition: ${fpl.repeatIntervalHours}h)
+autodj_pl_${cleanPlId} = playlist(id="${cleanPlId}", ${plMode}, reload_mode="watch", "${mediaPath}/playlists/${cleanPlId}")
+`;
+    });
+
+    const fallbackSources = fallbackPlaylists.map((f) => `autodj_pl_${f.id.replace(/[^a-zA-Z0-9_]/g, '_')}`);
+    const fallbackWeights = fallbackPlaylists.map((f) => f.weight || 5);
+
+    script += `\n# Mix pondéré du flux continu de secours selon les règles de la section Playlists
+autodj_mixed = rotate(weights=[${fallbackWeights.join(', ')}], [${fallbackSources.join(', ')}])\n\n`;
+  } else {
+    script += `autodj_mixed = playlist(id="default_fallback", mode="randomize", "${mediaPath}/default")\n\n`;
+  }
+
+  // 3. Aiguillage chronologique (Switch temporel)
   script += `# ==============================================================================
 # AIGUILLAGE HORAIRE DE L'ANTENNE (LIQUIDSOAP TIME-SWITCH)
+# Priorité 1 : Grille programmée de l'Agenda
+# Priorité 2 : Flux continu de secours configuré ci-dessus
 # ==============================================================================
 scheduled_broadcast = switch([
 `;
@@ -404,7 +229,7 @@ scheduled_broadcast = switch([
     }
   });
 
-  script += `  # Fallback automatique si aucun créneau n'est actif
+  script += `  # Fallback automatique vers le flux continu si aucun créneau n'est actif
   ({ true }, autodj_mixed)
 ])
 `;

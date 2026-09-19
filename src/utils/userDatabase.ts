@@ -5,8 +5,6 @@ export interface UserPersistedData {
   username: string;
   email?: string;
   likedTracks: LikedTrack[];
-  spotifyPlaylistId?: string;
-  spotifyPlaylistUrl?: string;
   favoriteStations?: string[];
   updatedAt: number;
 }
@@ -28,8 +26,6 @@ export async function saveUserDataToDatabase(
     username: data.username || existing?.username || 'Membre Synapse',
     email: data.email || existing?.email,
     likedTracks: data.likedTracks || existing?.likedTracks || [],
-    spotifyPlaylistId: data.spotifyPlaylistId || existing?.spotifyPlaylistId,
-    spotifyPlaylistUrl: data.spotifyPlaylistUrl || existing?.spotifyPlaylistUrl,
     favoriteStations: data.favoriteStations || existing?.favoriteStations || [],
     updatedAt: Date.now(),
   };
@@ -57,7 +53,7 @@ export async function saveUserDataToDatabase(
 }
 
 /**
- * Retrieve user data from database by Spotify User ID
+ * Retrieve user data from database by User ID
  */
 export async function getUserDataFromDatabase(
   userId: string

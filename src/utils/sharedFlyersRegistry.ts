@@ -11,7 +11,6 @@ export interface SharedFlyerRecord {
   stationName?: string;
   previewUrl?: string;
   deezerUrl: string;
-  spotifyUrl: string;
   appleMusicUrl: string;
   youtubeUrl: string;
   tidalUrl: string;
@@ -85,7 +84,6 @@ export function getOrCreateSharedFlyer(track: LikedTrack): SharedFlyerRecord {
     stationName: track.stationName,
     previewUrl: track.previewUrl,
     deezerUrl: track.deezerUrl || `https://www.deezer.com/search/${query}`,
-    spotifyUrl: track.spotifyUrl || `https://open.spotify.com/search/${query}`,
     appleMusicUrl: track.appleMusicUrl || `https://music.apple.com/fr/search?term=${query}`,
     youtubeUrl: track.youtubeUrl || `https://music.youtube.com/search?q=${query}`,
     tidalUrl: `https://listen.tidal.com/search?q=${query}`,

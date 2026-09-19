@@ -3,7 +3,7 @@
  * Features:
  * - Intelligent artist/title sanitization (strips YouTube tags, labels, brackets, suffixes)
  * - Multi-tier cover lookup: iTunes Search API (600x600/1000x1000), Deezer, MusicBrainz & Cover Art Archive
- * - AzuraCast live tag extraction
+ * - Stream server live tag extraction
  * - Persistent memory & localStorage cache
  * - Curated high-res vinyl/analog fallbacks (strictly NO generic DJ controller placeholders)
  */
@@ -187,9 +187,9 @@ export function getCachedTrackCover(title: string, artist: string): string | nul
 }
 
 /**
- * Tests if an artwork URL is an AzuraCast generic placeholder, station logo or invalid image
+ * Tests if an artwork URL is a generic placeholder, station logo or invalid image
  */
-export function isAzuraCastDefaultLogo(url: string | null | undefined): boolean {
+export function isStreamDefaultLogo(url: string | null | undefined): boolean {
   if (!url) return true;
   const lower = url.toLowerCase();
   return (
@@ -200,8 +200,7 @@ export function isAzuraCastDefaultLogo(url: string | null | undefined): boolean 
     lower.includes('default_album_art') ||
     lower.includes('placeholder') ||
     lower.includes('no-cover') ||
-    lower.includes('blank') ||
-    lower.includes('azuracast')
+    lower.includes('blank')
   );
 }
 
@@ -451,7 +450,7 @@ export async function fetchTrackCover(
   }
 
   // 6. If external APIs found nothing, check if the server gave a real valid cover
-  if (!foundUrl && serverArtUrl && !isAzuraCastDefaultLogo(serverArtUrl)) {
+  if (!foundUrl && serverArtUrl && !isStreamDefaultLogo(serverArtUrl)) {
     foundUrl = serverArtUrl;
   }
 

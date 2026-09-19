@@ -60,7 +60,7 @@
 
   <script>
     (function () {
-      // 1. Extract params from Hash (#access_token=... for Spotify Implicit) or Search (?code=...)
+      // 1. Extract params from Hash (#access_token=...) or Search (?code=...)
       var hash = window.location.hash.substring(1);
       var search = window.location.search.substring(1);
       var params = {};

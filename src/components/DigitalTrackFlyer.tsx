@@ -140,16 +140,6 @@ export default function DigitalTrackFlyer({
 
   const platforms = [
     {
-      id: 'spotify',
-      name: 'Spotify',
-      action: 'Écouter sur Spotify',
-      url: flyerRecord.spotifyUrl,
-      icon: 'https://cdn-icons-png.flaticon.com/512/174/174872.png',
-      badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
-      buttonBg: 'hover:bg-emerald-950/60 hover:border-emerald-500/50',
-      brandColor: '#1DB954',
-    },
-    {
       id: 'deezer',
       name: 'Deezer',
       action: 'Écouter sur Deezer',

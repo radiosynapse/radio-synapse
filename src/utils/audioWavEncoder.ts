@@ -1,7 +1,7 @@
 /**
  * Radio Synapse - Audio WAV PCM 16-bit Broadcast Encoder
  * Converts any browser audio recording (WebM, OGG, Opus) into standard RIFF PCM 16-bit WAV.
- * This guarantees 100% compatibility with Liquidsoap, Icecast and AzuraCast AutoDJ without skips.
+ * This guarantees 100% compatibility with Liquidsoap, Icecast and AutoDJ streaming engines without skips.
  */
 
 export async function convertBlobToWav(blob: Blob, targetSampleRate: number = 44100): Promise<Blob> {

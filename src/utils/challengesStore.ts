@@ -97,44 +97,7 @@ const USER_LISTENING_KEY = 'radio_synapse_user_listening_time_v2';
 const USER_SHARES_KEY = 'radio_synapse_user_shared_tracks_v2';
 
 // DEFAULT CONSTANT CHALLENGES
-export const DEFAULT_CONSTANT_CHALLENGES: ConstantChallengeConfig[] = [
-  {
-    id: 'constant_weekly_listening',
-    title: 'Top Auditeurs de la Semaine (Temps d\'Écoute)',
-    type: 'weekly_listening',
-    description: 'Les auditeurs les plus assidus sur nos fréquences remportent des points bonus chaque semaine.',
-    stationId: 'all',
-    podium: {
-      first: 500,
-      second: 300,
-      third: 150,
-    },
-    currentLeaderboard: [
-      { rank: 1, userId: 'user_alex', username: 'Alex R.', score: 840, scoreLabel: '14h 00m', stationName: 'Pop Variété' },
-      { rank: 2, userId: 'user_sarah', username: 'Sarah D.', score: 690, scoreLabel: '11h 30m', stationName: 'Disco & Funk' },
-      { rank: 3, userId: 'user_julien', username: 'Julien M.', score: 510, scoreLabel: '8h 30m', stationName: 'House Club' },
-    ],
-    enabled: true,
-  },
-  {
-    id: 'constant_weekly_shares',
-    title: 'Top Ambassadeurs (Partage de Titres Likés)',
-    type: 'weekly_shares',
-    description: 'Partagez vos morceaux coups de cœur de la radio avec vos proches et grimpez sur le podium hebdo.',
-    stationId: 'all',
-    podium: {
-      first: 400,
-      second: 250,
-      third: 100,
-    },
-    currentLeaderboard: [
-      { rank: 1, userId: 'user_clara', username: 'Clara B.', score: 42, scoreLabel: '42 partages', stationName: 'Électro Club' },
-      { rank: 2, userId: 'user_thomas', username: 'Thomas V.', score: 28, scoreLabel: '28 partages', stationName: 'Chillout Lounge' },
-      { rank: 3, userId: 'user_marion', username: 'Marion L.', score: 19, scoreLabel: '19 partages', stationName: 'Jazz Club' },
-    ],
-    enabled: true,
-  },
-];
+export const DEFAULT_CONSTANT_CHALLENGES: ConstantChallengeConfig[] = [];
 
 // SUBMISSIONS MANAGEMENT
 export function getTrackSubmissions(): TrackSubmission[] {
@@ -166,7 +129,7 @@ export function saveTrackSubmissions(submissions: TrackSubmission[]): void {
 /**
  * Load submissions from Supabase table `synapse_track_submissions`
  */
-export async function loadTrackSubmissionsFromPocketBase(): Promise<TrackSubmission[]> {
+export async function loadTrackSubmissionsFromSupabase(): Promise<TrackSubmission[]> {
   try {
     const { data: records, error } = await supabase
       .from('synapse_track_submissions')
@@ -344,10 +307,11 @@ export function getPendingSubmissions(): TrackSubmission[] {
 export function getConstantChallenges(): ConstantChallengeConfig[] {
   try {
     const raw = localStorage.getItem(CONSTANT_CHALLENGES_KEY);
-    if (!raw) return DEFAULT_CONSTANT_CHALLENGES;
-    return JSON.parse(raw);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return DEFAULT_CONSTANT_CHALLENGES;
+    return [];
   }
 }
 
@@ -385,7 +349,7 @@ export function saveConstantChallenges(configs: ConstantChallengeConfig[]): void
   } catch {}
 }
 
-export async function loadConstantChallengesFromPocketBase(): Promise<ConstantChallengeConfig[]> {
+export async function loadConstantChallengesFromSupabase(): Promise<ConstantChallengeConfig[]> {
   try {
     const { data: records, error } = await supabase.from('synapse_constant_challenges').select('*');
     if (error || !records || records.length === 0) return getConstantChallenges();

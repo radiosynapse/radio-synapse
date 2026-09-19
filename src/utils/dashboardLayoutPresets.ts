@@ -133,7 +133,7 @@ export function getWidgetPresetConfig(widgetId: DashboardWidgetId, density: Widg
         isVertical: true,
         colSpanClass: 'col-span-12 lg:col-span-4',
         rowSpanClass: 'row-span-1',
-        label: 'Santé PocketBase & AzuraCast',
+        label: 'Santé Supabase & Serveur de Flux',
       };
 
     case 'recent_messages':

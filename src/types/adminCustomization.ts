@@ -1,15 +1,20 @@
 export type AdminTab = 
   | 'dashboard' 
-  | 'stations' 
-  | 'services' 
-  | 'users' 
-  | 'challenges' 
-  | 'promotions' 
-  | 'programming' 
-  | 'events' 
-  | 'messages' 
-  | 'features'
-  | 'azuracast' 
+  | 'stations_management' // Super-Admin Exclusif : Création, modification, flux Icecast & suppression
+  | 'regie_animation'     // Régie & Animation : Studio direct, Micro, Cartouchier, Jingles
+  | 'music_library'       // Bibliothèque Musicale : Titres, import, tags, BPM, analyse
+  | 'playlists'           // Gestion des Playlists : Rotations Auto-DJ (Heavy, Med, Soft), listes
+  | 'emission_prep'       // Préparation des Émissions : Conducteurs d'antenne, blocs & chroniques
+  | 'programming'         // Grille On-Air / TV & Radio
+  | 'messages'            // Messagerie Studio & Dédicaces
+  | 'events'              // Événements & Concerts
+  | 'challenges'          // Défis & XP
+  | 'promotions'          // Promotions & Boutique
+  | 'users'               // Gestion des Utilisateurs & Attribution des radios
+  | 'services'            // Services & API (Super-Admin / Tech)
+  | 'features'            // Modules du Site (Super-Admin)
+  | 'stations'            // Alias de compatibilité
+  | 'streaming' 
   | 'database';
 
 export interface SidebarItemConfig {
