@@ -56,7 +56,7 @@ export function resetAdminProfileTemplates(): AdminProfileTemplate[] {
 export function isSuperAdmin(user: SynapseUser | null): boolean {
   const active = user || getStoredSynapseUser();
   if (!active) {
-    return true; // Standalone admin panel session fallback
+    return false;
   }
 
   const cleanEmail = (active.email || '').toLowerCase().trim();
@@ -73,7 +73,7 @@ export function isSuperAdmin(user: SynapseUser | null): boolean {
  * Check if user has admin privileges
  */
 export function isAdminOrAbove(user: SynapseUser | null): boolean {
-  if (!user) return true;
+  if (!user) return false;
   if (user.role === 'user') {
     const cleanEmail = (user.email || '').toLowerCase().trim();
     if (cleanEmail === 'adminradiosynapse@gmail.com' || cleanEmail === 'admin@radiosynapse.fr') return true;

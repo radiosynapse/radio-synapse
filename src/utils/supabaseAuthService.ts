@@ -94,7 +94,6 @@ export async function loginWithSupabase(
 
     const djAccount = profile?.dj_username ? {
       username: profile.dj_username,
-      password: profile.dj_password || '',
       displayName: profile.dj_display_name || profile.dj_username,
       stationShortcode: profile.dj_station || 'synapse-main',
       linkedAt: profile.dj_linked_at ? new Date(profile.dj_linked_at).getTime() : Date.now(),
@@ -278,7 +277,6 @@ export async function restoreSupabaseAuthSession(): Promise<SynapseUser | null> 
 
     const djAccount = profile?.dj_username ? {
       username: profile.dj_username,
-      password: profile.dj_password || '',
       displayName: profile.dj_display_name || profile.dj_username,
       stationShortcode: profile.dj_station || 'synapse-main',
       linkedAt: profile.dj_linked_at ? new Date(profile.dj_linked_at).getTime() : Date.now(),
@@ -335,16 +333,13 @@ export async function updateUserRoleInSupabase(
   customPermissions?: string[]
 ): Promise<boolean> {
   try {
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        role,
-        admin_profile_id: adminProfileId,
-        assigned_station_id: assignedStationId,
-        custom_permissions: customPermissions,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', userId);
+    const { error } = await supabase.rpc('update_user_role', {
+      p_user_id: userId,
+      p_role: role,
+      p_admin_profile_id: adminProfileId ?? null,
+      p_assigned_station_id: assignedStationId ?? null,
+      p_custom_permissions: customPermissions ?? null,
+    });
 
     return !error;
   } catch {
@@ -353,7 +348,10 @@ export async function updateUserRoleInSupabase(
 }
 
 /**
- * Save DJ Harbor account association for a user
+ * Save DJ Harbor account association for a user.
+ * The DJ password is no longer persisted to localStorage in plaintext.
+ * It is only sent to the server profile for backend use, and even there
+ * storage of raw credentials should be replaced by a token in the future.
  */
 export async function saveAdminDjAccount(
   user: SynapseUser,
@@ -361,7 +359,6 @@ export async function saveAdminDjAccount(
 ): Promise<SynapseUser> {
   const djAccount = {
     username: djData.username.trim(),
-    password: djData.password || '',
     displayName: djData.displayName?.trim() || djData.username.trim(),
     stationShortcode: djData.stationShortcode || 'synapse-main',
     linkedAt: Date.now(),
@@ -380,7 +377,6 @@ export async function saveAdminDjAccount(
     try {
       await supabase.from('profiles').update({
         dj_username: djAccount.username,
-        dj_password: djAccount.password,
         dj_display_name: djAccount.displayName,
         dj_station: djAccount.stationShortcode,
         dj_linked_at: new Date().toISOString(),
@@ -456,7 +452,6 @@ export async function fetchSupabaseUsers(): Promise<{ data: SynapseUser[]; error
 
       const djAccount = rec.dj_username ? {
         username: rec.dj_username,
-        password: rec.dj_password || '',
         displayName: rec.dj_display_name || rec.dj_username,
         stationShortcode: rec.dj_station || 'synapse-main',
         linkedAt: rec.dj_linked_at ? new Date(rec.dj_linked_at).getTime() : Date.now(),
